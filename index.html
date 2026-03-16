@@ -17,32 +17,25 @@
   <div class="app-shell">
     <header class="topbar">
       <button id="backBtn" class="icon-btn hidden-btn" type="button" aria-label="Terug">‹</button>
-      <div class="topbar-title-wrap">
-        <h1 id="screenTitle">Agenda</h1>
-      </div>
-      <button id="fabAddTop" class="icon-btn" type="button" aria-label="Nieuw item">＋</button>
+      <div class="topbar-title-wrap"><h1 id="screenTitle">Agenda</h1></div>
+      <div class="topbar-spacer"></div>
     </header>
 
     <main class="main-layout">
       <section id="agendaScreen" class="screen active">
         <section class="calendar-panel">
           <div class="month-header">
-            <button class="icon-btn" id="prevMonthBtn" type="button" aria-label="Vorige maand">‹</button>
-            <div class="month-title" id="monthTitle">MAART 2024</div>
-            <button class="icon-btn" id="nextMonthBtn" type="button" aria-label="Volgende maand">›</button>
+            <button class="icon-btn" id="prevMonthBtn" type="button">‹</button>
+            <button class="month-title month-select-btn" id="monthPickerBtn" type="button">MAART 2024</button>
+            <button class="icon-btn" id="nextMonthBtn" type="button">›</button>
           </div>
-
           <div class="weekday-row">
             <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
           </div>
-
           <div id="calendarGrid" class="calendar-grid"></div>
         </section>
-
         <section class="agenda-list-panel">
-          <div class="section-head sticky-inside">
-            <h2 id="agendaListTitle">Afspraken op 20 maart 2024</h2>
-          </div>
+          <div class="section-head sticky-inside"><h2 id="agendaListTitle">Afspraken</h2></div>
           <div id="agendaList" class="scroll-list"></div>
         </section>
       </section>
@@ -51,6 +44,7 @@
         <section class="clients-panel">
           <div class="section-head">
             <input id="clientSearch" class="search-input" type="search" placeholder="Zoek klant..." />
+            <div id="alphabetFilter" class="alphabet-filter"></div>
           </div>
           <div id="clientsList" class="scroll-list"></div>
         </section>
@@ -58,111 +52,89 @@
 
       <section id="servicesScreen" class="screen">
         <section class="services-panel">
-          <div class="section-head">
-            <h2>Diensten</h2>
-          </div>
+          <div class="section-head"><h2>Diensten</h2></div>
           <div id="servicesList" class="scroll-list"></div>
         </section>
       </section>
 
       <section id="revenueScreen" class="screen">
-        <section class="summary-card">
-          <div class="summary-block">
-            <span class="summary-label">Gepland</span>
-            <strong id="plannedRevenue">€ 0,00</strong>
-          </div>
-          <div class="summary-block">
-            <span class="summary-label">Betaald</span>
-            <strong id="paidRevenue">€ 0,00</strong>
-          </div>
-          <div class="summary-block">
-            <span class="summary-label">Openstaand</span>
-            <strong id="openRevenue">€ 0,00</strong>
+        <section class="section-head revenue-filters-wrap">
+          <div class="filter-grid">
+            <select id="revenuePeriodType" class="field compact-field">
+              <option value="day">Dag</option>
+              <option value="week">Week</option>
+              <option value="month" selected>Maand</option>
+              <option value="year">Jaar</option>
+            </select>
+            <input id="revenueDate" class="field compact-field" type="date" />
+            <select id="revenuePaymentStatusFilter" class="field compact-field"><option value="">Betaald + onbetaald</option><option value="paid">Enkel betaald</option><option value="unpaid">Enkel onbetaald</option></select>
+            <select id="revenuePaymentFilter" class="field compact-field"><option value="">Alle betaalmiddelen</option></select>
+            <select id="revenueCustomerFilter" class="field compact-field"><option value="">Alle klanten</option></select>
           </div>
         </section>
-
+        <section class="summary-card">
+          <div class="summary-block"><span class="summary-label">Totaal</span><strong id="plannedRevenue">€ 0,00</strong></div>
+          <div class="summary-block"><span class="summary-label">Betaald</span><strong id="paidRevenue">€ 0,00</strong></div>
+          <div class="summary-block"><span class="summary-label">Openstaand</span><strong id="openRevenue">€ 0,00</strong></div>
+        </section>
         <section class="revenue-panel">
-          <div class="section-head">
-            <h2>Per betaalmethode</h2>
-          </div>
+          <div class="section-head"><h2 id="revenueTitle">Overzicht</h2></div>
           <div id="paymentMethodList" class="scroll-list"></div>
         </section>
       </section>
 
       <section id="clientDetailScreen" class="screen">
-        <section class="detail-panel">
-          <div id="clientDetailContent" class="scroll-list"></div>
-        </section>
+        <section class="detail-panel"><div id="clientDetailContent" class="scroll-list"></div></section>
       </section>
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-screen="agendaScreen" data-title="Agenda">
-        <span class="nav-ico">🗓</span><span>Agenda</span>
-      </button>
-      <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten">
-        <span class="nav-ico">👤</span><span>Klanten</span>
-      </button>
-      <button class="nav-btn" data-screen="servicesScreen" data-title="Diensten">
-        <span class="nav-ico">✂️</span><span>Diensten</span>
-      </button>
-      <button class="nav-btn" data-screen="revenueScreen" data-title="Omzet">
-        <span class="nav-ico">📊</span><span>Omzet</span>
-      </button>
+      <button class="nav-btn active" data-screen="agendaScreen" data-title="Agenda"><span class="nav-ico">🗓</span><span>Agenda</span></button>
+      <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten"><span class="nav-ico">👤</span><span>Klanten</span></button>
+      <button class="nav-btn" data-screen="servicesScreen" data-title="Diensten"><span class="nav-ico">✂️</span><span>Diensten</span></button>
+      <button class="nav-btn" data-screen="revenueScreen" data-title="Omzet"><span class="nav-ico">📊</span><span>Omzet</span></button>
     </nav>
   </div>
 
-  <button id="floatingAddBtn" class="fab" type="button" aria-label="Toevoegen">+</button>
+  <button id="floatingAddBtn" class="fab" type="button">+</button>
+
+  <dialog id="monthPickerDialog" class="modal">
+    <form method="dialog" class="modal-card modal-small" id="monthPickerForm">
+      <div class="modal-head"><h3>Maand kiezen</h3><button class="icon-btn" type="button" data-close="monthPickerDialog">✕</button></div>
+      <label class="field-label">Maand</label><select id="monthSelect" class="field"></select>
+      <label class="field-label">Jaar</label><input id="yearSelect" class="field" type="number" min="2000" max="2100" />
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="monthPickerDialog">Annuleren</button>
+        <button class="btn btn-primary action-btn" type="submit">OK</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="appointmentDialog" class="modal">
     <form method="dialog" id="appointmentForm" class="modal-card">
-      <div class="modal-head">
-        <h3 id="appointmentModalTitle">Nieuwe afspraak</h3>
-        <button class="icon-btn" value="cancel" type="button" data-close="appointmentDialog">✕</button>
-      </div>
-
+      <div class="modal-head"><h3 id="appointmentModalTitle">Nieuwe afspraak</h3><button class="icon-btn" type="button" data-close="appointmentDialog">✕</button></div>
       <input type="hidden" id="appointmentId" />
-
-      <label class="field-label">Klant</label>
-      <select id="appointmentCustomer" class="field" required></select>
-
+      <label class="field-label">Klant</label><select id="appointmentCustomer" class="field" required></select>
       <div class="field-row">
-        <div>
-          <label class="field-label">Datum</label>
-          <input id="appointmentDate" class="field" type="date" required />
-        </div>
-        <div>
-          <label class="field-label">Tijd</label>
-          <input id="appointmentTime" class="field" type="time" required />
-        </div>
+        <div><label class="field-label">Datum</label><input id="appointmentDate" class="field" type="date" required /></div>
+        <div><label class="field-label">Tijd</label><input id="appointmentTime" class="field" type="time" required /></div>
       </div>
-
-      <label class="field-label">Dienst</label>
-      <select id="appointmentService" class="field" required></select>
-
+      <label class="field-label">Dienst</label><select id="appointmentService" class="field" required></select>
       <div class="field-row">
-        <div>
-          <label class="field-label">Duur</label>
-          <input id="appointmentDuration" class="field" type="number" min="15" step="15" required />
-        </div>
-        <div>
-          <label class="field-label">Prijs</label>
-          <input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required />
-        </div>
+        <div><label class="field-label">Duur (min)</label><input id="appointmentDuration" class="field" type="number" min="1" step="1" required /></div>
+        <div><label class="field-label">Prijs</label><input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required /></div>
       </div>
-
       <label class="field-label">Status</label>
       <select id="appointmentStatus" class="field">
         <option value="gepland">Gepland</option>
         <option value="afgerond">Afgerond</option>
         <option value="no-show">No-show</option>
       </select>
-
       <div class="modal-actions">
-        <button id="deleteAppointmentBtn" class="btn btn-danger" type="button">Verwijderen</button>
+        <button id="deleteAppointmentBtn" class="btn btn-danger action-btn" type="button">Verwijderen</button>
         <div class="right-actions">
-          <button class="btn btn-secondary" type="button" data-close="appointmentDialog">Annuleren</button>
-          <button class="btn btn-primary" type="submit">OK</button>
+          <button class="btn btn-secondary action-btn" type="button" data-close="appointmentDialog">Annuleren</button>
+          <button class="btn btn-primary action-btn" type="submit">OK</button>
         </div>
       </div>
     </form>
@@ -170,54 +142,34 @@
 
   <dialog id="clientDialog" class="modal">
     <form method="dialog" id="clientForm" class="modal-card">
-      <div class="modal-head">
-        <h3 id="clientModalTitle">Nieuwe klant</h3>
-        <button class="icon-btn" value="cancel" type="button" data-close="clientDialog">✕</button>
-      </div>
-
+      <div class="modal-head"><h3 id="clientModalTitle">Nieuwe klant</h3><button class="icon-btn" type="button" data-close="clientDialog">✕</button></div>
       <input type="hidden" id="clientId" />
-      <label class="field-label">Naam</label>
-      <input id="clientName" class="field" required />
-      <label class="field-label">Telefoon</label>
-      <input id="clientPhone" class="field" />
-      <label class="field-label">E-mail</label>
-      <input id="clientEmail" class="field" type="email" />
-      <label class="field-label">Notitie</label>
-      <textarea id="clientNote" class="field textarea"></textarea>
-
+      <label class="field-label">Voornaam</label><input id="clientFirstName" class="field" required />
+      <label class="field-label">Achternaam</label><input id="clientLastName" class="field" />
+      <label class="field-label">Telefoon</label><input id="clientPhone" class="field" />
+      <label class="field-label">E-mail</label><input id="clientEmail" class="field" type="email" />
+      <label class="field-label">Notitie</label><textarea id="clientNote" class="field textarea"></textarea>
       <div class="modal-actions end-only">
-        <button class="btn btn-secondary" type="button" data-close="clientDialog">Annuleren</button>
-        <button class="btn btn-primary" type="submit">OK</button>
+        <button class="btn btn-secondary action-btn" type="button" data-close="clientDialog">Annuleren</button>
+        <button class="btn btn-primary action-btn" type="submit">OK</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="serviceDialog" class="modal">
     <form method="dialog" id="serviceForm" class="modal-card">
-      <div class="modal-head">
-        <h3 id="serviceModalTitle">Dienst beheren</h3>
-        <button class="icon-btn" value="cancel" type="button" data-close="serviceDialog">✕</button>
-      </div>
-
+      <div class="modal-head"><h3 id="serviceModalTitle">Dienst beheren</h3><button class="icon-btn" type="button" data-close="serviceDialog">✕</button></div>
       <input type="hidden" id="serviceId" />
-      <label class="field-label">Naam</label>
-      <input id="serviceName" class="field" required />
+      <label class="field-label">Naam</label><input id="serviceName" class="field" required />
       <div class="field-row">
-        <div>
-          <label class="field-label">Standaardduur</label>
-          <input id="serviceDuration" class="field" type="number" min="15" step="15" required />
-        </div>
-        <div>
-          <label class="field-label">Standaardprijs</label>
-          <input id="servicePrice" class="field" type="number" min="0" step="0.01" required />
-        </div>
+        <div><label class="field-label">Standaardduur</label><input id="serviceDuration" class="field" type="number" min="1" step="1" required /></div>
+        <div><label class="field-label">Standaardprijs</label><input id="servicePrice" class="field" type="number" min="0" step="0.01" required /></div>
       </div>
-
       <div class="modal-actions">
-        <button id="deleteServiceBtn" class="btn btn-danger" type="button">Verwijderen</button>
+        <button id="deleteServiceBtn" class="btn btn-danger action-btn" type="button">Verwijderen</button>
         <div class="right-actions">
-          <button class="btn btn-secondary" type="button" data-close="serviceDialog">Annuleren</button>
-          <button class="btn btn-primary" type="submit">OK</button>
+          <button class="btn btn-secondary action-btn" type="button" data-close="serviceDialog">Annuleren</button>
+          <button class="btn btn-primary action-btn" type="submit">OK</button>
         </div>
       </div>
     </form>
@@ -225,14 +177,9 @@
 
   <dialog id="paymentDialog" class="modal">
     <form method="dialog" id="paymentForm" class="modal-card modal-small">
-      <div class="modal-head">
-        <h3>Betaling registreren</h3>
-        <button class="icon-btn" value="cancel" type="button" data-close="paymentDialog">✕</button>
-      </div>
-
+      <div class="modal-head"><h3>Betaling registreren</h3><button class="icon-btn" type="button" data-close="paymentDialog">✕</button></div>
       <input type="hidden" id="paymentAppointmentId" />
       <div class="payment-amount" id="paymentAmount">€ 0,00</div>
-
       <label class="field-label">Betaalmethode</label>
       <select id="paymentMethod" class="field">
         <option value="cash">Cash</option>
@@ -242,10 +189,9 @@
         <option value="overschrijving">Overschrijving</option>
         <option value="anders">Anders</option>
       </select>
-
       <div class="modal-actions two-buttons">
-        <button id="markUnpaidBtn" class="btn btn-secondary" type="button">Niet betaald</button>
-        <button class="btn btn-primary" type="submit">OK</button>
+        <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">Niet betaald</button>
+        <button class="btn btn-primary action-btn" type="submit">OK</button>
       </div>
     </form>
   </dialog>
