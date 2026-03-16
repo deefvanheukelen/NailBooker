@@ -974,7 +974,6 @@ async function saveServiceFromForm(event) {
     const id = Number(document.getElementById("serviceId").value);
 
     const payload = {
-	  user_id: user.id,
 	  name: document.getElementById("serviceName").value.trim(),
 	  duration: Number(document.getElementById("serviceDuration").value),
 	  price: Number(document.getElementById("servicePrice").value)
@@ -997,8 +996,8 @@ async function saveServiceFromForm(event) {
   const payload = {
     user_id: user.id,
     name: document.getElementById("serviceName").value.trim(),
-    duration_minutes: Number(document.getElementById("serviceDuration").value),
-    default_price: Number(document.getElementById("servicePrice").value)
+    duration: Number(document.getElementById("serviceDuration").value),
+    price: Number(document.getElementById("servicePrice").value)
   };
 
   let error;

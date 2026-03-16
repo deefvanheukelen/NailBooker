@@ -60,19 +60,32 @@
       <section id="revenueScreen" class="screen">
         <section class="section-head revenue-filters-wrap">
           <div class="filter-grid">
-            <select id="revenuePeriodType" class="field compact-field">
-              <option value="day">Dag</option>
-              <option value="week">Week</option>
-              <option value="month" selected>Maand</option>
-              <option value="year">Jaar</option>
-            </select>
-            <input id="revenueDate" class="field compact-field" type="date" />
-            <select id="revenuePaymentFilter" class="field compact-field"><option value="">Alle betaalmiddelen</option></select>
-            <select id="revenueCustomerFilter" class="field compact-field"><option value="">Alle klanten</option></select>
-          </div>
+			  <select id="revenuePeriodType" class="field compact-field">
+				<option value="day">Dag</option>
+				<option value="week">Week</option>
+				<option value="month" selected>Maand</option>
+				<option value="year">Jaar</option>
+			  </select>
+
+			  <input id="revenueDate" class="field compact-field" type="date" />
+
+			  <select id="revenuePaymentStatusFilter" class="field compact-field">
+				<option value="">Alle betalingen</option>
+				<option value="paid">Betaald</option>
+				<option value="unpaid">Onbetaald</option>
+			  </select>
+
+			  <select id="revenuePaymentFilter" class="field compact-field">
+				<option value="">Alle betaalmiddelen</option>
+			  </select>
+
+			  <select id="revenueCustomerFilter" class="field compact-field">
+				<option value="">Alle klanten</option>
+			  </select>
+			</div>
         </section>
         <section class="summary-card">
-          <div class="summary-block"><span class="summary-label">Gepland</span><strong id="plannedRevenue">€ 0,00</strong></div>
+          <div class="summary-block"><span class="summary-label">Totaal</span><strong id="plannedRevenue">€ 0,00</strong></div>
           <div class="summary-block"><span class="summary-label">Betaald</span><strong id="paidRevenue">€ 0,00</strong></div>
           <div class="summary-block"><span class="summary-label">Openstaand</span><strong id="openRevenue">€ 0,00</strong></div>
         </section>
@@ -178,7 +191,7 @@
       </div>
       <label class="field-label">Status</label>
       <select id="appointmentStatus" class="field">
-        <option value="gepland">Gepland</option>
+        <option value="gepland">Totaal</option>
         <option value="afgerond">Afgerond</option>
         <option value="no-show">No-show</option>
       </select>
