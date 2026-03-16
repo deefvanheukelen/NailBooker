@@ -790,6 +790,7 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   document.getElementById("appointmentDate").value = state.selectedDate;
   document.getElementById("appointmentTime").value = "10:00";
   document.getElementById("appointmentStatus").value = "gepland";
+  document.getElementById("appointmentStatusWrap").style.display = "none";
 
   const serviceSelect = document.getElementById("appointmentService");
   if (serviceSelect.options.length) {
@@ -817,6 +818,7 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
   document.getElementById("appointmentStatus").value = app.status;
+  document.getElementById("appointmentStatusWrap").style.display = "block";
 
   document.getElementById("deleteAppointmentBtn").style.visibility = "visible";
   document.getElementById("appointmentDialog").showModal();
@@ -1034,20 +1036,18 @@ async function saveAppointmentFromForm(event) {
     const id = Number(document.getElementById("appointmentId").value);
 
     const payload = {
-	  user_id: user.id,
-	  customer_id: Number(document.getElementById("appointmentCustomer").value),
-	  appointment_date: document.getElementById("appointmentDate").value,
-	  appointment_time: document.getElementById("appointmentTime").value,
-	  service_id: Number(document.getElementById("appointmentService").value),
-	  duration: Number(document.getElementById("appointmentDuration").value),
-	  price: Number(document.getElementById("appointmentPrice").value),
-	  status: document.getElementById("appointmentStatus").value,
-	  paid: existingApp ? existingApp.paid : false,
-	  payment_method: existingApp ? existingApp.paymentMethod : null
-	};
+      customerId: Number(document.getElementById("appointmentCustomer").value),
+      date: document.getElementById("appointmentDate").value,
+      time: document.getElementById("appointmentTime").value,
+      serviceId: Number(document.getElementById("appointmentService").value),
+      duration: Number(document.getElementById("appointmentDuration").value),
+      price: Number(document.getElementById("appointmentPrice").value),
+      status: id ? document.getElementById("appointmentStatus").value : "gepland"
+    };
 
     if (id) {
-      Object.assign(data.appointments.find(a => Number(a.id) === id), payload);
+      const existingApp = data.appointments.find(a => Number(a.id) === id);
+      Object.assign(existingApp, payload);
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
@@ -1070,7 +1070,6 @@ async function saveAppointmentFromForm(event) {
   }
 
   const id = document.getElementById("appointmentId").value;
-
   const existingApp = getData().appointments.find(a => String(a.id) === String(id));
 
   const payload = {
@@ -1079,9 +1078,9 @@ async function saveAppointmentFromForm(event) {
     appointment_date: document.getElementById("appointmentDate").value,
     appointment_time: document.getElementById("appointmentTime").value,
     service_id: Number(document.getElementById("appointmentService").value),
-    duration_minutes: Number(document.getElementById("appointmentDuration").value),
+    duration: Number(document.getElementById("appointmentDuration").value),
     price: Number(document.getElementById("appointmentPrice").value),
-    status: document.getElementById("appointmentStatus").value,
+    status: id ? document.getElementById("appointmentStatus").value : "gepland",
     paid: existingApp ? existingApp.paid : false,
     payment_method: existingApp ? existingApp.paymentMethod : null
   };
