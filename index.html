@@ -67,13 +67,12 @@
               <option value="year">Jaar</option>
             </select>
             <input id="revenueDate" class="field compact-field" type="date" />
-            <select id="revenuePaymentStatusFilter" class="field compact-field"><option value="">Betaald + onbetaald</option><option value="paid">Enkel betaald</option><option value="unpaid">Enkel onbetaald</option></select>
             <select id="revenuePaymentFilter" class="field compact-field"><option value="">Alle betaalmiddelen</option></select>
             <select id="revenueCustomerFilter" class="field compact-field"><option value="">Alle klanten</option></select>
           </div>
         </section>
         <section class="summary-card">
-          <div class="summary-block"><span class="summary-label">Totaal</span><strong id="plannedRevenue">€ 0,00</strong></div>
+          <div class="summary-block"><span class="summary-label">Gepland</span><strong id="plannedRevenue">€ 0,00</strong></div>
           <div class="summary-block"><span class="summary-label">Betaald</span><strong id="paidRevenue">€ 0,00</strong></div>
           <div class="summary-block"><span class="summary-label">Openstaand</span><strong id="openRevenue">€ 0,00</strong></div>
         </section>
@@ -86,6 +85,58 @@
       <section id="clientDetailScreen" class="screen">
         <section class="detail-panel"><div id="clientDetailContent" class="scroll-list"></div></section>
       </section>
+	  
+	  <section id="accountScreen" class="screen">
+		  <section class="detail-panel">
+			<div class="scroll-list">
+			  <div class="detail-card">
+				<div class="detail-block">
+				  <div class="detail-label">Registreren</div>
+
+				  <label class="field-label">Naam</label>
+				  <input id="registerName" class="field" type="text" />
+
+				  <label class="field-label">E-mail</label>
+				  <input id="registerEmail" class="field" type="email" />
+
+				  <label class="field-label">Wachtwoord</label>
+				  <input id="registerPassword" class="field" type="password" />
+
+				  <div style="margin-top:16px;">
+					<button id="registerBtn" class="btn btn-primary action-btn" type="button">Registreren</button>
+				  </div>
+				</div>
+			  </div>
+
+			  <div class="detail-card">
+				<div class="detail-block">
+				  <div class="detail-label">Inloggen</div>
+
+				  <label class="field-label">E-mail</label>
+				  <input id="loginEmail" class="field" type="email" />
+
+				  <label class="field-label">Wachtwoord</label>
+				  <input id="loginPassword" class="field" type="password" />
+
+				  <div style="margin-top:16px;">
+					<button id="loginBtn" class="btn btn-primary action-btn" type="button">Inloggen</button>
+				  </div>
+				</div>
+			  </div>
+
+			  <div class="detail-card">
+				<div class="detail-block">
+				  <div class="detail-label">Sessie</div>
+				  <div id="authStatus" class="detail-value">Niet ingelogd</div>
+
+				  <div style="margin-top:16px;">
+					<button id="logoutBtn" class="btn btn-secondary action-btn" type="button">Uitloggen</button>
+				  </div>
+				</div>
+			  </div>
+			</div>
+		  </section>
+		</section>
     </main>
 
     <nav class="bottom-nav">
@@ -93,6 +144,7 @@
       <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten"><span class="nav-ico">👤</span><span>Klanten</span></button>
       <button class="nav-btn" data-screen="servicesScreen" data-title="Diensten"><span class="nav-ico">✂️</span><span>Diensten</span></button>
       <button class="nav-btn" data-screen="revenueScreen" data-title="Omzet"><span class="nav-ico">📊</span><span>Omzet</span></button>
+	  <button class="nav-btn" data-screen="accountScreen" data-title="Account"><span class="nav-ico">🔐</span><span>Account</span></button>
     </nav>
   </div>
 
@@ -185,7 +237,9 @@
         <option value="cash">Cash</option>
         <option value="payconiq">Payconiq</option>
         <option value="bancontact">Bancontact</option>
+        <option value="kaart">Kaart</option>
         <option value="overschrijving">Overschrijving</option>
+        <option value="anders">Anders</option>
       </select>
       <div class="modal-actions two-buttons">
         <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">Niet betaald</button>
@@ -194,6 +248,8 @@
     </form>
   </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

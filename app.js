@@ -89,15 +89,15 @@ function formatShortDate(dateStr) {
 }
 
 function nextId(items) {
-  return items.length ? Math.max(...items.map(i => i.id)) + 1 : 1;
+  return items.length ? Math.max(...items.map(i => Number(i.id))) + 1 : 1;
 }
 
 function customerById(data, id) {
-  return data.customers.find(c => c.id === id);
+  return data.customers.find(c => String(c.id) === String(id));
 }
 
 function serviceById(data, id) {
-  return data.services.find(s => s.id === id);
+  return data.services.find(s => String(s.id) === String(id));
 }
 
 function fullName(customer) {
@@ -117,6 +117,192 @@ function weekBounds(dateStr) {
     end: formatDateInput(end)
   };
 }
+
+/* =========================
+   AUTH / SUPABASE HELPERS
+========================= */
+
+async function getCurrentUser() {
+  const {
+    data: { user }
+  } = await supabaseClient.auth.getUser();
+
+  return user;
+}
+
+async function updateAuthStatus() {
+  const user = await getCurrentUser();
+  const authStatus = document.getElementById("authStatus");
+  if (!authStatus) return;
+
+  if (user) {
+    authStatus.textContent = `Ingelogd als ${user.email}`;
+  } else {
+    authStatus.textContent = "Niet ingelogd";
+  }
+}
+
+async function registerAccount() {
+  const fullName = document.getElementById("registerName").value.trim();
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value;
+
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName
+      }
+    }
+  });
+
+  if (error) {
+    alert("Registratie mislukt: " + error.message);
+    return;
+  }
+
+  alert("Account aangemaakt. Controleer eventueel je mailbox.");
+  await updateAuthStatus();
+}
+
+async function loginAccount() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    alert("Inloggen mislukt: " + error.message);
+    return;
+  }
+
+  await updateAuthStatus();
+  await loadAllDataFromSupabase();
+  rerenderAll();
+}
+
+async function logoutAccount() {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    alert("Uitloggen mislukt: " + error.message);
+    return;
+  }
+
+  localStorage.removeItem(STORAGE_KEY);
+  seedData();
+
+  await updateAuthStatus();
+  rerenderAll();
+}
+
+async function loadCustomersFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("customers")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("first_name", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden klanten:", error.message);
+    return [];
+  }
+
+  return (data || []).map(c => ({
+    id: c.id,
+    firstName: c.first_name,
+    lastName: c.last_name,
+    phone: c.phone,
+    email: c.email,
+    note: c.note
+  }));
+}
+
+async function loadServicesFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("services")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden diensten:", error.message);
+    return [];
+  }
+
+  return (data || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    duration: s.duration,
+    price: Number(s.price || 0)
+  }));
+}
+
+async function loadAppointmentsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("appointments")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("appointment_date", { ascending: true })
+    .order("appointment_time", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden afspraken:", error.message);
+    return [];
+  }
+
+  return (data || []).map(a => ({
+    id: a.id,
+    customerId: a.customer_id,
+    serviceId: a.service_id,
+    date: a.appointment_date,
+    time: a.appointment_time ? String(a.appointment_time).slice(0, 5) : "",
+    duration: a.duration,
+    price: Number(a.price || 0),
+    status: a.status,
+    paid: Boolean(a.paid),
+    paymentMethod: a.payment_method || ""
+  }));
+}
+
+async function loadAllDataFromSupabase() {
+  const customers = await loadCustomersFromSupabase();
+  const services = await loadServicesFromSupabase();
+  const appointments = await loadAppointmentsFromSupabase();
+
+  saveData({
+    customers,
+    services,
+    appointments
+  });
+}
+
+async function initAppData() {
+  const user = await getCurrentUser();
+
+  if (user) {
+    await loadAllDataFromSupabase();
+  } else {
+    seedData();
+  }
+}
+
+/* =========================
+   UI
+========================= */
 
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = title;
@@ -143,7 +329,7 @@ function updateTopbar(screenId, title) {
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "revenueScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "revenueScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -254,7 +440,7 @@ function renderAgendaList() {
   list.querySelectorAll(".price-chip").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      openPaymentDialog(Number(btn.dataset.id));
+      openPaymentDialog(btn.dataset.id);
     });
   });
 }
@@ -319,7 +505,7 @@ function renderClients() {
   list.innerHTML = "";
 
   clients.forEach(client => {
-    const count = data.appointments.filter(a => a.customerId === client.id).length;
+    const count = data.appointments.filter(a => String(a.customerId) === String(client.id)).length;
     const card = document.createElement("div");
     card.className = "client-card";
 
@@ -388,7 +574,7 @@ function revenueFilteredAppointments() {
   if (paymentStatusFilter === "paid") filtered = filtered.filter(a => a.paid);
   if (paymentStatusFilter === "unpaid") filtered = filtered.filter(a => !a.paid);
   if (paymentFilter) filtered = filtered.filter(a => a.paymentMethod === paymentFilter);
-  if (customerFilter) filtered = filtered.filter(a => String(a.customerId) === customerFilter);
+  if (customerFilter) filtered = filtered.filter(a => String(a.customerId) === String(customerFilter));
 
   return filtered;
 }
@@ -439,10 +625,10 @@ function renderRevenue() {
   document.getElementById("revenueTitle").textContent = title;
 
   const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const planned = filtered.filter(a => a.status !== "no-show").reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const total = filtered.filter(a => a.status !== "no-show").reduce((sum, a) => sum + Number(a.price || 0), 0);
   const open = filtered.filter(a => !a.paid && a.status !== "no-show").reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-  document.getElementById("plannedRevenue").textContent = euro(planned);
+  document.getElementById("plannedRevenue").textContent = euro(total);
   document.getElementById("paidRevenue").textContent = euro(paid);
   document.getElementById("openRevenue").textContent = euro(open);
 
@@ -511,7 +697,7 @@ function openClientDetail(clientId) {
   const content = document.getElementById("clientDetailContent");
 
   const appts = data.appointments
-    .filter(a => a.customerId === clientId)
+    .filter(a => String(a.customerId) === String(clientId))
     .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
   content.innerHTML = `
@@ -583,7 +769,7 @@ function openClientDetail(clientId) {
   document.getElementById("newClientAppointmentBtn").addEventListener("click", () => openNewAppointmentDialog(clientId));
 
   content.querySelectorAll(".from-detail-edit").forEach(btn => {
-    btn.addEventListener("click", () => openEditAppointmentDialog(Number(btn.dataset.id)));
+    btn.addEventListener("click", () => openEditAppointmentDialog(btn.dataset.id));
   });
 
   switchScreen("clientDetailScreen", "Klant");
@@ -604,7 +790,7 @@ function populateAppointmentForm(customerId = null) {
 
 function syncServiceDefaults() {
   const data = getData();
-  const service = serviceById(data, Number(document.getElementById("appointmentService").value));
+  const service = serviceById(data, document.getElementById("appointmentService").value);
 
   if (!service) return;
 
@@ -627,14 +813,14 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   }
 
   syncServiceDefaults();
-
   document.getElementById("deleteAppointmentBtn").style.visibility = "hidden";
   document.getElementById("appointmentDialog").showModal();
 }
 
 function openEditAppointmentDialog(id) {
   const data = getData();
-  const app = data.appointments.find(a => a.id === id);
+  const app = data.appointments.find(a => String(a.id) === String(id));
+  if (!app) return;
 
   populateAppointmentForm(app.customerId);
 
@@ -654,7 +840,8 @@ function openEditAppointmentDialog(id) {
 
 function openPaymentDialog(id) {
   const data = getData();
-  const app = data.appointments.find(a => a.id === id);
+  const app = data.appointments.find(a => String(a.id) === String(id));
+  if (!app) return;
 
   document.getElementById("paymentAppointmentId").value = id;
   document.getElementById("paymentAmount").textContent = euro(app.price);
@@ -678,6 +865,7 @@ function openNewClientDialog() {
 function openEditClientDialog(id) {
   const data = getData();
   const client = customerById(data, id);
+  if (!client) return;
 
   document.getElementById("clientModalTitle").textContent = "Klant bewerken";
   document.getElementById("clientId").value = client.id;
@@ -704,6 +892,7 @@ function openNewServiceDialog() {
 function openEditServiceDialog(id) {
   const data = getData();
   const service = serviceById(data, id);
+  if (!service) return;
 
   document.getElementById("serviceModalTitle").textContent = "Dienst bewerken";
   document.getElementById("serviceId").value = service.id;
@@ -715,80 +904,72 @@ function openEditServiceDialog(id) {
   document.getElementById("serviceDialog").showModal();
 }
 
-function saveAppointmentFromForm(event) {
+/* =========================
+   SAVE / DELETE
+========================= */
+
+async function saveClientFromForm(event) {
   event.preventDefault();
 
-  const data = getData();
-  const id = Number(document.getElementById("appointmentId").value);
+  const user = await getCurrentUser();
 
-  const payload = {
-    customerId: Number(document.getElementById("appointmentCustomer").value),
-    date: document.getElementById("appointmentDate").value,
-    time: document.getElementById("appointmentTime").value,
-    serviceId: Number(document.getElementById("appointmentService").value),
-    duration: Number(document.getElementById("appointmentDuration").value),
-    price: Number(document.getElementById("appointmentPrice").value),
-    status: document.getElementById("appointmentStatus").value
-  };
+  if (!user) {
+    const data = getData();
+    const id = Number(document.getElementById("clientId").value);
 
-  if (id) {
-    Object.assign(data.appointments.find(a => a.id === id), payload);
-  } else {
-    data.appointments.push({
-      id: nextId(data.appointments),
-      ...payload,
-      paid: false,
-      paymentMethod: ""
-    });
+    const payload = {
+      firstName: document.getElementById("clientFirstName").value.trim(),
+      lastName: document.getElementById("clientLastName").value.trim(),
+      phone: document.getElementById("clientPhone").value.trim(),
+      email: document.getElementById("clientEmail").value.trim(),
+      note: document.getElementById("clientNote").value.trim()
+    };
+
+    if (id) {
+      Object.assign(customerById(data, id), payload);
+    } else {
+      data.customers.push({ id: nextId(data.customers), ...payload });
+    }
+
+    saveData(data);
+    closeDialog("clientDialog");
+    renderAlphabetFilter();
+    renderClients();
+    renderRevenueFilters();
+    return;
   }
 
-  saveData(data);
-  closeDialog("appointmentDialog");
-
-  state.selectedDate = payload.date;
-  const picked = new Date(payload.date + "T00:00:00");
-  state.currentYear = picked.getFullYear();
-  state.currentMonth = picked.getMonth();
-
-  rerenderAll();
-}
-
-function deleteCurrentAppointment() {
-  const id = Number(document.getElementById("appointmentId").value);
-  if (!id) return;
-
-  const data = getData();
-  data.appointments = data.appointments.filter(a => a.id !== id);
-
-  saveData(data);
-  closeDialog("appointmentDialog");
-  rerenderAll();
-}
-
-function saveClientFromForm(event) {
-  event.preventDefault();
-
-  const data = getData();
-  const id = Number(document.getElementById("clientId").value);
+  const id = document.getElementById("clientId").value;
 
   const payload = {
-    firstName: document.getElementById("clientFirstName").value.trim(),
-    lastName: document.getElementById("clientLastName").value.trim(),
+    user_id: user.id,
+    first_name: document.getElementById("clientFirstName").value.trim(),
+    last_name: document.getElementById("clientLastName").value.trim(),
     phone: document.getElementById("clientPhone").value.trim(),
     email: document.getElementById("clientEmail").value.trim(),
     note: document.getElementById("clientNote").value.trim()
   };
 
+  let error;
+
   if (id) {
-    Object.assign(customerById(data, id), payload);
+    ({ error } = await supabaseClient
+      .from("customers")
+      .update(payload)
+      .eq("id", Number(id))
+      .eq("user_id", user.id));
   } else {
-    data.customers.push({
-      id: nextId(data.customers),
-      ...payload
-    });
+    ({ error } = await supabaseClient
+      .from("customers")
+      .insert(payload));
   }
 
-  saveData(data);
+  if (error) {
+    alert("Opslaan klant mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
   closeDialog("clientDialog");
   renderAlphabetFilter();
   renderClients();
@@ -799,75 +980,303 @@ function saveClientFromForm(event) {
   }
 }
 
-function saveServiceFromForm(event) {
+async function saveServiceFromForm(event) {
   event.preventDefault();
 
-  const data = getData();
-  const id = Number(document.getElementById("serviceId").value);
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    const id = Number(document.getElementById("serviceId").value);
+
+    const payload = {
+	  user_id: user.id,
+	  name: document.getElementById("serviceName").value.trim(),
+	  duration: Number(document.getElementById("serviceDuration").value),
+	  price: Number(document.getElementById("servicePrice").value)
+	};
+
+    if (id) {
+      Object.assign(serviceById(data, id), payload);
+    } else {
+      data.services.push({ id: nextId(data.services), ...payload });
+    }
+
+    saveData(data);
+    closeDialog("serviceDialog");
+    rerenderAll();
+    return;
+  }
+
+  const id = document.getElementById("serviceId").value;
 
   const payload = {
+    user_id: user.id,
     name: document.getElementById("serviceName").value.trim(),
-    duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value)
+    duration_minutes: Number(document.getElementById("serviceDuration").value),
+    default_price: Number(document.getElementById("servicePrice").value)
   };
 
+  let error;
+
   if (id) {
-    Object.assign(serviceById(data, id), payload);
+    ({ error } = await supabaseClient
+      .from("services")
+      .update(payload)
+      .eq("id", Number(id))
+      .eq("user_id", user.id));
   } else {
-    data.services.push({
-      id: nextId(data.services),
-      ...payload
-    });
+    ({ error } = await supabaseClient
+      .from("services")
+      .insert(payload));
   }
 
-  saveData(data);
+  if (error) {
+    alert("Opslaan dienst mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
   closeDialog("serviceDialog");
   rerenderAll();
 }
 
-function deleteCurrentService() {
-  const id = Number(document.getElementById("serviceId").value);
-  if (!id) return;
-
-  const data = getData();
-  data.services = data.services.filter(s => s.id !== id);
-
-  saveData(data);
-  closeDialog("serviceDialog");
-  rerenderAll();
-}
-
-function confirmPayment(event) {
+async function saveAppointmentFromForm(event) {
   event.preventDefault();
 
-  const data = getData();
-  const id = Number(document.getElementById("paymentAppointmentId").value);
-  const appointment = data.appointments.find(a => a.id === id);
+  const user = await getCurrentUser();
 
-  appointment.paid = true;
-  appointment.paymentMethod = document.getElementById("paymentMethod").value;
+  if (!user) {
+    const data = getData();
+    const id = Number(document.getElementById("appointmentId").value);
 
-  if (appointment.status === "gepland") {
-    appointment.status = "afgerond";
+    const payload = {
+	  user_id: user.id,
+	  customer_id: Number(document.getElementById("appointmentCustomer").value),
+	  appointment_date: document.getElementById("appointmentDate").value,
+	  appointment_time: document.getElementById("appointmentTime").value,
+	  service_id: Number(document.getElementById("appointmentService").value),
+	  duration: Number(document.getElementById("appointmentDuration").value),
+	  price: Number(document.getElementById("appointmentPrice").value),
+	  status: document.getElementById("appointmentStatus").value,
+	  paid: existingApp ? existingApp.paid : false,
+	  payment_method: existingApp ? existingApp.paymentMethod : null
+	};
+
+    if (id) {
+      Object.assign(data.appointments.find(a => Number(a.id) === id), payload);
+    } else {
+      data.appointments.push({
+        id: nextId(data.appointments),
+        ...payload,
+        paid: false,
+        paymentMethod: ""
+      });
+    }
+
+    saveData(data);
+    closeDialog("appointmentDialog");
+
+    state.selectedDate = payload.date;
+    const picked = new Date(payload.date + "T00:00:00");
+    state.currentYear = picked.getFullYear();
+    state.currentMonth = picked.getMonth();
+
+    rerenderAll();
+    return;
   }
 
-  saveData(data);
+  const id = document.getElementById("appointmentId").value;
+
+  const existingApp = getData().appointments.find(a => String(a.id) === String(id));
+
+  const payload = {
+    user_id: user.id,
+    customer_id: Number(document.getElementById("appointmentCustomer").value),
+    appointment_date: document.getElementById("appointmentDate").value,
+    appointment_time: document.getElementById("appointmentTime").value,
+    service_id: Number(document.getElementById("appointmentService").value),
+    duration_minutes: Number(document.getElementById("appointmentDuration").value),
+    price: Number(document.getElementById("appointmentPrice").value),
+    status: document.getElementById("appointmentStatus").value,
+    paid: existingApp ? existingApp.paid : false,
+    payment_method: existingApp ? existingApp.paymentMethod : null
+  };
+
+  let error;
+
+  if (id) {
+    ({ error } = await supabaseClient
+      .from("appointments")
+      .update(payload)
+      .eq("id", Number(id))
+      .eq("user_id", user.id));
+  } else {
+    ({ error } = await supabaseClient
+      .from("appointments")
+      .insert(payload));
+  }
+
+  if (error) {
+    alert("Opslaan afspraak mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("appointmentDialog");
+
+  state.selectedDate = payload.appointment_date;
+  const picked = new Date(payload.appointment_date + "T00:00:00");
+  state.currentYear = picked.getFullYear();
+  state.currentMonth = picked.getMonth();
+
+  rerenderAll();
+}
+
+async function deleteCurrentAppointment() {
+  const id = document.getElementById("appointmentId").value;
+  if (!id) return;
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    data.appointments = data.appointments.filter(a => String(a.id) !== String(id));
+    saveData(data);
+    closeDialog("appointmentDialog");
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .delete()
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    alert("Verwijderen afspraak mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("appointmentDialog");
+  rerenderAll();
+}
+
+async function deleteCurrentService() {
+  const id = document.getElementById("serviceId").value;
+  if (!id) return;
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    data.services = data.services.filter(s => String(s.id) !== String(id));
+    saveData(data);
+    closeDialog("serviceDialog");
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("services")
+    .delete()
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    alert("Verwijderen dienst mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("serviceDialog");
+  rerenderAll();
+}
+
+async function confirmPayment(event) {
+  event.preventDefault();
+
+  const id = document.getElementById("paymentAppointmentId").value;
+  const method = document.getElementById("paymentMethod").value;
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    const appointment = data.appointments.find(a => String(a.id) === String(id));
+    if (!appointment) return;
+
+    appointment.paid = true;
+    appointment.paymentMethod = method;
+    if (appointment.status === "gepland") appointment.status = "afgerond";
+
+    saveData(data);
+    closeDialog("paymentDialog");
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .update({
+      paid: true,
+      payment_method: method,
+      status: "afgerond"
+    })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    alert("Betaling opslaan mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
   closeDialog("paymentDialog");
   rerenderAll();
 }
 
-function markUnpaid() {
-  const data = getData();
-  const id = Number(document.getElementById("paymentAppointmentId").value);
-  const appointment = data.appointments.find(a => a.id === id);
+async function markUnpaid() {
+  const id = document.getElementById("paymentAppointmentId").value;
+  const user = await getCurrentUser();
 
-  appointment.paid = false;
-  appointment.paymentMethod = "";
+  if (!user) {
+    const data = getData();
+    const appointment = data.appointments.find(a => String(a.id) === String(id));
+    if (!appointment) return;
 
-  saveData(data);
+    appointment.paid = false;
+    appointment.paymentMethod = "";
+
+    saveData(data);
+    closeDialog("paymentDialog");
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .update({
+      paid: false,
+      payment_method: null
+    })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    alert("Betaling bijwerken mislukt: " + error.message);
+    return;
+  }
+
+  await loadAllDataFromSupabase();
   closeDialog("paymentDialog");
   rerenderAll();
 }
+
+/* =========================
+   MONTH PICKER
+========================= */
 
 function openMonthPicker() {
   const monthSelect = document.getElementById("monthSelect");
@@ -913,6 +1322,10 @@ function rerenderAll() {
   }
 }
 
+/* =========================
+   EVENTS
+========================= */
+
 function registerEvents() {
   document.getElementById("prevMonthBtn").addEventListener("click", () => {
     state.currentMonth--;
@@ -920,6 +1333,7 @@ function registerEvents() {
       state.currentMonth = 11;
       state.currentYear--;
     }
+
     state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
     renderCalendar();
     renderAgendaList();
@@ -932,6 +1346,7 @@ function registerEvents() {
       state.currentMonth = 0;
       state.currentYear++;
     }
+
     state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
     renderCalendar();
     renderAgendaList();
@@ -950,18 +1365,24 @@ function registerEvents() {
       agendaScreen: "Agenda",
       clientsScreen: "Klanten",
       servicesScreen: "Diensten",
-      revenueScreen: "Omzet"
+      revenueScreen: "Omzet",
+      accountScreen: "Account"
     };
+
     switchScreen(state.previousMainScreen, map[state.previousMainScreen]);
   });
 
   document.getElementById("clientSearch").addEventListener("input", renderClients);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
+
   document.getElementById("appointmentForm").addEventListener("submit", saveAppointmentFromForm);
   document.getElementById("deleteAppointmentBtn").addEventListener("click", deleteCurrentAppointment);
+
   document.getElementById("clientForm").addEventListener("submit", saveClientFromForm);
+
   document.getElementById("serviceForm").addEventListener("submit", saveServiceFromForm);
   document.getElementById("deleteServiceBtn").addEventListener("click", deleteCurrentService);
+
   document.getElementById("paymentForm").addEventListener("submit", confirmPayment);
   document.getElementById("markUnpaidBtn").addEventListener("click", markUnpaid);
 
@@ -970,10 +1391,18 @@ function registerEvents() {
   });
 
   document.getElementById("revenueDate").value = todayStr;
-
   ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter", "revenueCustomerFilter"].forEach(id => {
-    document.getElementById(id).addEventListener("change", renderRevenue);
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", renderRevenue);
   });
+
+  const registerBtn = document.getElementById("registerBtn");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  if (registerBtn) registerBtn.addEventListener("click", registerAccount);
+  if (loginBtn) loginBtn.addEventListener("click", loginAccount);
+  if (logoutBtn) logoutBtn.addEventListener("click", logoutAccount);
 }
 
 function registerServiceWorker() {
@@ -982,8 +1411,17 @@ function registerServiceWorker() {
   }
 }
 
-seedData();
-registerEvents();
-switchScreen("agendaScreen", "Agenda");
-rerenderAll();
-registerServiceWorker();
+/* =========================
+   STARTUP
+========================= */
+
+async function startApp() {
+  await initAppData();
+  registerEvents();
+  switchScreen("agendaScreen", "Agenda");
+  rerenderAll();
+  await updateAuthStatus();
+  registerServiceWorker();
+}
+
+startApp();
