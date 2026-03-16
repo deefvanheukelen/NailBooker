@@ -39,25 +39,9 @@ function seedData() {
   if (localStorage.getItem(STORAGE_KEY)) return;
 
   const data = {
-    customers: [
-      { id: 1, firstName: "Kim", lastName: "van Dijk", phone: "06 12345678", email: "kim@example.com", note: "Komt liefst in de voormiddag." },
-      { id: 2, firstName: "Lotte", lastName: "van Dam", phone: "06 87654321", email: "lotte@example.com", note: "Nieuwe klant sinds februari." },
-      { id: 3, firstName: "Loes", lastName: "Maas", phone: "06 11223344", email: "loes@example.com", note: "Verkiest luxe behandeling." },
-      { id: 4, firstName: "Lisa", lastName: "Jansen", phone: "06 99887766", email: "lisa@example.com", note: "Wil graag een sms-herinnering." }
-    ],
-    services: [
-      { id: 1, name: "Basis", duration: 60, price: 65 },
-      { id: 2, name: "Luxe", duration: 90, price: 95 },
-      { id: 3, name: "Kleuren", duration: 75, price: 85 }
-    ],
-    appointments: [
-      { id: 1, customerId: 2, serviceId: 1, date: todayStr, time: "10:00", duration: 60, price: 65, status: "gepland", paid: false, paymentMethod: "" },
-      { id: 2, customerId: 3, serviceId: 2, date: todayStr, time: "11:30", duration: 90, price: 95, status: "gepland", paid: false, paymentMethod: "" },
-      { id: 3, customerId: 1, serviceId: 1, date: todayStr, time: "14:00", duration: 60, price: 65, status: "gepland", paid: true, paymentMethod: "cash" },
-      { id: 4, customerId: 3, serviceId: 2, date: addDaysStr(todayStr, 1), time: "11:30", duration: 90, price: 95, status: "afgerond", paid: true, paymentMethod: "bancontact" },
-      { id: 5, customerId: 1, serviceId: 1, date: addDaysStr(todayStr, 1), time: "14:00", duration: 60, price: 65, status: "gepland", paid: false, paymentMethod: "" },
-      { id: 6, customerId: 4, serviceId: 3, date: addDaysStr(todayStr, 1), time: "16:00", duration: 75, price: 85, status: "no-show", paid: false, paymentMethod: "" }
-    ]
+    customers: [],
+    services: [],
+    appointments: []
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
