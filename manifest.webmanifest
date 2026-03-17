@@ -1,7 +1,7 @@
 {
-  "name": "Salon App",
-  "short_name": "Salon",
-  "description": "Salon agenda en klantenbeheer",
+  "name": "NailBooker",
+  "short_name": "NailBooker",
+  "description": "Eenvoudig beheer van klanten, afspraken en omzet",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
