@@ -16,9 +16,18 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button id="backBtn" class="icon-btn hidden-btn" type="button" aria-label="Terug">‹</button>
-      <div class="topbar-title-wrap"><h1 id="screenTitle">Agenda</h1></div>
-      <div class="topbar-spacer"></div>
+      <div class="topbar-left">
+        <button id="backBtn" class="icon-btn hidden-btn" type="button" aria-label="Terug">‹</button>
+        <div class="topbar-title-wrap">
+          <img class="topbar-logo" src="img/logoNailBooker.png" alt="NailBooker logo" />
+          <h1 id="screenTitle">Agenda</h1>
+        </div>
+      </div>
+
+      <button id="headerAccountBtn" class="header-account-btn" type="button" aria-label="Account openen">
+        <span class="header-account-icon" aria-hidden="true">👤</span>
+        <span id="headerUserName" class="header-account-name">log in</span>
+      </button>
     </header>
 
     <main class="main-layout">
@@ -102,51 +111,87 @@
 	  <section id="accountScreen" class="screen">
 		  <section class="detail-panel">
 			<div class="scroll-list">
-			  <div class="detail-card">
-				<div class="detail-block">
-				  <div class="detail-label">Registreren</div>
 
-				  <label class="field-label">Naam</label>
-				  <input id="registerName" class="field" type="text" />
+			  <div id="accountGuestView">
+				<div class="detail-card">
+				  <div class="detail-block">
+					<div class="detail-label">Registreren</div>
 
-				  <label class="field-label">E-mail</label>
-				  <input id="registerEmail" class="field" type="email" />
+					<label class="field-label">Voornaam</label>
+					<input id="registerFirstName" class="field" type="text" />
 
-				  <label class="field-label">Wachtwoord</label>
-				  <input id="registerPassword" class="field" type="password" />
+					<label class="field-label">Naam</label>
+					<input id="registerLastName" class="field" type="text" />
 
-				  <div style="margin-top:16px;">
-					<button id="registerBtn" class="btn btn-primary action-btn" type="button">Registreren</button>
+					<label class="field-label">E-mail</label>
+					<input id="registerEmail" class="field" type="email" />
+
+					<label class="field-label">Wachtwoord</label>
+					<input id="registerPassword" class="field" type="password" />
+
+					<label class="field-label">Bevestig wachtwoord</label>
+					<input id="registerPasswordConfirm" class="field" type="password" />
+
+					<label class="field-label">Foto (optioneel)</label>
+					<input id="registerPhoto" class="field" type="file" accept="image/*" />
+
+					<div style="margin-top:16px;">
+					  <button id="registerBtn" class="btn btn-primary action-btn" type="button">Registreren</button>
+					</div>
+				  </div>
+				</div>
+
+				<div class="detail-card">
+				  <div class="detail-block">
+					<div class="detail-label">Inloggen</div>
+
+					<label class="field-label">E-mail</label>
+					<input id="loginEmail" class="field" type="email" />
+
+					<label class="field-label">Wachtwoord</label>
+					<input id="loginPassword" class="field" type="password" />
+
+					<div style="margin-top:16px;">
+					  <button id="loginBtn" class="btn btn-primary action-btn" type="button">Inloggen</button>
+					</div>
 				  </div>
 				</div>
 			  </div>
 
-			  <div class="detail-card">
-				<div class="detail-block">
-				  <div class="detail-label">Inloggen</div>
+			  <div id="accountLoggedInView" style="display:none;">
+				<div class="detail-card">
+				  <div class="detail-block">
+					<div class="detail-label">Account</div>
 
-				  <label class="field-label">E-mail</label>
-				  <input id="loginEmail" class="field" type="email" />
+					<div class="detail-row">
+					  <div class="detail-sub-label">Voornaam</div>
+					  <div id="accountFirstName" class="detail-value">-</div>
+					</div>
 
-				  <label class="field-label">Wachtwoord</label>
-				  <input id="loginPassword" class="field" type="password" />
+					<div class="detail-row">
+					  <div class="detail-sub-label">Naam</div>
+					  <div id="accountLastName" class="detail-value">-</div>
+					</div>
 
-				  <div style="margin-top:16px;">
-					<button id="loginBtn" class="btn btn-primary action-btn" type="button">Inloggen</button>
+					<div class="detail-row">
+					  <div class="detail-sub-label">E-mail</div>
+					  <div id="accountEmail" class="detail-value">-</div>
+					</div>
+
+					<div class="detail-row" id="accountAvatarRow" style="display:none;">
+					  <div class="detail-sub-label">Foto</div>
+					  <div class="detail-value">
+						<img id="accountAvatarPreview" src="" alt="Profielfoto" class="account-avatar-preview" />
+					  </div>
+					</div>
+
+					<div style="margin-top:16px;">
+					  <button id="logoutBtn" class="btn btn-secondary action-btn" type="button">Uitloggen</button>
+					</div>
 				  </div>
 				</div>
 			  </div>
 
-			  <div class="detail-card">
-				<div class="detail-block">
-				  <div class="detail-label">Sessie</div>
-				  <div id="authStatus" class="detail-value">Niet ingelogd</div>
-
-				  <div style="margin-top:16px;">
-					<button id="logoutBtn" class="btn btn-secondary action-btn" type="button">Uitloggen</button>
-				  </div>
-				</div>
-			  </div>
 			</div>
 		  </section>
 		</section>

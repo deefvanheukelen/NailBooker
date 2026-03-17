@@ -114,29 +114,163 @@ async function getCurrentUser() {
   return user;
 }
 
-async function updateAuthStatus() {
+async function getCurrentProfile() {
   const user = await getCurrentUser();
-  const authStatus = document.getElementById("authStatus");
-  if (!authStatus) return;
+  if (!user) return null;
 
-  if (user) {
-    authStatus.textContent = `Ingelogd als ${user.email}`;
-  } else {
-    authStatus.textContent = "Niet ingelogd";
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Profiel laden mislukt:", error.message);
+    return null;
+  }
+
+  return data;
+}
+
+function extractFirstNameFromUser(user, profile = null) {
+  if (profile?.first_name?.trim()) return profile.first_name.trim();
+
+  if (user?.user_metadata?.first_name?.trim()) {
+    return user.user_metadata.first_name.trim();
+  }
+
+  if (user?.user_metadata?.full_name?.trim()) {
+    return user.user_metadata.full_name.trim().split(/\s+/)[0];
+  }
+
+  const email = user?.email || "";
+  if (email.includes("@")) return email.split("@")[0];
+
+  return "log in";
+}
+
+async function uploadAvatar(userId, file) {
+  if (!file) return null;
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const filePath = `${userId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("avatars")
+    .upload(filePath, file, {
+      upsert: true
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabaseClient.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  return data?.publicUrl || null;
+}
+
+async function upsertProfile(userId, values) {
+  const payload = {
+    id: userId,
+    first_name: values.first_name || "",
+    last_name: values.last_name || "",
+    avatar_url: values.avatar_url || null
+  };
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function syncAuthUI() {
+  const user = await getCurrentUser();
+  const profile = user ? await getCurrentProfile() : null;
+
+  const headerUserName = document.getElementById("headerUserName");
+  const guestView = document.getElementById("accountGuestView");
+  const loggedInView = document.getElementById("accountLoggedInView");
+
+  const accountFirstName = document.getElementById("accountFirstName");
+  const accountLastName = document.getElementById("accountLastName");
+  const accountEmail = document.getElementById("accountEmail");
+  const accountAvatarRow = document.getElementById("accountAvatarRow");
+  const accountAvatarPreview = document.getElementById("accountAvatarPreview");
+
+  if (headerUserName) {
+    headerUserName.textContent = user ? extractFirstNameFromUser(user, profile) : "log in";
+  }
+
+  if (!user) {
+    if (guestView) guestView.style.display = "block";
+    if (loggedInView) loggedInView.style.display = "none";
+    return;
+  }
+
+  if (guestView) guestView.style.display = "none";
+  if (loggedInView) loggedInView.style.display = "block";
+
+  if (accountFirstName) {
+    accountFirstName.textContent =
+      profile?.first_name ||
+      user.user_metadata?.first_name ||
+      extractFirstNameFromUser(user, profile);
+  }
+
+  if (accountLastName) {
+    accountLastName.textContent =
+      profile?.last_name ||
+      user.user_metadata?.last_name ||
+      "-";
+  }
+
+  if (accountEmail) {
+    accountEmail.textContent = user.email || "-";
+  }
+
+  if (accountAvatarRow && accountAvatarPreview) {
+    if (profile?.avatar_url) {
+      accountAvatarPreview.src = profile.avatar_url;
+      accountAvatarRow.style.display = "block";
+    } else {
+      accountAvatarPreview.src = "";
+      accountAvatarRow.style.display = "none";
+    }
   }
 }
 
 async function registerAccount() {
-  const fullName = document.getElementById("registerName").value.trim();
+  const firstName = document.getElementById("registerFirstName").value.trim();
+  const lastName = document.getElementById("registerLastName").value.trim();
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
+  const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
+  const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
 
-  const { error } = await supabaseClient.auth.signUp({
+  if (!firstName || !lastName || !email || !password || !passwordConfirm) {
+    alert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    alert("De wachtwoorden komen niet overeen.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: fullName
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim()
       }
     }
   });
@@ -146,8 +280,39 @@ async function registerAccount() {
     return;
   }
 
-  alert("Account aangemaakt. Controleer eventueel je mailbox.");
-  await updateAuthStatus();
+  try {
+    let avatarUrl = null;
+
+    if (photoFile && data.user && data.session) {
+      avatarUrl = await uploadAvatar(data.user.id, photoFile);
+    }
+
+    if (data.user && data.session) {
+      await upsertProfile(data.user.id, {
+        first_name: firstName,
+        last_name: lastName,
+        avatar_url: avatarUrl
+      });
+    }
+  } catch (profileError) {
+    console.error("Profiel opslaan mislukt:", profileError.message);
+    alert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.");
+  }
+
+  document.getElementById("registerFirstName").value = "";
+  document.getElementById("registerLastName").value = "";
+  document.getElementById("registerEmail").value = "";
+  document.getElementById("registerPassword").value = "";
+  document.getElementById("registerPasswordConfirm").value = "";
+  document.getElementById("registerPhoto").value = "";
+
+  if (data.session) {
+    await loadAllDataFromSupabase();
+    rerenderAll();
+  }
+
+  await syncAuthUI();
+  alert(data.session ? "Registratie gelukt. Je bent nu ingelogd." : "Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
 }
 
 async function loginAccount() {
@@ -164,7 +329,9 @@ async function loginAccount() {
     return;
   }
 
-  await updateAuthStatus();
+  document.getElementById("loginPassword").value = "";
+
+  await syncAuthUI();
   await loadAllDataFromSupabase();
   rerenderAll();
 }
@@ -180,7 +347,7 @@ async function logoutAccount() {
   localStorage.removeItem(STORAGE_KEY);
   seedData();
 
-  await updateAuthStatus();
+  await syncAuthUI();
   rerenderAll();
 }
 
@@ -976,10 +1143,10 @@ async function saveServiceFromForm(event) {
     const id = Number(document.getElementById("serviceId").value);
 
     const payload = {
-	  name: document.getElementById("serviceName").value.trim(),
-	  duration: Number(document.getElementById("serviceDuration").value),
-	  price: Number(document.getElementById("servicePrice").value)
-	};
+      name: document.getElementById("serviceName").value.trim(),
+      duration: Number(document.getElementById("serviceDuration").value),
+      price: Number(document.getElementById("servicePrice").value)
+    };
 
     if (id) {
       Object.assign(serviceById(data, id), payload);
@@ -1381,10 +1548,21 @@ function registerEvents() {
   const registerBtn = document.getElementById("registerBtn");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
+  const headerAccountBtn = document.getElementById("headerAccountBtn");
 
   if (registerBtn) registerBtn.addEventListener("click", registerAccount);
   if (loginBtn) loginBtn.addEventListener("click", loginAccount);
   if (logoutBtn) logoutBtn.addEventListener("click", logoutAccount);
+
+  if (headerAccountBtn) {
+    headerAccountBtn.addEventListener("click", () => {
+      switchScreen("accountScreen", "Account");
+    });
+  }
+
+  supabaseClient.auth.onAuthStateChange(async () => {
+    await syncAuthUI();
+  });
 }
 
 function registerServiceWorker() {
@@ -1402,7 +1580,7 @@ async function startApp() {
   registerEvents();
   switchScreen("agendaScreen", "Agenda");
   rerenderAll();
-  await updateAuthStatus();
+  await syncAuthUI();
   registerServiceWorker();
 }
 
