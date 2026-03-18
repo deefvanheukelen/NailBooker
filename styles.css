@@ -57,6 +57,63 @@ button {
   cursor: pointer;
 }
 
+/* ====================================================
+   SPLASHSCREEN
+   ===================================================*/
+.custom-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, #fff8fb 0%, #f9eef3 42%, #f4e4eb 100%);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.55s ease,
+    visibility 0.55s ease;
+}
+
+.custom-splash.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.custom-splash-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: splashPopIn 0.7s ease-out both;
+}
+
+.custom-splash-logo {
+  display: block;
+  width: min(72vw, 300px);
+  max-width: 300px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 32px rgba(185, 109, 135, 0.18));
+}
+
+@keyframes splashPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}   
+   
+
 /* =========================================================
    2. APP SHELL / ALGEMENE LAYOUT
 ========================================================= */

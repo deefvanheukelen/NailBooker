@@ -30,6 +30,16 @@
   <title>NailBooker</title>
 </head>
 <body>
+	<div id="customSplash" class="custom-splash" aria-hidden="true">
+	  <div class="custom-splash-inner">
+		<img
+		  src="img/img-splashscreen.png"
+		  alt="NailBooker splash screen"
+		  class="custom-splash-logo"
+		/>
+	  </div>
+	</div>
+
   <div class="app-shell">
 
     <!-- =========================================================
@@ -718,5 +728,27 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
   <script src="app.js"></script>
+  
+  <script>
+  window.addEventListener("load", () => {
+    const splash = document.getElementById("customSplash");
+    if (!splash) return;
+
+    const animationDuration = 700; // moet overeenkomen met CSS (0.7s)
+    const visibleDelay = 2000;     // 👈 2 seconden zichtbaar blijven
+
+    setTimeout(() => {
+      splash.classList.add("fade-out");
+
+      splash.addEventListener(
+        "transitionend",
+        () => {
+          splash.remove();
+        },
+        { once: true }
+      );
+    }, animationDuration + visibleDelay);
+  });
+</script>
 </body>
 </html>
