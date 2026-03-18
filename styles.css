@@ -31,6 +31,8 @@
   --radius-md: 16px;
   --radius-lg: 20px;
   --radius-xl: 24px;
+  
+  --bottom-nav-height: 80px;
 }
 
 html,
@@ -701,8 +703,8 @@ button {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 92px;
-  z-index: 25;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+  z-index: 40;
   width: 58px;
   height: 58px;
   border: 1px solid #d5819d;
@@ -710,7 +712,6 @@ button {
   background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
   font-size: 34px;
-  /* box-shadow: 0 14px 24px rgba(201, 120, 150, 0.25); */
 }
 
 /* =========================================================
