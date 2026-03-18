@@ -97,6 +97,11 @@ button {
   gap: 12px;
   padding: 12px 16px 10px;
   background: rgba(255, 255, 255, 0.96);
+  background: linear-gradient(
+    to bottom,
+    #f8e8ee 0%,
+    rgba(248, 232, 238, 0) 100%
+  );
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -118,17 +123,21 @@ button {
 }
 
 .topbar-logo {
-  height: 34px;
+  height: 45px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
+  margin-top: -10px;
+  margin-right: 20px;
 }
 
 .topbar-title-wrap h1,
 #screenTitle {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
   margin: 0;
   text-align: left;
-  font-size: 22px;
   line-height: 1.2;
   color: var(--primary-dark);
   white-space: nowrap;
@@ -167,20 +176,23 @@ button {
   justify-content: center;
   width: 28px;
   height: 28px;
-  font-size: 22px;
   line-height: 1;
+  color: var(--primary-dark);
 }
 
-.header-account-icon img {
+.header-account-icon .icon {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  /* border-radius: 999px; */
   object-fit: cover;
-  display: block;
+  fill: currentColor;
+  display: inline-block;
 }
 
 .header-account-name {
-  font-size: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
   line-height: 1.1;
   text-align: center;
   white-space: nowrap;
@@ -657,7 +669,9 @@ button {
   gap: 4px;
   place-items: center;
   padding: 8px 6px;
-  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 .nav-btn.active {
@@ -665,9 +679,23 @@ button {
   background: var(--primary-soft);
 }
 
+.nav-btn.active path{
+	fill: #df9db3;
+}
+
 .nav-ico {
   font-size: 20px;
+  width: 28px;
+  height: 28px;
 }
+
+.nav-ico path {
+  fill: #555;
+  fill-opacity:1;
+  stroke-width:0
+}
+
+
 
 .fab {
   position: fixed;
@@ -677,12 +705,12 @@ button {
   z-index: 25;
   width: 58px;
   height: 58px;
-  border: none;
+  border: 1px solid #d5819d;
   border-radius: 999px;
   background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
   font-size: 34px;
-  box-shadow: 0 14px 24px rgba(201, 120, 150, 0.25);
+  /* box-shadow: 0 14px 24px rgba(201, 120, 150, 0.25); */
 }
 
 /* =========================================================
@@ -828,38 +856,32 @@ button {
 
 /* =========================================================
    13. ACCOUNT PAGINA
-   Mooie, professionele layout in tabelvorm
 ========================================================= */
 
-/* Gast / ingelogd blok */
 .account-view.hidden {
   display: none !important;
 }
 
-/* Algemene account cards */
 .account-card {
   padding: 18px;
 }
 
-/* Bovenste profielblok */
-.account-profile-layout {
-  display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 18px;
-  align-items: start;
+.account-profile-top {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 18px;
 }
 
-/* Profielfoto */
 .account-avatar {
-  width: 84px;
-  height: 84px;
+  width: 92px;
+  height: 92px;
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--primary-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 34px;
+  font-size: 38px;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px #f0d8e2;
 }
@@ -871,19 +893,18 @@ button {
   display: block;
 }
 
-/* Tabelvorm met accountgegevens */
 .account-data-table {
   width: 100%;
   display: grid;
-  gap: 10px;
+  gap: 0;
 }
 
 .account-data-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
-  padding: 10px 0;
+  padding: 14px 0;
   border-bottom: 1px solid #f2e8ed;
 }
 
@@ -902,30 +923,21 @@ button {
   font-size: 15px;
   line-height: 1.45;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-/* Wachtwoordwaarde in accountoverzicht */
 .account-password-mask {
   letter-spacing: 1px;
 }
 
-/* Naam bovenaan mag subtiel opvallen */
-.account-profile-title {
-  margin: 0 0 14px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--primary-dark);
-}
-
-/* Knoppen onder de gegevens */
 .account-button-stack {
   display: grid;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
-/* Login blok */
 .auth-card {
   margin-top: 10px;
 }
@@ -968,13 +980,112 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .account-profile-layout {
-    grid-template-columns: 1fr;
-    justify-items: start;
-  }
+/* =========================================================
+   13. ACCOUNT PAGINA
+========================================================= */
 
-  .account-data-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
+.account-view.hidden {
+  display: none !important;
+}
+
+.account-card {
+  padding: 18px;
+}
+
+.account-profile-top {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 18px;
+}
+
+.account-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px #f0d8e2;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.account-data-table {
+  width: 100%;
+  display: grid;
+  gap: 0;
+}
+
+.account-data-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px 0;
+  border-bottom: 1px solid #f2e8ed;
+}
+
+.account-data-row:last-child {
+  border-bottom: none;
+}
+
+.account-data-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-data-value {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.account-password-mask {
+  letter-spacing: 1px;
+}
+
+.account-button-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.auth-card {
+  margin-top: 10px;
+}
+
+.account-actions {
+  margin-top: 18px;
+}
+
+.text-link-btn {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  color: var(--primary-dark);
+  font-weight: 700;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-link-btn:hover,
+.text-link-btn:active {
+  color: #9f5f75;
+}
 }
