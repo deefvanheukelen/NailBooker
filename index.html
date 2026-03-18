@@ -2,297 +2,529 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <!-- Basiskleuren / PWA meta -->
   <meta name="theme-color" content="#d98ea7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="NailBooker" />
+
+  <!-- PWA / icons
+       Let op: lokaal openen via file:// kan warnings geven voor manifest en service worker.
+       Dat is normaal en geen HTML-fout. -->
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
+  <!-- Stijlen -->
   <link rel="stylesheet" href="styles.css" />
+
   <title>NailBooker</title>
 </head>
 <body>
   <div class="app-shell">
+
+    <!-- =========================================================
+         HEADER / TOPBAR
+         - Links: terugknop + logo + screentitel
+         - Rechts: accountknop met icoon + voornaam / "log in"
+    ========================================================== -->
     <header class="topbar">
       <div class="topbar-left">
-        <button id="backBtn" class="icon-btn hidden-btn" type="button" aria-label="Terug">‹</button>
+        <button
+          id="backBtn"
+          class="icon-btn hidden-btn"
+          type="button"
+          aria-label="Terug"
+        >
+          ‹
+        </button>
+
         <div class="topbar-title-wrap">
-          <img class="topbar-logo" src="img/logoNailBooker.png" alt="NailBooker logo" />
+          <img
+            class="topbar-logo"
+            src="img/logoNailBooker.png"
+            alt="NailBooker logo"
+          />
           <h1 id="screenTitle">Agenda</h1>
         </div>
       </div>
 
-      <button id="headerAccountBtn" class="header-account-btn" type="button" aria-label="Account openen">
+      <button
+        id="headerAccountBtn"
+        class="header-account-btn"
+        type="button"
+        aria-label="Account openen"
+      >
         <span class="header-account-icon" aria-hidden="true">👤</span>
         <span id="headerUserName" class="header-account-name">log in</span>
       </button>
     </header>
 
+    <!-- =========================================================
+         HOOFDINHOUD
+         Belangrijk:
+         - Alle screens zijn bewust <section class="screen">
+         - Zo blijft de structuur overal identiek
+         - JS schakelt tussen screens via de class "active"
+    ========================================================== -->
     <main class="main-layout">
+
+      <!-- ===================== AGENDA ====================== -->
       <section id="agendaScreen" class="screen active">
         <section class="calendar-panel">
           <div class="month-header">
-            <button class="icon-btn" id="prevMonthBtn" type="button">‹</button>
-            <button class="month-title month-select-btn" id="monthPickerBtn" type="button">MAART 2024</button>
-            <button class="icon-btn" id="nextMonthBtn" type="button">›</button>
+            <button class="icon-btn" id="prevMonthBtn" type="button" aria-label="Vorige maand">‹</button>
+            <button class="month-title month-select-btn" id="monthPickerBtn" type="button">
+              MAART 2026
+            </button>
+            <button class="icon-btn" id="nextMonthBtn" type="button" aria-label="Volgende maand">›</button>
           </div>
+
           <div class="weekday-row">
-            <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
+            <span>Ma</span>
+            <span>Di</span>
+            <span>Wo</span>
+            <span>Do</span>
+            <span>Vr</span>
+            <span>Za</span>
+            <span>Zo</span>
           </div>
+
           <div id="calendarGrid" class="calendar-grid"></div>
         </section>
+
         <section class="agenda-list-panel">
-          <div class="section-head sticky-inside"><h2 id="agendaListTitle">Afspraken</h2></div>
+          <div class="section-head sticky-inside">
+            <h2 id="agendaListTitle">Afspraken</h2>
+          </div>
           <div id="agendaList" class="scroll-list"></div>
         </section>
       </section>
 
+      <!-- ===================== KLANTEN ===================== -->
       <section id="clientsScreen" class="screen">
         <section class="clients-panel">
           <div class="section-head">
-            <input id="clientSearch" class="search-input" type="search" placeholder="Zoek klant..." />
+            <input
+              id="clientSearch"
+              class="search-input"
+              type="search"
+              placeholder="Zoek klant..."
+            />
             <div id="alphabetFilter" class="alphabet-filter"></div>
           </div>
+
           <div id="clientsList" class="scroll-list"></div>
         </section>
       </section>
 
+      <!-- ===================== DIENSTEN ==================== -->
       <section id="servicesScreen" class="screen">
         <section class="services-panel">
-          <div class="section-head"><h2>Diensten</h2></div>
+          <div class="section-head">
+            <h2>Diensten</h2>
+          </div>
+
           <div id="servicesList" class="scroll-list"></div>
         </section>
       </section>
 
+      <!-- ===================== OMZET ======================= -->
       <section id="revenueScreen" class="screen">
+
+        <!-- Filters -->
         <section class="section-head revenue-filters-wrap">
           <div class="filter-grid">
-			  <select id="revenuePeriodType" class="field compact-field">
-				<option value="day">Dag</option>
-				<option value="week">Week</option>
-				<option value="month" selected>Maand</option>
-				<option value="year">Jaar</option>
-			  </select>
+            <select id="revenuePeriodType" class="field compact-field">
+              <option value="day">Dag</option>
+              <option value="week">Week</option>
+              <option value="month" selected>Maand</option>
+              <option value="year">Jaar</option>
+            </select>
 
-			  <input id="revenueDate" class="field compact-field" type="date" />
+            <input id="revenueDate" class="field compact-field" type="date" />
 
-			  <select id="revenuePaymentStatusFilter" class="field compact-field">
-				<option value="">Alle betalingen</option>
-				<option value="paid">Betaald</option>
-				<option value="unpaid">Onbetaald</option>
-			  </select>
+            <select id="revenuePaymentStatusFilter" class="field compact-field">
+              <option value="">Alle betalingen</option>
+              <option value="paid">Betaald</option>
+              <option value="unpaid">Onbetaald</option>
+            </select>
 
-			  <select id="revenuePaymentFilter" class="field compact-field">
-				<option value="">Alle betaalmiddelen</option>
-			  </select>
+            <select id="revenuePaymentFilter" class="field compact-field">
+              <option value="">Alle betaalmiddelen</option>
+            </select>
 
-			  <select id="revenueCustomerFilter" class="field compact-field">
-				<option value="">Alle klanten</option>
-			  </select>
-			</div>
+            <select id="revenueCustomerFilter" class="field compact-field">
+              <option value="">Alle klanten</option>
+            </select>
+          </div>
         </section>
+
+        <!-- Samenvatting -->
         <section class="summary-card">
-          <div class="summary-block"><span class="summary-label">Totaal</span><strong id="plannedRevenue">€ 0,00</strong></div>
-          <div class="summary-block"><span class="summary-label">Betaald</span><strong id="paidRevenue">€ 0,00</strong></div>
-          <div class="summary-block"><span class="summary-label">Openstaand</span><strong id="openRevenue">€ 0,00</strong></div>
+          <div class="summary-block">
+            <span class="summary-label">Totaal</span>
+            <strong id="plannedRevenue">€ 0,00</strong>
+          </div>
+
+          <div class="summary-block">
+            <span class="summary-label">Betaald</span>
+            <strong id="paidRevenue">€ 0,00</strong>
+          </div>
+
+          <div class="summary-block">
+            <span class="summary-label">Openstaand</span>
+            <strong id="openRevenue">€ 0,00</strong>
+          </div>
         </section>
+
+        <!-- Detailoverzicht -->
         <section class="revenue-panel">
-          <div class="section-head"><h2 id="revenueTitle">Overzicht</h2></div>
+          <div class="section-head">
+            <h2 id="revenueTitle">Overzicht</h2>
+          </div>
+
           <div id="paymentMethodList" class="scroll-list"></div>
         </section>
       </section>
 
+      <!-- ===================== KLANTDETAIL ================= -->
       <section id="clientDetailScreen" class="screen">
-        <section class="detail-panel"><div id="clientDetailContent" class="scroll-list"></div></section>
+        <section class="detail-panel">
+          <div id="clientDetailContent" class="scroll-list"></div>
+        </section>
       </section>
-	  
-	  <section id="accountScreen" class="screen">
-		  <section class="detail-panel">
-			<div class="scroll-list">
 
-			  <div id="accountGuestView">
-				<div class="detail-card">
-				  <div class="detail-block">
-					<div class="detail-label">Registreren</div>
+      <!-- ===================== ACCOUNT ===================== -->
+      <section id="accountScreen" class="screen">
+        <section class="detail-panel">
+          <div class="scroll-list">
 
-					<label class="field-label">Voornaam</label>
-					<input id="registerFirstName" class="field" type="text" />
+            <!-- -----------------
+                 GASTWEERGAVE
+                 Zichtbaar wanneer niemand is ingelogd
+            ------------------ -->
+            <section id="accountGuestView" class="account-view">
+              <div class="detail-card auth-card">
+                <div class="detail-block">
+                  <div class="detail-label">Inloggen</div>
 
-					<label class="field-label">Naam</label>
-					<input id="registerLastName" class="field" type="text" />
+                  <label class="field-label" for="loginEmail">E-mail</label>
+                  <input id="loginEmail" class="field" type="email" autocomplete="email" />
 
-					<label class="field-label">E-mail</label>
-					<input id="registerEmail" class="field" type="email" />
+                  <label class="field-label" for="loginPassword">Wachtwoord</label>
+                  <input id="loginPassword" class="field" type="password" autocomplete="current-password" />
 
-					<label class="field-label">Wachtwoord</label>
-					<input id="registerPassword" class="field" type="password" />
+                  <div class="account-actions">
+                    <button id="loginBtn" class="btn btn-primary action-btn full-btn" type="button">
+                      Inloggen
+                    </button>
 
-					<label class="field-label">Bevestig wachtwoord</label>
-					<input id="registerPasswordConfirm" class="field" type="password" />
+                    <button id="openRegisterDialogBtn" class="text-link-btn" type="button">
+                      Nog geen account? Registreer hier
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-					<label class="field-label">Foto (optioneel)</label>
-					<input id="registerPhoto" class="field" type="file" accept="image/*" />
+            <!-- -----------------
+                 INGELOGDE WEERGAVE
+                 Zichtbaar wanneer gebruiker is ingelogd
+            ------------------ -->
+            <section id="accountLoggedInView" class="account-view hidden">
+			  <div class="account-card">
+				<div class="account-profile-layout">
+				  <div id="accountAvatar" class="account-avatar">👤</div>
 
-					<div style="margin-top:16px;">
-					  <button id="registerBtn" class="btn btn-primary action-btn" type="button">Registreren</button>
-					</div>
-				  </div>
-				</div>
+				  <div>
+					<div class="account-profile-title">Mijn account</div>
 
-				<div class="detail-card">
-				  <div class="detail-block">
-					<div class="detail-label">Inloggen</div>
+					<div class="account-data-table">
+					  <div class="account-data-row">
+						<div class="account-data-label">Voornaam</div>
+						<div id="accountProfileFirstName" class="account-data-value">-</div>
+					  </div>
 
-					<label class="field-label">E-mail</label>
-					<input id="loginEmail" class="field" type="email" />
+					  <div class="account-data-row">
+						<div class="account-data-label">Familienaam</div>
+						<div id="accountProfileLastName" class="account-data-value">-</div>
+					  </div>
 
-					<label class="field-label">Wachtwoord</label>
-					<input id="loginPassword" class="field" type="password" />
+					  <div class="account-data-row">
+						<div class="account-data-label">E-mail</div>
+						<div id="accountProfileEmail" class="account-data-value">-</div>
+					  </div>
 
-					<div style="margin-top:16px;">
-					  <button id="loginBtn" class="btn btn-primary action-btn" type="button">Inloggen</button>
-					</div>
-				  </div>
-				</div>
-			  </div>
-
-			  <div id="accountLoggedInView" style="display:none;">
-				<div class="detail-card">
-				  <div class="detail-block">
-					<div class="detail-label">Account</div>
-
-					<div class="detail-row">
-					  <div class="detail-sub-label">Voornaam</div>
-					  <div id="accountFirstName" class="detail-value">-</div>
-					</div>
-
-					<div class="detail-row">
-					  <div class="detail-sub-label">Naam</div>
-					  <div id="accountLastName" class="detail-value">-</div>
-					</div>
-
-					<div class="detail-row">
-					  <div class="detail-sub-label">E-mail</div>
-					  <div id="accountEmail" class="detail-value">-</div>
-					</div>
-
-					<div class="detail-row" id="accountAvatarRow" style="display:none;">
-					  <div class="detail-sub-label">Foto</div>
-					  <div class="detail-value">
-						<img id="accountAvatarPreview" src="" alt="Profielfoto" class="account-avatar-preview" />
+					  <div class="account-data-row">
+						<div class="account-data-label">Wachtwoord</div>
+						<div class="account-data-value account-password-mask">**************</div>
 					  </div>
 					</div>
 
-					<div style="margin-top:16px;">
-					  <button id="logoutBtn" class="btn btn-secondary action-btn" type="button">Uitloggen</button>
+					<div class="account-button-stack">
+					  <button id="editProfileBtn" class="btn btn-secondary action-btn full-btn" type="button">
+						Gegevens wijzigen
+					  </button>
+
+					  <button id="changePasswordBtn" class="btn btn-secondary action-btn full-btn" type="button">
+						Wachtwoord wijzigen
+					  </button>
+
+					  <button id="logoutBtn" class="btn btn-danger action-btn full-btn" type="button">
+						Uitloggen
+					  </button>
 					</div>
 				  </div>
 				</div>
 			  </div>
+			</section>
 
-			</div>
-		  </section>
-		</section>
+          </div>
+        </section>
+      </section>
     </main>
 
+    <!-- =========================================================
+         BOTTOM NAVIGATION
+         data-screen en data-title worden door JS gebruikt
+    ========================================================== -->
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-screen="agendaScreen" data-title="Agenda"><span class="nav-ico">🗓</span><span>Agenda</span></button>
-      <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten"><span class="nav-ico">👤</span><span>Klanten</span></button>
-      <button class="nav-btn" data-screen="servicesScreen" data-title="Diensten"><span class="nav-ico">✂️</span><span>Diensten</span></button>
-      <button class="nav-btn" data-screen="revenueScreen" data-title="Omzet"><span class="nav-ico">📊</span><span>Omzet</span></button>
-	  <button class="nav-btn" data-screen="accountScreen" data-title="Account"><span class="nav-ico">🔐</span><span>Account</span></button>
+      <button class="nav-btn active" data-screen="agendaScreen" data-title="Agenda" type="button">
+        <span class="nav-ico">🗓</span>
+        <span>Agenda</span>
+      </button>
+
+      <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten" type="button">
+        <span class="nav-ico">👤</span>
+        <span>Klanten</span>
+      </button>
+
+      <button class="nav-btn" data-screen="servicesScreen" data-title="Diensten" type="button">
+        <span class="nav-ico">✂️</span>
+        <span>Diensten</span>
+      </button>
+
+      <button class="nav-btn" data-screen="revenueScreen" data-title="Omzet" type="button">
+        <span class="nav-ico">📊</span>
+        <span>Omzet</span>
+      </button>
+
+      <button class="nav-btn" data-screen="accountScreen" data-title="Account" type="button">
+        <span class="nav-ico">🔐</span>
+        <span>Account</span>
+      </button>
     </nav>
   </div>
 
-  <button id="floatingAddBtn" class="fab" type="button">+</button>
+  <!-- =========================================================
+       FLOATING ACTION BUTTON
+       Wordt door JS per screen anders gebruikt
+  ========================================================== -->
+  <button id="floatingAddBtn" class="fab" type="button" aria-label="Toevoegen">+</button>
 
+  <!-- =========================================================
+       MODALS / DIALOGS
+       Alle dialogen staan onderaan de body voor overzichtelijkheid
+  ========================================================== -->
+
+  <!-- ===================== MAAND KIEZEN =================== -->
   <dialog id="monthPickerDialog" class="modal">
     <form method="dialog" class="modal-card modal-small" id="monthPickerForm">
-      <div class="modal-head"><h3>Maand kiezen</h3><button class="icon-btn" type="button" data-close="monthPickerDialog">✕</button></div>
-      <label class="field-label">Maand</label><select id="monthSelect" class="field"></select>
-      <label class="field-label">Jaar</label><input id="yearSelect" class="field" type="number" min="2000" max="2100" />
+      <div class="modal-head">
+        <h3>Maand kiezen</h3>
+        <button class="icon-btn" type="button" data-close="monthPickerDialog">✕</button>
+      </div>
+
+      <label class="field-label" for="monthSelect">Maand</label>
+      <select id="monthSelect" class="field"></select>
+
+      <label class="field-label" for="yearSelect">Jaar</label>
+      <input id="yearSelect" class="field" type="number" min="2000" max="2100" />
+
       <div class="modal-actions end-only">
-        <button class="btn btn-secondary action-btn" type="button" data-close="monthPickerDialog">Annuleren</button>
-        <button class="btn btn-primary action-btn" type="submit">OK</button>
+        <button class="btn btn-secondary action-btn" type="button" data-close="monthPickerDialog">
+          Annuleren
+        </button>
+        <button class="btn btn-primary action-btn" type="submit">
+          OK
+        </button>
       </div>
     </form>
   </dialog>
 
+  <!-- ===================== AFSPRAAK ======================= -->
   <dialog id="appointmentDialog" class="modal">
     <form method="dialog" id="appointmentForm" class="modal-card">
-      <div class="modal-head"><h3 id="appointmentModalTitle">Nieuwe afspraak</h3><button class="icon-btn" type="button" data-close="appointmentDialog">✕</button></div>
+      <div class="modal-head">
+        <h3 id="appointmentModalTitle">Nieuwe afspraak</h3>
+        <button class="icon-btn" type="button" data-close="appointmentDialog">✕</button>
+      </div>
+
       <input type="hidden" id="appointmentId" />
-      <label class="field-label">Klant</label><select id="appointmentCustomer" class="field" required></select>
+
+      <label class="field-label" for="appointmentCustomer">Klant</label>
+      <select id="appointmentCustomer" class="field" required></select>
+
       <div class="field-row">
-        <div><label class="field-label">Datum</label><input id="appointmentDate" class="field" type="date" required /></div>
-        <div><label class="field-label">Tijd</label><input id="appointmentTime" class="field" type="time" required /></div>
+        <div>
+          <label class="field-label" for="appointmentDate">Datum</label>
+          <input id="appointmentDate" class="field" type="date" required />
+        </div>
+
+        <div>
+          <label class="field-label" for="appointmentTime">Tijd</label>
+          <input id="appointmentTime" class="field" type="time" required />
+        </div>
       </div>
-      <label class="field-label">Dienst</label><select id="appointmentService" class="field" required></select>
+
+      <label class="field-label" for="appointmentService">Dienst</label>
+      <select id="appointmentService" class="field" required></select>
+
       <div class="field-row">
-        <div><label class="field-label">Duur (min)</label><input id="appointmentDuration" class="field" type="number" min="1" step="1" required /></div>
-        <div><label class="field-label">Prijs</label><input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required /></div>
+        <div>
+          <label class="field-label" for="appointmentDuration">Duur (min)</label>
+          <input id="appointmentDuration" class="field" type="number" min="0" required />
+        </div>
+
+        <div>
+          <label class="field-label" for="appointmentPrice">Prijs</label>
+          <input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required />
+        </div>
       </div>
+
       <div id="appointmentStatusWrap">
-		  <label class="field-label">Status</label>
-		  <select id="appointmentStatus" class="field">
-			<option value="gepland">Gepland</option>
-			<option value="afgerond">Afgerond</option>
-			<option value="no-show">No-show</option>
-		  </select>
-	  </div>
+        <label class="field-label" for="appointmentStatus">Status</label>
+        <select id="appointmentStatus" class="field">
+          <option value="gepland">Gepland</option>
+          <option value="afgerond">Afgerond</option>
+          <option value="no-show">No-show</option>
+        </select>
+      </div>
+
       <div class="modal-actions">
-        <button id="deleteAppointmentBtn" class="btn btn-danger action-btn" type="button">Verwijderen</button>
+        <button
+          id="deleteAppointmentBtn"
+          class="btn btn-danger action-btn"
+          type="button"
+        >
+          Verwijderen
+        </button>
+
         <div class="right-actions">
-          <button class="btn btn-secondary action-btn" type="button" data-close="appointmentDialog">Annuleren</button>
-          <button class="btn btn-primary action-btn" type="submit">OK</button>
+          <button class="btn btn-secondary action-btn" type="button" data-close="appointmentDialog">
+            Annuleren
+          </button>
+          <button class="btn btn-primary action-btn" type="submit">
+            Opslaan
+          </button>
         </div>
       </div>
     </form>
   </dialog>
 
+  <!-- ===================== KLANT ========================== -->
   <dialog id="clientDialog" class="modal">
     <form method="dialog" id="clientForm" class="modal-card">
-      <div class="modal-head"><h3 id="clientModalTitle">Nieuwe klant</h3><button class="icon-btn" type="button" data-close="clientDialog">✕</button></div>
+      <div class="modal-head">
+        <h3 id="clientModalTitle">Nieuwe klant</h3>
+        <button class="icon-btn" type="button" data-close="clientDialog">✕</button>
+      </div>
+
       <input type="hidden" id="clientId" />
-      <label class="field-label">Voornaam</label><input id="clientFirstName" class="field" required />
-      <label class="field-label">Achternaam</label><input id="clientLastName" class="field" />
-      <label class="field-label">Telefoon</label><input id="clientPhone" class="field" />
-      <label class="field-label">E-mail</label><input id="clientEmail" class="field" type="email" />
-      <label class="field-label">Notitie</label><textarea id="clientNote" class="field textarea"></textarea>
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="clientFirstName">Voornaam</label>
+          <input id="clientFirstName" class="field" type="text" required />
+        </div>
+
+        <div>
+          <label class="field-label" for="clientLastName">Naam</label>
+          <input id="clientLastName" class="field" type="text" required />
+        </div>
+      </div>
+
+      <label class="field-label" for="clientPhone">Telefoon</label>
+      <input id="clientPhone" class="field" type="tel" />
+
+      <label class="field-label" for="clientEmail">E-mail</label>
+      <input id="clientEmail" class="field" type="email" />
+
+      <label class="field-label" for="clientNote">Notitie</label>
+      <textarea id="clientNote" class="field textarea"></textarea>
+
       <div class="modal-actions end-only">
-        <button class="btn btn-secondary action-btn" type="button" data-close="clientDialog">Annuleren</button>
-        <button class="btn btn-primary action-btn" type="submit">OK</button>
+        <button class="btn btn-secondary action-btn" type="button" data-close="clientDialog">
+          Annuleren
+        </button>
+        <button class="btn btn-primary action-btn" type="submit">
+          Opslaan
+        </button>
       </div>
     </form>
   </dialog>
 
+  <!-- ===================== DIENST ========================= -->
   <dialog id="serviceDialog" class="modal">
     <form method="dialog" id="serviceForm" class="modal-card">
-      <div class="modal-head"><h3 id="serviceModalTitle">Dienst beheren</h3><button class="icon-btn" type="button" data-close="serviceDialog">✕</button></div>
-      <input type="hidden" id="serviceId" />
-      <label class="field-label">Naam</label><input id="serviceName" class="field" required />
-      <div class="field-row">
-        <div><label class="field-label">Standaardduur</label><input id="serviceDuration" class="field" type="number" min="1" step="1" required /></div>
-        <div><label class="field-label">Standaardprijs</label><input id="servicePrice" class="field" type="number" min="0" step="0.01" required /></div>
+      <div class="modal-head">
+        <h3 id="serviceModalTitle">Nieuwe dienst</h3>
+        <button class="icon-btn" type="button" data-close="serviceDialog">✕</button>
       </div>
+
+      <input type="hidden" id="serviceId" />
+
+      <label class="field-label" for="serviceName">Naam dienst</label>
+      <input id="serviceName" class="field" type="text" required />
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="serviceDuration">Duur (min)</label>
+          <input id="serviceDuration" class="field" type="number" min="0" required />
+        </div>
+
+        <div>
+          <label class="field-label" for="servicePrice">Prijs</label>
+          <input id="servicePrice" class="field" type="number" min="0" step="0.01" required />
+        </div>
+      </div>
+
       <div class="modal-actions">
-        <button id="deleteServiceBtn" class="btn btn-danger action-btn" type="button">Verwijderen</button>
+        <button id="deleteServiceBtn" class="btn btn-danger action-btn" type="button">
+          Verwijderen
+        </button>
+
         <div class="right-actions">
-          <button class="btn btn-secondary action-btn" type="button" data-close="serviceDialog">Annuleren</button>
-          <button class="btn btn-primary action-btn" type="submit">OK</button>
+          <button class="btn btn-secondary action-btn" type="button" data-close="serviceDialog">
+            Annuleren
+          </button>
+          <button class="btn btn-primary action-btn" type="submit">
+            Opslaan
+          </button>
         </div>
       </div>
     </form>
   </dialog>
 
+  <!-- ===================== BETALING ======================= -->
   <dialog id="paymentDialog" class="modal">
     <form method="dialog" id="paymentForm" class="modal-card modal-small">
-      <div class="modal-head"><h3>Betaling registreren</h3><button class="icon-btn" type="button" data-close="paymentDialog">✕</button></div>
+      <div class="modal-head">
+        <h3>Betaling registreren</h3>
+        <button class="icon-btn" type="button" data-close="paymentDialog">✕</button>
+      </div>
+
       <input type="hidden" id="paymentAppointmentId" />
+
       <div class="payment-amount" id="paymentAmount">€ 0,00</div>
-      <label class="field-label">Betaalmethode</label>
+
+      <label class="field-label" for="paymentMethod">Betaalmethode</label>
       <select id="paymentMethod" class="field">
         <option value="cash">Cash</option>
         <option value="payconiq">Payconiq</option>
@@ -301,13 +533,121 @@
         <option value="overschrijving">Overschrijving</option>
         <option value="anders">Anders</option>
       </select>
-      <div class="modal-actions two-buttons">
-        <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">Niet betaald</button>
-        <button class="btn btn-primary action-btn" type="submit">OK</button>
+
+      <div class="modal-actions">
+        <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">
+          Markeer onbetaald
+        </button>
+
+        <div class="right-actions">
+          <button class="btn btn-secondary action-btn" type="button" data-close="paymentDialog">
+            Annuleren
+          </button>
+          <button class="btn btn-primary action-btn" type="submit">
+            Opslaan
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
 
+  <!-- ===================== REGISTREREN ==================== -->
+  <dialog id="registerDialog" class="modal">
+    <form method="dialog" id="registerForm" class="modal-card">
+      <div class="modal-head">
+        <h3>Registreren</h3>
+        <button class="icon-btn" type="button" data-close="registerDialog">✕</button>
+      </div>
+
+      <label class="field-label" for="registerFirstName">Voornaam</label>
+      <input id="registerFirstName" class="field" type="text" required />
+
+      <label class="field-label" for="registerLastName">Naam</label>
+      <input id="registerLastName" class="field" type="text" required />
+
+      <label class="field-label" for="registerEmail">E-mail</label>
+      <input id="registerEmail" class="field" type="email" required autocomplete="email" />
+
+      <label class="field-label" for="registerPassword">Wachtwoord</label>
+      <input id="registerPassword" class="field" type="password" required autocomplete="new-password" />
+
+      <label class="field-label" for="registerPasswordConfirm">Bevestig wachtwoord</label>
+      <input id="registerPasswordConfirm" class="field" type="password" required autocomplete="new-password" />
+
+      <label class="field-label" for="registerPhoto">Foto (optioneel)</label>
+      <input id="registerPhoto" class="field file-field" type="file" accept="image/*" />
+
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="registerDialog">
+          Annuleren
+        </button>
+        <button id="registerBtn" class="btn btn-primary action-btn" type="submit">
+          Registreren
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== PROFIEL BEWERKEN ============== -->
+  <dialog id="editProfileDialog" class="modal">
+    <form method="dialog" id="editProfileForm" class="modal-card">
+      <div class="modal-head">
+        <h3>Profiel bewerken</h3>
+        <button class="icon-btn" type="button" data-close="editProfileDialog">✕</button>
+      </div>
+
+      <label class="field-label" for="editFirstName">Voornaam</label>
+      <input id="editFirstName" class="field" type="text" required />
+
+      <label class="field-label" for="editLastName">Naam</label>
+      <input id="editLastName" class="field" type="text" required />
+
+      <label class="field-label" for="editAvatar">Foto</label>
+      <input id="editAvatar" class="field file-field" type="file" accept="image/*" />
+
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="editProfileDialog">
+          Annuleren
+        </button>
+        <button class="btn btn-primary action-btn" type="submit">
+          Opslaan
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== WACHTWOORD WIJZIGEN =========== -->
+  <dialog id="passwordDialog" class="modal">
+    <form method="dialog" id="passwordForm" class="modal-card">
+      <div class="modal-head">
+        <h3>Wachtwoord wijzigen</h3>
+        <button class="icon-btn" type="button" data-close="passwordDialog">✕</button>
+      </div>
+
+      <label class="field-label" for="newPassword">Nieuw wachtwoord</label>
+      <input id="newPassword" class="field" type="password" required autocomplete="new-password" />
+
+      <label class="field-label" for="confirmPassword">Bevestig wachtwoord</label>
+      <input id="confirmPassword" class="field" type="password" required autocomplete="new-password" />
+
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="passwordDialog">
+          Annuleren
+        </button>
+        <button class="btn btn-primary action-btn" type="submit">
+          Opslaan
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =========================================================
+       SCRIPTS
+       Volgorde is belangrijk:
+       1. Supabase library
+       2. jouw supabase-client.js
+       3. app.js
+  ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
   <script src="app.js"></script>

@@ -1,98 +1,980 @@
-*{box-sizing:border-box}
-:root{--bg:#f6f2f4;--card:#fff;--line:#ece0e5;--primary:#d98ea7;--primary-dark:#b56e86;--primary-soft:#f8e4eb;--text:#4e4650;--muted:#8c838d;--danger:#cc5b7a;--shadow:0 10px 22px rgba(165,116,140,.12);--radius:18px}
-html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;overscroll-behavior:none}
-button,input,select,textarea{font:inherit}button{cursor:pointer}
-.app-shell{max-width:520px;height:100dvh;margin:0 auto;display:grid;grid-template-rows:auto 1fr auto;background:linear-gradient(180deg,#fff 0,#fff 58%,#fbf8f9 100%);overflow:hidden}
-.topbar{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px 10px;background:linear-gradient(180deg,#fff 0,#fff 58%,#fbf8f9 100%);backdrop-filter:blur(10px);border-bottom:1px solid #f1e7eb; background-color: pink}
-.topbar-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.topbar-title-wrap{display:flex;align-items:center;gap:10px;min-width:0}
-.topbar-logo{height:28px;width:auto;object-fit:contain;flex-shrink: 0}
-.topbar-title-wrap h1, #screenTitle{margin:0;text-align:left;font-size:24px;color:var(--primary-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.header-account-btn{border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:48px;padding:0;cursor: pointer; color:var(--primary-dark)}
-.header-account-icon{font-size:24px;line-height:1}
-.header-account-name{font-size:10px;line-height:1.1;color:var(--muted);text-transform:lowercase;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hidden-btn{visibility:hidden}
-.main-layout{min-height:0;height:100%;overflow:hidden}
-.screen{display:none;height:100%;min-height:0}
-.screen.active{display:grid}
-#agendaScreen{grid-template-rows:auto 1fr;min-height:0;overflow:hidden}
-.calendar-panel{background:#fff;padding:8px 14px 10px;border-bottom:1px solid #f1e7eb;flex:0 0 auto}
-.month-header{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}
-.month-title{text-align:center;font-size:18px;font-weight:700;letter-spacing:.5px}
-.month-select-btn{border:none;background:none;color:var(--text);padding:8px;border-radius:14px}
-.month-select-btn:hover,.month-select-btn:active{background:var(--primary-soft)}
-.weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:4px;color:var(--muted);font-size:12px;font-weight:700;text-align:center;text-transform:uppercase}
-.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px}
-.day-cell,.empty-cell{aspect-ratio:1/.76;border-radius:14px}.empty-cell{background:transparent}
-.day-cell{border:1px solid var(--line);background:#fff;display:flex;align-items:flex-start;justify-content:flex-end;padding:7px;position:relative}
-.day-button{position:absolute;inset:0;border:none;background:none}.day-number{font-size:14px;font-weight:700}
-.day-cell.selected{background:var(--primary-soft);border-color:var(--primary)}
-.day-dots{position:absolute;left:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}.day-dots i{width:6px;height:6px;border-radius:999px;background:var(--primary);display:block}
-.agenda-list-panel,.clients-panel,.revenue-panel,.detail-panel,.services-panel{min-height:0;display:grid;grid-template-rows:auto 1fr;overflow:hidden}
-.section-head{padding:12px 16px 8px;background:#fff}.sticky-inside{position:sticky;top:0;z-index:5}.section-head h2{margin:0;font-size:16px;color:var(--muted)}
-.scroll-list{overflow:auto;min-height:0;padding:0 16px 96px;-webkit-overflow-scrolling:touch}
-.appointment-card,.client-card,.revenue-card,.detail-card,.service-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px}
-.appointment-row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:14px;cursor:pointer}
-.time{font-size:18px;font-weight:700}.main-name{font-size:16px;font-weight:700;margin-bottom:4px}.meta{font-size:13px;color:var(--muted)}
-.price-chip{border:none;background:var(--primary-soft);color:var(--primary-dark);border-radius:999px;font-weight:700;padding:10px 12px}
-.price-chip.paid{background:#e7f6ea;color:#2d8b4e}
-.search-input{width:100%;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
-.alphabet-filter{display:flex;gap:6px;overflow:auto;margin-top:12px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
-.alphabet-btn{border:1px solid var(--line);background:#fff;color:var(--muted);min-width:34px;height:34px;border-radius:10px;font-weight:700;flex:0 0 auto}
-.alphabet-btn.active{background:var(--primary-soft);color:var(--primary-dark);border-color:var(--primary)}
-.client-card button,.detail-card button,.service-card button{width:100%;text-align:left;border:none;background:none;padding:16px;color:inherit}
-.client-name{font-size:16px;font-weight:700;margin-bottom:4px}
-.detail-block{padding:16px;border-bottom:1px solid #f2e9ed}
-.detail-block:last-child{border-bottom:none}
-.detail-label{color:var(--muted);text-transform:uppercase;font-size:12px;font-weight:700;margin-bottom:6px}
-.detail-value{font-size:16px;line-height:1.45}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.summary-card{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 16px 8px}
-.summary-block{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 12px;box-shadow:var(--shadow)}
-.summary-label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px;text-transform:uppercase}
-.revenue-filters-wrap{padding-bottom:12px}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compact-field{min-height:44px}
-.bottom-nav{z-index:30;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid #f1e7eb;backdrop-filter:blur(10px)}
-.nav-btn{border:none;border-radius:16px;background:transparent;color:var(--muted);display:grid;gap:4px;place-items:center;padding:8px 6px}
-.nav-btn.active{color:var(--primary-dark);background:var(--primary-soft)}.nav-ico{font-size:20px}
-.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:25;width:58px;height:58px;border:none;border-radius:999px;background:linear-gradient(180deg,#e6b1c3 0,#d98ea7 100%);color:#fff;font-size:34px;box-shadow:0 14px 24px rgba(201,120,150,.25)}
-.icon-btn{border:none;background:none;color:var(--primary-dark);font-size:26px;padding:4px 6px;line-height:1}
-.modal{width:min(92vw,420px);border:none;border-radius:24px;padding:0;background:transparent}.modal::backdrop{background:rgba(44,27,36,.36)}
-.modal-card{background:#fff;border-radius:24px;padding:18px;box-shadow:0 24px 44px rgba(84,48,65,.25)}.modal-small{width:min(88vw,360px)}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.modal-head h3{margin:0;color:var(--primary-dark)}
-.field-label{display:block;margin:12px 0 6px;color:var(--muted);text-transform:uppercase;font-size:12px;font-weight:700}
-.field{width:100%;min-height:48px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff}.textarea{min-height:92px;resize:vertical}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap}.right-actions{display:flex;gap:10px;margin-left:auto}.end-only{justify-content:flex-end}.two-buttons>*{flex:1}
-.btn{min-height:48px;border:none;border-radius:16px;padding:12px 18px;font-weight:700}.action-btn{box-shadow:0 8px 18px rgba(165,116,140,.12)}
-.btn-primary{background:linear-gradient(180deg,#e6b1c3 0,#d98ea7 100%);color:#fff}.btn-secondary{background:#f4f1f3;color:var(--text)}.btn-danger{background:#fff1f4;color:var(--danger)}
-.ghost-btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:10px 14px}
-.payment-amount{font-size:28px;font-weight:800;color:var(--primary-dark);margin:6px 0 10px}
-.empty-state{border:1px dashed var(--line);border-radius:18px;background:#fff;padding:22px 16px;text-align:center;color:var(--muted);margin-top:6px}
-.inline-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.inline-header .ghost-btn{white-space:nowrap}
-@media (max-width:400px){.summary-card{grid-template-columns:1fr}.filter-grid{grid-template-columns:1fr}}
+/* =========================================================
+   1. RESET / BASIS
+========================================================= */
+* {
+  box-sizing: border-box;
+}
 
-.account-view.hidden{display:none}
-.account-actions{margin-top:16px}
-.account-divider{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase;padding:4px 0 16px}
-.account-divider::before,.account-divider::after{content:"";height:1px;background:var(--line);flex:1}.account-divider span{padding:0 12px}
-.account-profile-head{display:flex;align-items:center;gap:14px}.account-avatar{width:56px;height:56px;border-radius:999px;background:var(--primary-soft);display:grid;place-items:center;font-size:26px;color:var(--primary-dark);overflow:hidden;flex:0 0 56px}.account-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.header-account-icon{width:28px;height:28px;border-radius:999px;background:var(--primary-soft);display:grid;place-items:center;font-size:18px;overflow:hidden}
-.header-account-icon img{width:100%;height:100%;object-fit:cover;display:block}
+:root {
+  --bg: #f7f4f6;
+  --card: #ffffff;
+  --line: #eddfe6;
+  --line-strong: #e4d1da;
 
-.account-avatar-preview {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
+  --primary: #d991ab;
+  --primary-dark: #b86d87;
+  --primary-soft: #f8e8ee;
+
+  --text: #4e4650;
+  --muted: #8c838d;
+
+  --success-bg: #e7f6ea;
+  --success-text: #2d8b4e;
+
+  --danger: #d46a8a;
+  --danger-soft: #fff1f5;
+
+  --shadow-soft: 0 8px 20px rgba(170, 120, 145, 0.10);
+  --shadow-card: 0 12px 28px rgba(170, 120, 145, 0.12);
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* =========================================================
+   2. APP SHELL / ALGEMENE LAYOUT
+========================================================= */
+.app-shell {
+  max-width: 520px;
+  height: 100dvh;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfd 48%, #fbf7f9 100%);
+  overflow: hidden;
+}
+
+.main-layout {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Alle screens werken op dezelfde manier */
+.screen {
+  display: none;
+  height: 100%;
+  min-height: 0;
+}
+
+.screen.active {
+  display: grid;
+}
+
+/* =========================================================
+   3. TOPBAR / HEADER
+========================================================= */
+.topbar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 10px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.topbar-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.topbar-logo {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.topbar-title-wrap h1,
+#screenTitle {
+  margin: 0;
+  text-align: left;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--primary-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hidden-btn {
+  visibility: hidden;
+}
+
+/* Account knop rechtsboven */
+.header-account-btn {
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 58px;
+  max-width: 72px;
+  padding: 4px 6px;
+  border-radius: 14px;
+  color: var(--primary-dark);
+  flex-shrink: 0;
+}
+
+.header-account-btn:hover {
+  background: var(--primary-soft);
+}
+
+.header-account-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.header-account-icon img {
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
+  object-fit: cover;
   display: block;
 }
 
-.detail-row + .detail-row {
-  margin-top: 14px;
+.header-account-name {
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+
+/* =========================================================
+   4. ALGEMENE PANELEN / SCROLLGEBIEDEN
+========================================================= */
+#agendaScreen {
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.agenda-list-panel,
+.clients-panel,
+.revenue-panel,
+.detail-panel,
+.services-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.section-head {
+  padding: 12px 16px 8px;
+  background: #ffffff;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.sticky-inside {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.scroll-list {
+  overflow: auto;
+  min-height: 0;
+  padding: 12px 16px 96px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================================================
+   5. KAARTEN / DETAILBLOKKEN
+========================================================= */
+.appointment-card,
+.client-card,
+.revenue-card,
+.detail-card,
+.service-card,
+.account-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 14px;
+}
+
+.detail-block {
+  padding: 16px;
+  border-bottom: 1px solid #f3e9ee;
+}
+
+.detail-block:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.detail-value {
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 .detail-sub-label {
   font-size: 12px;
-  opacity: 0.75;
+  color: var(--muted);
   margin-bottom: 4px;
 }
 
+/* =========================================================
+   6. AGENDA / KALENDER
+========================================================= */
+.calendar-panel {
+  background: #ffffff;
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+
+.month-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+}
+
+.month-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.month-select-btn {
+  border: none;
+  background: none;
+  color: var(--text);
+  padding: 8px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.month-select-btn:hover,
+.month-select-btn:active {
+  background: var(--primary-soft);
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.day-cell,
+.empty-cell {
+  aspect-ratio: 1 / 0.76;
+  border-radius: 14px;
+}
+
+.empty-cell {
+  background: transparent;
+}
+
+.day-cell {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 7px;
+  position: relative;
+}
+
+.day-button {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: none;
+}
+
+.day-number {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.day-cell.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.day-dots {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.day-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  display: block;
+}
+
+/* =========================================================
+   7. AFSRPRAKEN / KLANTEN / DIENSTEN / OMZET
+========================================================= */
+.appointment-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.time {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.main-name,
+.client-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.client-card button,
+.detail-card button,
+.service-card button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 16px;
+  color: inherit;
+}
+
+.search-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.alphabet-filter {
+  display: flex;
+  gap: 6px;
+  overflow: auto;
+  margin-top: 12px;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.alphabet-btn {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--muted);
+  min-width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-weight: 700;
+  flex: 0 0 auto;
+  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.06);
+}
+
+.alphabet-btn.active {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+
+.summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px 16px 8px;
+}
+
+.summary-block {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.summary-label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.revenue-filters-wrap {
+  padding-bottom: 12px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.compact-field {
+  min-height: 44px;
+}
+
+/* =========================================================
+   8. KNOPPEN
+========================================================= */
+.btn,
+.ghost-btn,
+.nav-btn,
+.icon-btn,
+.price-chip,
+.alphabet-btn,
+.month-select-btn,
+.header-account-btn,
+.file-field::file-selector-button {
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.btn:hover,
+.ghost-btn:hover,
+.nav-btn:hover,
+.price-chip:hover,
+.alphabet-btn:hover,
+.month-select-btn:hover,
+.header-account-btn:hover,
+.file-field::file-selector-button:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active,
+.ghost-btn:active,
+.nav-btn:active,
+.price-chip:active,
+.alphabet-btn:active,
+.month-select-btn:active,
+.header-account-btn:active,
+.file-field::file-selector-button:active {
+  transform: translateY(0);
+}
+
+.btn,
+.ghost-btn,
+.nav-btn,
+.icon-btn,
+.price-chip,
+.alphabet-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn {
+  min-height: 48px;
+  border: none;
+  border-radius: 16px;
+  padding: 12px 18px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.action-btn {
+  box-shadow: 0 10px 22px rgba(165, 116, 140, 0.14);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(201, 120, 150, 0.22);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 16px 28px rgba(201, 120, 150, 0.28);
+}
+
+.btn-secondary {
+  background: #f5f1f3;
+  color: var(--text);
+  border: 1px solid #eee2e8;
+}
+
+.btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid #f5c2d2;
+}
+
+.ghost-btn {
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--text);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(165, 116, 140, 0.08);
+}
+
+.full-btn {
+  width: 100%;
+}
+
+.small {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  color: var(--primary-dark);
+  font-size: 26px;
+  padding: 4px 6px;
+  line-height: 1;
+}
+
+.icon-btn.hidden-btn {
+  box-shadow: none;
+  background: transparent;
+}
+
+.price-chip {
+  border: none;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 10px 12px;
+  box-shadow: 0 8px 16px rgba(165, 116, 140, 0.12);
+}
+
+.price-chip.paid {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+/* =========================================================
+   9. BOTTOM NAV + FAB
+========================================================= */
+.bottom-nav {
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+
+.nav-btn {
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+  place-items: center;
+  padding: 8px 6px;
+  font-weight: 700;
+}
+
+.nav-btn.active {
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+.nav-ico {
+  font-size: 20px;
+}
+
+.fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 92px;
+  z-index: 25;
+  width: 58px;
+  height: 58px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  color: #ffffff;
+  font-size: 34px;
+  box-shadow: 0 14px 24px rgba(201, 120, 150, 0.25);
+}
+
+/* =========================================================
+   10. FORMULIEREN / VELDEN
+========================================================= */
+.field-label {
+  display: block;
+  margin: 12px 0 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.file-field {
+  padding: 10px 12px;
+}
+
+.file-field::file-selector-button {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-right: 12px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* =========================================================
+   11. DIALOGS / MODALS
+========================================================= */
+.modal {
+  width: min(92vw, 420px);
+  border: none;
+  border-radius: 24px;
+  padding: 0;
+  background: transparent;
+}
+
+.modal::backdrop {
+  background: rgba(44, 27, 36, 0.36);
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow: 0 24px 44px rgba(84, 48, 65, 0.25);
+}
+
+.modal-small {
+  width: min(88vw, 360px);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-head h3 {
+  margin: 0;
+  color: var(--primary-dark);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.right-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.end-only {
+  justify-content: flex-end;
+}
+
+.two-buttons > * {
+  flex: 1;
+}
+
+/* =========================================================
+   12. HULP-CLASSES
+========================================================= */
+.hidden {
+  display: none !important;
+}
+
+.empty-state {
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-header .ghost-btn {
+  white-space: nowrap;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* =========================================================
+   13. ACCOUNT PAGINA
+   Mooie, professionele layout in tabelvorm
+========================================================= */
+
+/* Gast / ingelogd blok */
+.account-view.hidden {
+  display: none !important;
+}
+
+/* Algemene account cards */
+.account-card {
+  padding: 18px;
+}
+
+/* Bovenste profielblok */
+.account-profile-layout {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Profielfoto */
+.account-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px #f0d8e2;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Tabelvorm met accountgegevens */
+.account-data-table {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.account-data-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid #f2e8ed;
+}
+
+.account-data-row:last-child {
+  border-bottom: none;
+}
+
+.account-data-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-data-value {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Wachtwoordwaarde in accountoverzicht */
+.account-password-mask {
+  letter-spacing: 1px;
+}
+
+/* Naam bovenaan mag subtiel opvallen */
+.account-profile-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* Knoppen onder de gegevens */
+.account-button-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Login blok */
+.auth-card {
+  margin-top: 10px;
+}
+
+.account-actions {
+  margin-top: 18px;
+}
+
+.text-link-btn {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  color: var(--primary-dark);
+  font-weight: 700;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-link-btn:hover,
+.text-link-btn:active {
+  color: #9f5f75;
+}
+
+/* =========================================================
+   14. RESPONSIVE
+========================================================= */
+@media (max-width: 400px) {
+  .summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row,
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-profile-layout {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .account-data-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

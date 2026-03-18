@@ -1,4 +1,4 @@
-const STORAGE_KEY = "salon_app_v43";
+const STORAGE_KEY = "nailbooker_v1";
 const today = new Date();
 
 function formatDateInput(d) {
@@ -27,7 +27,7 @@ const longMonthNames = [
   "juli", "augustus", "september", "oktober", "november", "december"
 ];
 
-const paymentMethods = ["cash", "payconiq", "bancontact", "overschrijving"];
+const paymentMethods = ["cash", "payconiq", "bancontact", "kaart", "overschrijving", "anders"];
 
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr + "T00:00:00");
@@ -106,30 +106,72 @@ function weekBounds(dateStr) {
    AUTH / SUPABASE HELPERS
 ========================= */
 
-async function getCurrentUser() {
-  const {
-    data: { user }
-  } = await supabaseClient.auth.getUser();
+let authUserCache = null;
+let authProfileCache = null;
+let authInitialized = false;
+let authSyncPromise = null;
 
-  return user;
+async function ensureAuthState() {
+  if (authSyncPromise) return authSyncPromise;
+
+  authSyncPromise = (async () => {
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+
+      if (error) {
+        console.error("Sessie laden mislukt:", error.message);
+        authUserCache = null;
+        authProfileCache = null;
+        authInitialized = true;
+        return null;
+      }
+
+      authUserCache = data?.session?.user || null;
+
+      if (authUserCache) {
+        const { data: profile, error: profileError } = await supabaseClient
+          .from("profiles")
+          .select("first_name, last_name, avatar_url")
+          .eq("id", authUserCache.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("Profiel laden mislukt:", profileError.message);
+          authProfileCache = null;
+        } else {
+          authProfileCache = profile || null;
+        }
+      } else {
+        authProfileCache = null;
+      }
+
+      authInitialized = true;
+      return authUserCache;
+    } finally {
+      authSyncPromise = null;
+    }
+  })();
+
+  return authSyncPromise;
+}
+
+async function getCurrentUser() {
+  if (!authInitialized) {
+    await ensureAuthState();
+  }
+  return authUserCache;
 }
 
 async function getCurrentProfile() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (error) {
-    console.error("Profiel laden mislukt:", error.message);
-    return null;
+  if (!authInitialized) {
+    await ensureAuthState();
   }
+  return authProfileCache;
+}
 
-  return data;
+async function refreshAuthState() {
+  authInitialized = false;
+  return ensureAuthState();
 }
 
 function extractFirstNameFromUser(user, profile = null) {
@@ -149,6 +191,20 @@ function extractFirstNameFromUser(user, profile = null) {
   return "log in";
 }
 
+function buildHeaderAccountIcon(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
+  return "👤";
+}
+
+function buildAccountAvatar(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
+  return "👤";
+}
+
 async function uploadAvatar(userId, file) {
   if (!file) return null;
 
@@ -157,13 +213,9 @@ async function uploadAvatar(userId, file) {
 
   const { error: uploadError } = await supabaseClient.storage
     .from("avatars")
-    .upload(filePath, file, {
-      upsert: true
-    });
+    .upload(filePath, file, { upsert: true });
 
-  if (uploadError) {
-    throw uploadError;
-  }
+  if (uploadError) throw uploadError;
 
   const { data } = supabaseClient.storage
     .from("avatars")
@@ -184,68 +236,66 @@ async function upsertProfile(userId, values) {
     .from("profiles")
     .upsert(payload, { onConflict: "id" });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 }
 
 async function syncAuthUI() {
-  const user = await getCurrentUser();
-  const profile = user ? await getCurrentProfile() : null;
+  await ensureAuthState();
+
+  const user = authUserCache;
+  const profile = authProfileCache;
 
   const headerUserName = document.getElementById("headerUserName");
+  const headerAccountIcon = document.querySelector("#headerAccountBtn .header-account-icon");
+
   const guestView = document.getElementById("accountGuestView");
   const loggedInView = document.getElementById("accountLoggedInView");
 
-  const accountFirstName = document.getElementById("accountFirstName");
-  const accountLastName = document.getElementById("accountLastName");
-  const accountEmail = document.getElementById("accountEmail");
-  const accountAvatarRow = document.getElementById("accountAvatarRow");
-  const accountAvatarPreview = document.getElementById("accountAvatarPreview");
+  const accountProfileName = document.getElementById("accountProfileName");
+  const accountProfileEmail = document.getElementById("accountProfileEmail");
+  const accountProfileFirstName = document.getElementById("accountProfileFirstName");
+  const accountProfileLastName = document.getElementById("accountProfileLastName");
+  const accountAvatar = document.getElementById("accountAvatar");
 
   if (headerUserName) {
     headerUserName.textContent = user ? extractFirstNameFromUser(user, profile) : "log in";
   }
 
+  if (headerAccountIcon) {
+    headerAccountIcon.innerHTML = buildHeaderAccountIcon(profile);
+  }
+
   if (!user) {
-    if (guestView) guestView.style.display = "block";
-    if (loggedInView) loggedInView.style.display = "none";
+    if (guestView) guestView.classList.remove("hidden");
+    if (loggedInView) loggedInView.classList.add("hidden");
     return;
   }
 
-  if (guestView) guestView.style.display = "none";
-  if (loggedInView) loggedInView.style.display = "block";
+  const firstName =
+    profile?.first_name?.trim() ||
+    user.user_metadata?.first_name?.trim() ||
+    extractFirstNameFromUser(user, profile);
 
-  if (accountFirstName) {
-    accountFirstName.textContent =
-      profile?.first_name ||
-      user.user_metadata?.first_name ||
-      extractFirstNameFromUser(user, profile);
-  }
+  const lastName =
+    profile?.last_name?.trim() ||
+    user.user_metadata?.last_name?.trim() ||
+    "-";
 
-  if (accountLastName) {
-    accountLastName.textContent =
-      profile?.last_name ||
-      user.user_metadata?.last_name ||
-      "-";
-  }
+  const profileName = [firstName, lastName].filter(Boolean).join(" ").trim() || user.email || "-";
 
-  if (accountEmail) {
-    accountEmail.textContent = user.email || "-";
-  }
+  if (accountProfileName) accountProfileName.textContent = profileName;
+  if (accountProfileEmail) accountProfileEmail.textContent = user.email || "-";
+  if (accountProfileFirstName) accountProfileFirstName.textContent = firstName || "-";
+  if (accountProfileLastName) accountProfileLastName.textContent = lastName || "-";
+  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar(profile);
 
-  if (accountAvatarRow && accountAvatarPreview) {
-    if (profile?.avatar_url) {
-      accountAvatarPreview.src = profile.avatar_url;
-      accountAvatarRow.style.display = "block";
-    } else {
-      accountAvatarPreview.src = "";
-      accountAvatarRow.style.display = "none";
-    }
-  }
+  if (guestView) guestView.classList.add("hidden");
+  if (loggedInView) loggedInView.classList.remove("hidden");
 }
 
-async function registerAccount() {
+async function registerAccount(event) {
+  if (event) event.preventDefault();
+
   const firstName = document.getElementById("registerFirstName").value.trim();
   const lastName = document.getElementById("registerLastName").value.trim();
   const email = document.getElementById("registerEmail").value.trim();
@@ -299,20 +349,22 @@ async function registerAccount() {
     alert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.");
   }
 
-  document.getElementById("registerFirstName").value = "";
-  document.getElementById("registerLastName").value = "";
-  document.getElementById("registerEmail").value = "";
-  document.getElementById("registerPassword").value = "";
-  document.getElementById("registerPasswordConfirm").value = "";
-  document.getElementById("registerPhoto").value = "";
+  document.getElementById("registerForm").reset();
+  closeDialog("registerDialog");
+
+  await refreshAuthState();
 
   if (data.session) {
     await loadAllDataFromSupabase();
     rerenderAll();
+    await syncAuthUI();
+    switchScreen("agendaScreen", "Agenda");
+    alert("Registratie gelukt. Je bent nu ingelogd.");
+  } else {
+    await syncAuthUI();
+    switchScreen("accountScreen", "Account");
+    alert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
   }
-
-  await syncAuthUI();
-  alert(data.session ? "Registratie gelukt. Je bent nu ingelogd." : "Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
 }
 
 async function loginAccount() {
@@ -331,9 +383,11 @@ async function loginAccount() {
 
   document.getElementById("loginPassword").value = "";
 
-  await syncAuthUI();
+  await refreshAuthState();
   await loadAllDataFromSupabase();
   rerenderAll();
+  await syncAuthUI();
+  switchScreen("agendaScreen", "Agenda");
 }
 
 async function logoutAccount() {
@@ -344,111 +398,15 @@ async function logoutAccount() {
     return;
   }
 
+  authUserCache = null;
+  authProfileCache = null;
+  authInitialized = true;
+
   localStorage.removeItem(STORAGE_KEY);
   seedData();
-
-  await syncAuthUI();
   rerenderAll();
-}
-
-async function loadCustomersFromSupabase() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const { data, error } = await supabaseClient
-    .from("customers")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("first_name", { ascending: true });
-
-  if (error) {
-    console.error("Fout bij laden klanten:", error.message);
-    return [];
-  }
-
-  return (data || []).map(c => ({
-    id: c.id,
-    firstName: c.first_name,
-    lastName: c.last_name,
-    phone: c.phone,
-    email: c.email,
-    note: c.note
-  }));
-}
-
-async function loadServicesFromSupabase() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const { data, error } = await supabaseClient
-    .from("services")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("name", { ascending: true });
-
-  if (error) {
-    console.error("Fout bij laden diensten:", error.message);
-    return [];
-  }
-
-  return (data || []).map(s => ({
-    id: s.id,
-    name: s.name,
-    duration: s.duration,
-    price: Number(s.price || 0)
-  }));
-}
-
-async function loadAppointmentsFromSupabase() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const { data, error } = await supabaseClient
-    .from("appointments")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("appointment_date", { ascending: true })
-    .order("appointment_time", { ascending: true });
-
-  if (error) {
-    console.error("Fout bij laden afspraken:", error.message);
-    return [];
-  }
-
-  return (data || []).map(a => ({
-    id: a.id,
-    customerId: a.customer_id,
-    serviceId: a.service_id,
-    date: a.appointment_date,
-    time: a.appointment_time ? String(a.appointment_time).slice(0, 5) : "",
-    duration: a.duration,
-    price: Number(a.price || 0),
-    status: a.status,
-    paid: Boolean(a.paid),
-    paymentMethod: a.payment_method || ""
-  }));
-}
-
-async function loadAllDataFromSupabase() {
-  const customers = await loadCustomersFromSupabase();
-  const services = await loadServicesFromSupabase();
-  const appointments = await loadAppointmentsFromSupabase();
-
-  saveData({
-    customers,
-    services,
-    appointments
-  });
-}
-
-async function initAppData() {
-  const user = await getCurrentUser();
-
-  if (user) {
-    await loadAllDataFromSupabase();
-  } else {
-    seedData();
-  }
+  await syncAuthUI();
+  switchScreen("accountScreen", "Account");
 }
 
 /* =========================
@@ -485,13 +443,19 @@ function switchScreen(screenId, title) {
   }
 
   document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
-  document.getElementById(screenId).classList.add("active");
+
+  const target = document.getElementById(screenId);
+  if (target) target.classList.add("active");
 
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.screen === screenId);
   });
 
   updateTopbar(screenId, title);
+
+  if (screenId === "accountScreen") {
+    syncAuthUI();
+  }
 }
 
 function renderCalendar() {
@@ -1546,11 +1510,21 @@ function registerEvents() {
   });
 
   const registerBtn = document.getElementById("registerBtn");
+  const registerForm = document.getElementById("registerForm");
+  const openRegisterBtn = document.getElementById("openRegisterDialogBtn");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const headerAccountBtn = document.getElementById("headerAccountBtn");
 
   if (registerBtn) registerBtn.addEventListener("click", registerAccount);
+  if (registerForm) registerForm.addEventListener("submit", registerAccount);
+
+  if (openRegisterBtn) {
+    openRegisterBtn.addEventListener("click", () => {
+      document.getElementById("registerDialog").showModal();
+    });
+  }
+
   if (loginBtn) loginBtn.addEventListener("click", loginAccount);
   if (logoutBtn) logoutBtn.addEventListener("click", logoutAccount);
 
@@ -1561,6 +1535,7 @@ function registerEvents() {
   }
 
   supabaseClient.auth.onAuthStateChange(async () => {
+    await refreshAuthState();
     await syncAuthUI();
   });
 }
@@ -1572,15 +1547,128 @@ function registerServiceWorker() {
 }
 
 /* =========================
+   LADEN VAN SUPABASE
+=========================== */
+
+async function loadCustomersFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("customers")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("first_name", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden klanten:", error.message);
+    return [];
+  }
+
+  return (data || []).map(c => ({
+    id: c.id,
+    firstName: c.first_name,
+    lastName: c.last_name,
+    phone: c.phone,
+    email: c.email,
+    note: c.note
+  }));
+}
+
+async function loadServicesFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("services")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden diensten:", error.message);
+    return [];
+  }
+
+  return (data || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    duration: s.duration,
+    price: Number(s.price || 0)
+  }));
+}
+
+async function loadAppointmentsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("appointments")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("appointment_date", { ascending: true })
+    .order("appointment_time", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden afspraken:", error.message);
+    return [];
+  }
+
+  return (data || []).map(a => ({
+    id: a.id,
+    customerId: a.customer_id,
+    serviceId: a.service_id,
+    date: a.appointment_date,
+    time: a.appointment_time ? String(a.appointment_time).slice(0, 5) : "",
+    duration: a.duration,
+    price: Number(a.price || 0),
+    status: a.status,
+    paid: Boolean(a.paid),
+    paymentMethod: a.payment_method || ""
+  }));
+}
+
+async function loadAllDataFromSupabase() {
+  const customers = await loadCustomersFromSupabase();
+  const services = await loadServicesFromSupabase();
+  const appointments = await loadAppointmentsFromSupabase();
+
+  saveData({
+    customers,
+    services,
+    appointments
+  });
+}
+
+/* =========================
    STARTUP
 ========================= */
 
+async function initAppData() {
+  const user = await getCurrentUser();
+
+  if (user) {
+    await loadAllDataFromSupabase();
+  } else {
+    seedData();
+  }
+}
+
 async function startApp() {
+  await ensureAuthState();
   await initAppData();
   registerEvents();
-  switchScreen("agendaScreen", "Agenda");
   rerenderAll();
   await syncAuthUI();
+
+  const user = await getCurrentUser();
+
+  if (user) {
+    switchScreen("agendaScreen", "Agenda");
+  } else {
+    switchScreen("accountScreen", "Account");
+  }
+
   registerServiceWorker();
 }
 
