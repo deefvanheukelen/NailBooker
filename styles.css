@@ -25,7 +25,7 @@
   --danger-soft: #fff1f5;
 
   --shadow-soft: 0 8px 20px rgba(170, 120, 145, 0.10);
-  --shadow-card: 0 12px 28px rgba(170, 120, 145, 0.12);
+  --shadow-card: 0 2px 4px rgba(170, 120, 145, 0.12);  /* 0 12px 28px rgba(170, 120, 145, 0.12); */
 
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -315,9 +315,9 @@ button {
 .account-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  /* border-radius: var(--radius-lg); */
   box-shadow: var(--shadow-card);
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 
 .detail-block {
