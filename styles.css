@@ -24,7 +24,7 @@
   --danger: #d46a8a;
   --danger-soft: #fff1f5;
 
-  --shadow-soft: 0 8px 20px rgba(170, 120, 145, 0.10);
+  --shadow-soft: 0 2px 4px rgba(170, 120, 145, 0.10); /* 0 8px 20px rgba(170, 120, 145, 0.10); */
   --shadow-card: 0 2px 4px rgba(170, 120, 145, 0.12);  /* 0 12px 28px rgba(170, 120, 145, 0.12); */
 
   --radius-sm: 12px;
@@ -34,6 +34,7 @@
   
   --bottom-nav-height: 80px;
 }
+
 
 html,
 body {
@@ -625,24 +626,24 @@ button {
 .btn {
   min-height: 48px;
   border: none;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 12px 18px;
   font-weight: 700;
   letter-spacing: 0.1px;
 }
 
 .action-btn {
-  box-shadow: 0 10px 22px rgba(165, 116, 140, 0.14);
+  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.14);
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  background: #e6b1c3; /* linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%); */
   color: #ffffff;
-  box-shadow: 0 12px 22px rgba(201, 120, 150, 0.22);
+  /* box-shadow: 0 12px 22px rgba(201, 120, 150, 0.22); */
 }
 
 .btn-primary:hover {
-  box-shadow: 0 16px 28px rgba(201, 120, 150, 0.28);
+  /* box-shadow: 0 16px 28px rgba(201, 120, 150, 0.28); */
 }
 
 .btn-secondary {
@@ -659,12 +660,12 @@ button {
 
 .ghost-btn {
   border: 1px solid var(--line-strong);
-  background: #ffffff;
+  background: #333;
   color: var(--text);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px 14px;
   font-weight: 700;
-  box-shadow: 0 6px 14px rgba(165, 116, 140, 0.08);
+  /* box-shadow: 0 6px 14px rgba(165, 116, 140, 0.08); */
 }
 
 .full-btn {
@@ -697,7 +698,7 @@ button {
   border-radius: 999px;
   font-weight: 700;
   padding: 10px 12px;
-  box-shadow: 0 8px 16px rgba(165, 116, 140, 0.12);
+  /* box-shadow: 0 2px 4px rgba(165, 116, 140, 0.12); */
 }
 
 .price-chip.paid {
