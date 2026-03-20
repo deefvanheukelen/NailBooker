@@ -110,23 +110,38 @@ let authUserCache = null;
 let authProfileCache = null;
 let authInitialized = false;
 let authSyncPromise = null;
+let authSubscription = null;
 
-async function ensureAuthState() {
-  if (authSyncPromise) return authSyncPromise;
+async function ensureAuthState(options = {}) {
+  const { force = false } = options;
+
+  if (authSyncPromise && !force) return authSyncPromise;
 
   authSyncPromise = (async () => {
     try {
-      const { data, error } = await supabaseClient.auth.getSession();
+      let sessionData = null;
+      let sessionError = null;
 
-      if (error) {
-        console.error("Sessie laden mislukt:", error.message);
-        authUserCache = null;
-        authProfileCache = null;
-        authInitialized = true;
-        return null;
+      const sessionResponse = await supabaseClient.auth.getSession();
+      sessionData = sessionResponse.data;
+      sessionError = sessionResponse.error;
+
+      if (sessionError) {
+        console.error("Sessie laden mislukt:", sessionError.message);
       }
 
-      authUserCache = data?.session?.user || null;
+      let session = sessionData?.session || null;
+
+      if (!session && sessionData?.session?.refresh_token) {
+        const refreshResponse = await supabaseClient.auth.refreshSession();
+        if (refreshResponse.error) {
+          console.error("Sessie vernieuwen mislukt:", refreshResponse.error.message);
+        } else {
+          session = refreshResponse.data?.session || null;
+        }
+      }
+
+      authUserCache = session?.user || null;
 
       if (authUserCache) {
         const { data: profile, error: profileError } = await supabaseClient
@@ -147,6 +162,12 @@ async function ensureAuthState() {
 
       authInitialized = true;
       return authUserCache;
+    } catch (error) {
+      console.error("Onverwachte fout bij auth-synchronisatie:", error);
+      authUserCache = null;
+      authProfileCache = null;
+      authInitialized = true;
+      return null;
     } finally {
       authSyncPromise = null;
     }
@@ -155,23 +176,73 @@ async function ensureAuthState() {
   return authSyncPromise;
 }
 
-async function getCurrentUser() {
-  if (!authInitialized) {
-    await ensureAuthState();
+async function getCurrentUser(options = {}) {
+  if (!authInitialized || options.forceRefresh) {
+    await ensureAuthState({ force: Boolean(options.forceRefresh) });
   }
   return authUserCache;
 }
 
-async function getCurrentProfile() {
-  if (!authInitialized) {
-    await ensureAuthState();
+async function getCurrentProfile(options = {}) {
+  if (!authInitialized || options.forceRefresh) {
+    await ensureAuthState({ force: Boolean(options.forceRefresh) });
   }
   return authProfileCache;
 }
 
 async function refreshAuthState() {
   authInitialized = false;
-  return ensureAuthState();
+  return ensureAuthState({ force: true });
+}
+
+async function getFreshUserForWrite() {
+  const user = await getCurrentUser({ forceRefresh: true });
+
+  if (!user) return null;
+
+  const { data, error } = await supabaseClient.auth.getUser();
+  if (error) {
+    console.error("Gebruiker verifiëren mislukt:", error.message);
+    throw error;
+  }
+
+  authUserCache = data?.user || null;
+  return authUserCache;
+}
+
+function setButtonsBusy(formId, isBusy, clickedButton = null) {
+  const form = formId ? document.getElementById(formId) : null;
+  const buttons = form ? form.querySelectorAll('button') : [];
+
+  buttons.forEach(btn => {
+    btn.disabled = isBusy;
+    btn.classList.toggle('is-busy', isBusy);
+  });
+
+  if (clickedButton && !form?.contains(clickedButton)) {
+    clickedButton.disabled = isBusy;
+    clickedButton.classList.toggle('is-busy', isBusy);
+  }
+}
+
+async function executeDbAction({ formId = null, clickedButton = null, errorPrefix = 'Bewerking mislukt', action }) {
+  setButtonsBusy(formId, true, clickedButton);
+
+  try {
+    return await action();
+  } catch (error) {
+    console.error(errorPrefix + ':', error);
+    alert(errorPrefix + ': ' + (error?.message || 'onbekende fout'));
+    return null;
+  } finally {
+    setButtonsBusy(formId, false, clickedButton);
+  }
+}
+
+function throwIfSupabaseError(error, fallbackMessage = 'Supabase-fout') {
+  if (error) {
+    throw new Error(error.message || fallbackMessage);
+  }
 }
 
 function extractFirstNameFromUser(user, profile = null) {
@@ -322,117 +393,126 @@ async function syncAuthUI() {
 async function registerAccount(event) {
   if (event) event.preventDefault();
 
-  const firstName = document.getElementById("registerFirstName").value.trim();
-  const lastName = document.getElementById("registerLastName").value.trim();
-  const email = document.getElementById("registerEmail").value.trim();
-  const password = document.getElementById("registerPassword").value;
-  const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
-  const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
+  return executeDbAction({
+    formId: "registerForm",
+    clickedButton: event?.submitter || null,
+    errorPrefix: "Registratie mislukt",
+    action: async () => {
+      const firstName = document.getElementById("registerFirstName").value.trim();
+      const lastName = document.getElementById("registerLastName").value.trim();
+      const email = document.getElementById("registerEmail").value.trim();
+      const password = document.getElementById("registerPassword").value;
+      const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
+      const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
 
-  if (!firstName || !lastName || !email || !password || !passwordConfirm) {
-    alert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
-    return;
-  }
+      if (!firstName || !lastName || !email || !password || !passwordConfirm) {
+        throw new Error("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
+      }
 
-  if (password !== passwordConfirm) {
-    alert("De wachtwoorden komen niet overeen.");
-    return;
-  }
+      if (password !== passwordConfirm) {
+        throw new Error("De wachtwoorden komen niet overeen.");
+      }
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim()
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`.trim()
+          }
+        }
+      });
+
+      throwIfSupabaseError(error, "Registratie mislukt");
+
+      try {
+        let avatarUrl = null;
+
+        if (photoFile && data.user && data.session) {
+          avatarUrl = await uploadAvatar(data.user.id, photoFile);
+        }
+
+        if (data.user && data.session) {
+          await upsertProfile(data.user.id, {
+            first_name: firstName,
+            last_name: lastName,
+            avatar_url: avatarUrl
+          });
+        }
+      } catch (profileError) {
+        console.error("Profiel opslaan mislukt:", profileError.message);
+        alert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.");
+      }
+
+      document.getElementById("registerForm").reset();
+      closeDialog("registerDialog");
+
+      await refreshAuthState();
+
+      if (data.session) {
+        await loadAllDataFromSupabase();
+        rerenderAll();
+        await syncAuthUI();
+        switchScreen("agendaScreen", "Agenda");
+        alert("Registratie gelukt. Je bent nu ingelogd.");
+      } else {
+        await syncAuthUI();
+        switchScreen("accountScreen", "Account");
+        alert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
       }
     }
   });
+}
 
-  if (error) {
-    alert("Registratie mislukt: " + error.message);
-    return;
-  }
+async function loginAccount(event) {
+  if (event) event.preventDefault();
 
-  try {
-    let avatarUrl = null;
+  return executeDbAction({
+    clickedButton: event?.currentTarget || null,
+    errorPrefix: "Inloggen mislukt",
+    action: async () => {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
 
-    if (photoFile && data.user && data.session) {
-      avatarUrl = await uploadAvatar(data.user.id, photoFile);
-    }
-
-    if (data.user && data.session) {
-      await upsertProfile(data.user.id, {
-        first_name: firstName,
-        last_name: lastName,
-        avatar_url: avatarUrl
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
       });
+
+      throwIfSupabaseError(error, "Inloggen mislukt");
+
+      document.getElementById("loginPassword").value = "";
+
+      await refreshAuthState();
+      await loadAllDataFromSupabase();
+      rerenderAll();
+      await syncAuthUI();
+      switchScreen("agendaScreen", "Agenda");
     }
-  } catch (profileError) {
-    console.error("Profiel opslaan mislukt:", profileError.message);
-    alert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.");
-  }
-
-  document.getElementById("registerForm").reset();
-  closeDialog("registerDialog");
-
-  await refreshAuthState();
-
-  if (data.session) {
-    await loadAllDataFromSupabase();
-    rerenderAll();
-    await syncAuthUI();
-    switchScreen("agendaScreen", "Agenda");
-    alert("Registratie gelukt. Je bent nu ingelogd.");
-  } else {
-    await syncAuthUI();
-    switchScreen("accountScreen", "Account");
-    alert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
-  }
-}
-
-async function loginAccount() {
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-
-  const { error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
   });
-
-  if (error) {
-    alert("Inloggen mislukt: " + error.message);
-    return;
-  }
-
-  document.getElementById("loginPassword").value = "";
-
-  await refreshAuthState();
-  await loadAllDataFromSupabase();
-  rerenderAll();
-  await syncAuthUI();
-  switchScreen("agendaScreen", "Agenda");
 }
 
-async function logoutAccount() {
-  const { error } = await supabaseClient.auth.signOut();
+async function logoutAccount(event) {
+  return executeDbAction({
+    clickedButton: event?.currentTarget || null,
+    errorPrefix: "Uitloggen mislukt",
+    action: async () => {
+      const { error } = await supabaseClient.auth.signOut();
+      throwIfSupabaseError(error, "Uitloggen mislukt");
 
-  if (error) {
-    alert("Uitloggen mislukt: " + error.message);
-    return;
-  }
+      authUserCache = null;
+      authProfileCache = null;
+      authInitialized = true;
 
-  authUserCache = null;
-  authProfileCache = null;
-  authInitialized = true;
-
-  localStorage.removeItem(STORAGE_KEY);
-  seedData();
-  rerenderAll();
-  await syncAuthUI();
-  switchScreen("accountScreen", "Account");
+      localStorage.removeItem(STORAGE_KEY);
+      seedData();
+      rerenderAll();
+      await syncAuthUI();
+      switchScreen("accountScreen", "Account");
+    }
+  });
 }
 
 /* =========================
@@ -1054,364 +1134,404 @@ function openEditServiceDialog(id) {
 async function saveClientFromForm(event) {
   event.preventDefault();
 
-  const user = await getCurrentUser();
+  return executeDbAction({
+    formId: "clientForm",
+    clickedButton: event.submitter || null,
+    errorPrefix: "Opslaan klant mislukt",
+    action: async () => {
+      const user = await getFreshUserForWrite();
 
-  if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("clientId").value);
+      if (!user) {
+        const data = getData();
+        const id = Number(document.getElementById("clientId").value);
 
-    const payload = {
-      firstName: document.getElementById("clientFirstName").value.trim(),
-      lastName: document.getElementById("clientLastName").value.trim(),
-      phone: document.getElementById("clientPhone").value.trim(),
-      email: document.getElementById("clientEmail").value.trim(),
-      note: document.getElementById("clientNote").value.trim()
-    };
+        const payload = {
+          firstName: document.getElementById("clientFirstName").value.trim(),
+          lastName: document.getElementById("clientLastName").value.trim(),
+          phone: document.getElementById("clientPhone").value.trim(),
+          email: document.getElementById("clientEmail").value.trim(),
+          note: document.getElementById("clientNote").value.trim()
+        };
 
-    if (id) {
-      Object.assign(customerById(data, id), payload);
-    } else {
-      data.customers.push({ id: nextId(data.customers), ...payload });
+        if (id) {
+          Object.assign(customerById(data, id), payload);
+        } else {
+          data.customers.push({ id: nextId(data.customers), ...payload });
+        }
+
+        saveData(data);
+        closeDialog("clientDialog");
+        renderAlphabetFilter();
+        renderClients();
+        renderRevenueFilters();
+        return;
+      }
+
+      const id = document.getElementById("clientId").value;
+
+      const payload = {
+        user_id: user.id,
+        first_name: document.getElementById("clientFirstName").value.trim(),
+        last_name: document.getElementById("clientLastName").value.trim(),
+        phone: document.getElementById("clientPhone").value.trim(),
+        email: document.getElementById("clientEmail").value.trim(),
+        note: document.getElementById("clientNote").value.trim()
+      };
+
+      let error;
+
+      if (id) {
+        ({ error } = await supabaseClient
+          .from("customers")
+          .update(payload)
+          .eq("id", Number(id))
+          .eq("user_id", user.id));
+      } else {
+        ({ error } = await supabaseClient
+          .from("customers")
+          .insert(payload));
+      }
+
+      throwIfSupabaseError(error, "Opslaan klant mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("clientDialog");
+      renderAlphabetFilter();
+      renderClients();
+      renderRevenueFilters();
+
+      if (state.selectedClientId) {
+        openClientDetail(state.selectedClientId);
+      }
     }
-
-    saveData(data);
-    closeDialog("clientDialog");
-    renderAlphabetFilter();
-    renderClients();
-    renderRevenueFilters();
-    return;
-  }
-
-  const id = document.getElementById("clientId").value;
-
-  const payload = {
-    user_id: user.id,
-    first_name: document.getElementById("clientFirstName").value.trim(),
-    last_name: document.getElementById("clientLastName").value.trim(),
-    phone: document.getElementById("clientPhone").value.trim(),
-    email: document.getElementById("clientEmail").value.trim(),
-    note: document.getElementById("clientNote").value.trim()
-  };
-
-  let error;
-
-  if (id) {
-    ({ error } = await supabaseClient
-      .from("customers")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
-  } else {
-    ({ error } = await supabaseClient
-      .from("customers")
-      .insert(payload));
-  }
-
-  if (error) {
-    alert("Opslaan klant mislukt: " + error.message);
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("clientDialog");
-  renderAlphabetFilter();
-  renderClients();
-  renderRevenueFilters();
-
-  if (state.selectedClientId) {
-    openClientDetail(state.selectedClientId);
-  }
+  });
 }
+
 
 async function saveServiceFromForm(event) {
   event.preventDefault();
 
-  const user = await getCurrentUser();
+  return executeDbAction({
+    formId: "serviceForm",
+    clickedButton: event.submitter || null,
+    errorPrefix: "Opslaan dienst mislukt",
+    action: async () => {
+      const user = await getFreshUserForWrite();
 
-  if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("serviceId").value);
+      if (!user) {
+        const data = getData();
+        const id = Number(document.getElementById("serviceId").value);
 
-    const payload = {
-      name: document.getElementById("serviceName").value.trim(),
-      duration: Number(document.getElementById("serviceDuration").value),
-      price: Number(document.getElementById("servicePrice").value)
-    };
+        const payload = {
+          name: document.getElementById("serviceName").value.trim(),
+          duration: Number(document.getElementById("serviceDuration").value),
+          price: Number(document.getElementById("servicePrice").value)
+        };
 
-    if (id) {
-      Object.assign(serviceById(data, id), payload);
-    } else {
-      data.services.push({ id: nextId(data.services), ...payload });
+        if (id) {
+          Object.assign(serviceById(data, id), payload);
+        } else {
+          data.services.push({ id: nextId(data.services), ...payload });
+        }
+
+        saveData(data);
+        closeDialog("serviceDialog");
+        rerenderAll();
+        return;
+      }
+
+      const id = document.getElementById("serviceId").value;
+
+      const payload = {
+        user_id: user.id,
+        name: document.getElementById("serviceName").value.trim(),
+        duration: Number(document.getElementById("serviceDuration").value),
+        price: Number(document.getElementById("servicePrice").value)
+      };
+
+      let error;
+
+      if (id) {
+        ({ error } = await supabaseClient
+          .from("services")
+          .update(payload)
+          .eq("id", Number(id))
+          .eq("user_id", user.id));
+      } else {
+        ({ error } = await supabaseClient
+          .from("services")
+          .insert(payload));
+      }
+
+      throwIfSupabaseError(error, "Opslaan dienst mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("serviceDialog");
+      rerenderAll();
     }
-
-    saveData(data);
-    closeDialog("serviceDialog");
-    rerenderAll();
-    return;
-  }
-
-  const id = document.getElementById("serviceId").value;
-
-  const payload = {
-    user_id: user.id,
-    name: document.getElementById("serviceName").value.trim(),
-    duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value)
-  };
-
-  let error;
-
-  if (id) {
-    ({ error } = await supabaseClient
-      .from("services")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
-  } else {
-    ({ error } = await supabaseClient
-      .from("services")
-      .insert(payload));
-  }
-
-  if (error) {
-    alert("Opslaan dienst mislukt: " + error.message);
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("serviceDialog");
-  rerenderAll();
+  });
 }
+
 
 async function saveAppointmentFromForm(event) {
   event.preventDefault();
 
-  const user = await getCurrentUser();
+  return executeDbAction({
+    formId: "appointmentForm",
+    clickedButton: event.submitter || null,
+    errorPrefix: "Opslaan afspraak mislukt",
+    action: async () => {
+      const user = await getFreshUserForWrite();
 
-  if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("appointmentId").value);
+      if (!user) {
+        const data = getData();
+        const id = Number(document.getElementById("appointmentId").value);
 
-    const payload = {
-      customerId: Number(document.getElementById("appointmentCustomer").value),
-      date: document.getElementById("appointmentDate").value,
-      time: document.getElementById("appointmentTime").value,
-      serviceId: Number(document.getElementById("appointmentService").value),
-      duration: Number(document.getElementById("appointmentDuration").value),
-      price: Number(document.getElementById("appointmentPrice").value),
-      status: id ? document.getElementById("appointmentStatus").value : "gepland"
-    };
+        const payload = {
+          customerId: Number(document.getElementById("appointmentCustomer").value),
+          date: document.getElementById("appointmentDate").value,
+          time: document.getElementById("appointmentTime").value,
+          serviceId: Number(document.getElementById("appointmentService").value),
+          duration: Number(document.getElementById("appointmentDuration").value),
+          price: Number(document.getElementById("appointmentPrice").value),
+          status: id ? document.getElementById("appointmentStatus").value : "gepland"
+        };
 
-    if (id) {
-      const existingApp = data.appointments.find(a => Number(a.id) === id);
-      Object.assign(existingApp, payload);
-    } else {
-      data.appointments.push({
-        id: nextId(data.appointments),
-        ...payload,
-        paid: false,
-        paymentMethod: ""
-      });
+        if (id) {
+          const existingApp = data.appointments.find(a => Number(a.id) === id);
+          Object.assign(existingApp, payload);
+        } else {
+          data.appointments.push({
+            id: nextId(data.appointments),
+            ...payload,
+            paid: false,
+            paymentMethod: null
+          });
+        }
+
+        saveData(data);
+        closeDialog("appointmentDialog");
+
+        state.selectedDate = payload.date;
+        const picked = new Date(payload.date + "T00:00:00");
+        state.currentYear = picked.getFullYear();
+        state.currentMonth = picked.getMonth();
+
+        rerenderAll();
+        return;
+      }
+
+      const id = document.getElementById("appointmentId").value;
+      const existingApp = getData().appointments.find(a => String(a.id) === String(id));
+
+      const payload = {
+        user_id: user.id,
+        customer_id: Number(document.getElementById("appointmentCustomer").value),
+        appointment_date: document.getElementById("appointmentDate").value,
+        appointment_time: document.getElementById("appointmentTime").value,
+        service_id: Number(document.getElementById("appointmentService").value),
+        duration: Number(document.getElementById("appointmentDuration").value),
+        price: Number(document.getElementById("appointmentPrice").value),
+        status: id ? document.getElementById("appointmentStatus").value : "gepland",
+        paid: existingApp ? existingApp.paid : false,
+        payment_method: normalizePaymentMethod(existingApp?.paymentMethod)
+      };
+
+      let error;
+
+      if (id) {
+        ({ error } = await supabaseClient
+          .from("appointments")
+          .update(payload)
+          .eq("id", Number(id))
+          .eq("user_id", user.id));
+      } else {
+        ({ error } = await supabaseClient
+          .from("appointments")
+          .insert(payload));
+      }
+
+      throwIfSupabaseError(error, "Opslaan afspraak mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("appointmentDialog");
+
+      state.selectedDate = payload.appointment_date;
+      const picked = new Date(payload.appointment_date + "T00:00:00");
+      state.currentYear = picked.getFullYear();
+      state.currentMonth = picked.getMonth();
+
+      rerenderAll();
     }
-
-    saveData(data);
-    closeDialog("appointmentDialog");
-
-    state.selectedDate = payload.date;
-    const picked = new Date(payload.date + "T00:00:00");
-    state.currentYear = picked.getFullYear();
-    state.currentMonth = picked.getMonth();
-
-    rerenderAll();
-    return;
-  }
-
-  const id = document.getElementById("appointmentId").value;
-  const existingApp = getData().appointments.find(a => String(a.id) === String(id));
-
-  const payload = {
-    user_id: user.id,
-    customer_id: Number(document.getElementById("appointmentCustomer").value),
-    appointment_date: document.getElementById("appointmentDate").value,
-    appointment_time: document.getElementById("appointmentTime").value,
-    service_id: Number(document.getElementById("appointmentService").value),
-    duration: Number(document.getElementById("appointmentDuration").value),
-    price: Number(document.getElementById("appointmentPrice").value),
-    status: id ? document.getElementById("appointmentStatus").value : "gepland",
-    paid: existingApp ? existingApp.paid : false,
-    payment_method: existingApp ? existingApp.paymentMethod : null
-  };
-
-  let error;
-
-  if (id) {
-    ({ error } = await supabaseClient
-      .from("appointments")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
-  } else {
-    ({ error } = await supabaseClient
-      .from("appointments")
-      .insert(payload));
-  }
-
-  if (error) {
-    alert("Opslaan afspraak mislukt: " + error.message);
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("appointmentDialog");
-
-  state.selectedDate = payload.appointment_date;
-  const picked = new Date(payload.appointment_date + "T00:00:00");
-  state.currentYear = picked.getFullYear();
-  state.currentMonth = picked.getMonth();
-
-  rerenderAll();
+  });
 }
 
-async function deleteCurrentAppointment() {
-  const id = document.getElementById("appointmentId").value;
-  if (!id) return;
-
-  const user = await getCurrentUser();
-
-  if (!user) {
-    const data = getData();
-    data.appointments = data.appointments.filter(a => String(a.id) !== String(id));
-    saveData(data);
-    closeDialog("appointmentDialog");
-    rerenderAll();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("appointments")
-    .delete()
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    alert("Verwijderen afspraak mislukt: " + error.message);
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("appointmentDialog");
-  rerenderAll();
+function normalizePaymentMethod(value) {
+  const allowed = ["cash", "payconiq", "bancontact", "kaart", "overschrijving", "anders"];
+  return allowed.includes(value) ? value : null;
 }
 
-async function deleteCurrentService() {
-  const id = document.getElementById("serviceId").value;
-  if (!id) return;
 
-  const user = await getCurrentUser();
+async function deleteCurrentAppointment(event) {
+  return executeDbAction({
+    formId: "appointmentForm",
+    clickedButton: event?.currentTarget || null,
+    errorPrefix: "Verwijderen afspraak mislukt",
+    action: async () => {
+      const id = document.getElementById("appointmentId").value;
+      if (!id) return;
 
-  if (!user) {
-    const data = getData();
-    data.services = data.services.filter(s => String(s.id) !== String(id));
-    saveData(data);
-    closeDialog("serviceDialog");
-    rerenderAll();
-    return;
-  }
+      const user = await getFreshUserForWrite();
 
-  const { error } = await supabaseClient
-    .from("services")
-    .delete()
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
+      if (!user) {
+        const data = getData();
+        data.appointments = data.appointments.filter(a => String(a.id) !== String(id));
+        saveData(data);
+        closeDialog("appointmentDialog");
+        rerenderAll();
+        return;
+      }
 
-  if (error) {
-    alert("Verwijderen dienst mislukt: " + error.message);
-    return;
-  }
+      const { error } = await supabaseClient
+        .from("appointments")
+        .delete()
+        .eq("id", Number(id))
+        .eq("user_id", user.id);
 
-  await loadAllDataFromSupabase();
-  closeDialog("serviceDialog");
-  rerenderAll();
+      throwIfSupabaseError(error, "Verwijderen afspraak mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("appointmentDialog");
+      rerenderAll();
+    }
+  });
 }
+
+
+async function deleteCurrentService(event) {
+  return executeDbAction({
+    formId: "serviceForm",
+    clickedButton: event?.currentTarget || null,
+    errorPrefix: "Verwijderen dienst mislukt",
+    action: async () => {
+      const id = document.getElementById("serviceId").value;
+      if (!id) return;
+
+      const user = await getFreshUserForWrite();
+
+      if (!user) {
+        const data = getData();
+        data.services = data.services.filter(s => String(s.id) !== String(id));
+        saveData(data);
+        closeDialog("serviceDialog");
+        rerenderAll();
+        return;
+      }
+
+      const { error } = await supabaseClient
+        .from("services")
+        .delete()
+        .eq("id", Number(id))
+        .eq("user_id", user.id);
+
+      throwIfSupabaseError(error, "Verwijderen dienst mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("serviceDialog");
+      rerenderAll();
+    }
+  });
+}
+
 
 async function confirmPayment(event) {
   event.preventDefault();
 
-  const id = document.getElementById("paymentAppointmentId").value;
-  const method = document.getElementById("paymentMethod").value;
-  const user = await getCurrentUser();
+  return executeDbAction({
+    formId: "paymentForm",
+    clickedButton: event.submitter || null,
+    errorPrefix: "Betaling opslaan mislukt",
+    action: async () => {
+      const id = document.getElementById("paymentAppointmentId").value;
+      const method = document.getElementById("paymentMethod").value;
+      const user = await getFreshUserForWrite();
 
-  if (!user) {
-    const data = getData();
-    const appointment = data.appointments.find(a => String(a.id) === String(id));
-    if (!appointment) return;
+      if (!user) {
+        const data = getData();
+        const appointment = data.appointments.find(a => String(a.id) === String(id));
+        if (!appointment) return;
 
-    appointment.paid = true;
-    appointment.paymentMethod = method;
-    if (appointment.status === "gepland") appointment.status = "afgerond";
+        appointment.paid = true;
+        appointment.paymentMethod = method;
+        if (appointment.status === "gepland") appointment.status = "afgerond";
 
-    saveData(data);
-    closeDialog("paymentDialog");
-    rerenderAll();
-    return;
-  }
+        saveData(data);
+        closeDialog("paymentDialog");
+        rerenderAll();
+        return;
+      }
 
-  const { error } = await supabaseClient
-    .from("appointments")
-    .update({
-      paid: true,
-      payment_method: method,
-      status: "afgerond"
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
+      const { error } = await supabaseClient
+        .from("appointments")
+        .update({
+          paid: true,
+          payment_method: method,
+          status: "afgerond"
+        })
+        .eq("id", Number(id))
+        .eq("user_id", user.id);
 
-  if (error) {
-    alert("Betaling opslaan mislukt: " + error.message);
-    return;
-  }
+      throwIfSupabaseError(error, "Betaling opslaan mislukt");
 
-  await loadAllDataFromSupabase();
-  closeDialog("paymentDialog");
-  rerenderAll();
+      await loadAllDataFromSupabase();
+      closeDialog("paymentDialog");
+      rerenderAll();
+    }
+  });
 }
 
-async function markUnpaid() {
-  const id = document.getElementById("paymentAppointmentId").value;
-  const user = await getCurrentUser();
 
-  if (!user) {
-    const data = getData();
-    const appointment = data.appointments.find(a => String(a.id) === String(id));
-    if (!appointment) return;
+async function markUnpaid(event) {
+  return executeDbAction({
+    formId: "paymentForm",
+    clickedButton: event?.currentTarget || null,
+    errorPrefix: "Betaling bijwerken mislukt",
+    action: async () => {
+      const id = document.getElementById("paymentAppointmentId").value;
+      const user = await getFreshUserForWrite();
 
-    appointment.paid = false;
-    appointment.paymentMethod = "";
+      if (!user) {
+        const data = getData();
+        const appointment = data.appointments.find(a => String(a.id) === String(id));
+        if (!appointment) return;
 
-    saveData(data);
-    closeDialog("paymentDialog");
-    rerenderAll();
-    return;
-  }
+        appointment.paid = false;
+        appointment.paymentMethod = null;
 
-  const { error } = await supabaseClient
-    .from("appointments")
-    .update({
-      paid: false,
-      payment_method: null
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
+        saveData(data);
+        closeDialog("paymentDialog");
+        rerenderAll();
+        return;
+      }
 
-  if (error) {
-    alert("Betaling bijwerken mislukt: " + error.message);
-    return;
-  }
+      const { error } = await supabaseClient
+        .from("appointments")
+        .update({
+          paid: false,
+          payment_method: null
+        })
+        .eq("id", Number(id))
+        .eq("user_id", user.id);
 
-  await loadAllDataFromSupabase();
-  closeDialog("paymentDialog");
-  rerenderAll();
+      throwIfSupabaseError(error, "Betaling bijwerken mislukt");
+
+      await loadAllDataFromSupabase();
+      closeDialog("paymentDialog");
+      rerenderAll();
+    }
+  });
 }
+
 
 /* =========================
    MONTH PICKER
@@ -1445,7 +1565,8 @@ function saveMonthPicker(event) {
 }
 
 function closeDialog(id) {
-  document.getElementById(id).close();
+  const dialog = document.getElementById(id);
+  if (dialog?.open) dialog.close();
 }
 
 function rerenderAll() {
@@ -1535,14 +1656,12 @@ function registerEvents() {
     if (el) el.addEventListener("change", renderRevenue);
   });
 
-  const registerBtn = document.getElementById("registerBtn");
   const registerForm = document.getElementById("registerForm");
   const openRegisterBtn = document.getElementById("openRegisterDialogBtn");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const headerAccountBtn = document.getElementById("headerAccountBtn");
 
-  if (registerBtn) registerBtn.addEventListener("click", registerAccount);
   if (registerForm) registerForm.addEventListener("submit", registerAccount);
 
   if (openRegisterBtn) {
@@ -1560,9 +1679,34 @@ function registerEvents() {
     });
   }
 
-  supabaseClient.auth.onAuthStateChange(async () => {
+  if (authSubscription?.subscription) {
+    authSubscription.subscription.unsubscribe();
+  }
+
+  authSubscription = supabaseClient.auth.onAuthStateChange(async (event) => {
+    console.log('Auth state changed:', event);
     await refreshAuthState();
     await syncAuthUI();
+
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      await loadAllDataFromSupabase();
+      rerenderAll();
+    }
+
+    if (event === 'SIGNED_OUT') {
+      seedData();
+      rerenderAll();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    refreshAuthState().catch(console.error);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshAuthState().catch(console.error);
+    }
   });
 }
 
@@ -1650,14 +1794,23 @@ async function loadAppointmentsFromSupabase() {
     price: Number(a.price || 0),
     status: a.status,
     paid: Boolean(a.paid),
-    paymentMethod: a.payment_method || ""
+    paymentMethod: a.payment_method ?? null
   }));
 }
 
 async function loadAllDataFromSupabase() {
-  const customers = await loadCustomersFromSupabase();
-  const services = await loadServicesFromSupabase();
-  const appointments = await loadAppointmentsFromSupabase();
+  const user = await getCurrentUser({ forceRefresh: true });
+
+  if (!user) {
+    seedData();
+    return;
+  }
+
+  const [customers, services, appointments] = await Promise.all([
+    loadCustomersFromSupabase(),
+    loadServicesFromSupabase(),
+    loadAppointmentsFromSupabase()
+  ]);
 
   saveData({
     customers,
