@@ -711,16 +711,26 @@ button {
 ========================================================= */
 .bottom-nav {
   z-index: 30;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
   gap: 6px;
   padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid var(--line);
   backdrop-filter: blur(10px);
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.bottom-nav::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .nav-btn {
+  flex: 0 0 calc((100% - 18px) / 4); /* 4 knoppen mooi verdeeld */
+  min-width: 0;
   border: none;
   border-radius: 16px;
   background: transparent;
@@ -732,6 +742,7 @@ button {
   font-family: 'Montserrat', sans-serif;
   font-size: 15px;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .nav-btn.active {
@@ -739,8 +750,8 @@ button {
   background: var(--primary-soft);
 }
 
-.nav-btn.active path{
-	fill: #df9db3;
+.nav-btn.active path {
+  fill: #df9db3;
 }
 
 .nav-ico {
@@ -751,11 +762,9 @@ button {
 
 .nav-ico path {
   fill: #555;
-  fill-opacity:1;
-  stroke-width:0
+  fill-opacity: 1;
+  stroke-width: 0;
 }
-
-
 
 .fab {
   position: fixed;
@@ -1148,3 +1157,375 @@ button {
   color: #9f5f75;
 }
 }
+
+/* =========================================================
+   14. KLANTDETAIL PAGINA
+========================================================= */
+#clientDetailScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+}
+
+#clientDetailScreen .detail-panel {
+  grid-template-rows: 1fr;
+  background: #fbf8fa;
+}
+
+#clientDetailContent {
+  padding: 14px 16px 104px;
+}
+
+.client-detail-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.client-profile-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-shadow: none;
+  padding: 14px 12px 70px;
+  position: relative;
+}
+
+.client-profile-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.client-profile-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.client-profile-row-note {
+  align-items: start;
+}
+
+.client-profile-label,
+.client-appointments-title {
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #8e8590;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.client-profile-value,
+.client-appointments-count {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #2f2a31;
+}
+
+.client-profile-email {
+  overflow-wrap: anywhere;
+}
+
+.client-note-value {
+  white-space: normal;
+}
+
+.client-profile-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+
+.client-detail-btn {
+  min-height: 40px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(165, 116, 140, 0.18);
+}
+
+.client-appointments-section {
+  display: grid;
+  gap: 8px;
+}
+
+.client-appointments-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.client-appointments-count {
+  color: #5f5760;
+}
+
+.client-appointments-list {
+  display: grid;
+  gap: 0;
+}
+
+.client-appointment-item {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 8px 12px 0;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-bottom: none;
+}
+
+.client-appointment-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.client-appointment-date {
+  padding-left: 10px;
+}
+
+.client-appointment-date-top {
+  font-size: 11px;
+  line-height: 1.2;
+  color: #4e4650;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.client-appointment-time {
+  font-size: 29px;
+  line-height: 1;
+  font-weight: 400;
+  color: #2f2a31;
+}
+
+.client-appointment-main {
+  min-width: 0;
+}
+
+.client-appointment-service {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2f2a31;
+  margin-bottom: 4px;
+}
+
+.client-appointment-meta {
+  font-size: 12px;
+  color: #9a9099;
+  white-space: normal;
+}
+
+.client-appointment-edit {
+  white-space: nowrap;
+  align-self: center;
+}
+
+.client-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px 0 0;
+}
+
+.client-new-appointment-btn {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 10px 18px;
+}
+
+@media (max-width: 420px) {
+  .client-profile-row {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+
+  .client-appointment-item {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .client-appointment-time {
+    font-size: 27px;
+  }
+
+  .client-detail-btn {
+    padding: 10px 14px;
+  }
+}
+
+
+
+
+/*  KLANTENDETAILS   */
+.client-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.client-detail-card,
+.client-appointments-section {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.client-detail-table {
+  padding: 14px 16px 8px;
+}
+
+.client-detail-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: start;
+  padding: 8px 0;
+}
+
+.client-detail-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.client-detail-value {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.client-detail-note-block {
+  padding: 10px 0 0;
+}
+
+.client-detail-note {
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.client-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 16px 14px;
+}
+
+.client-detail-edit-btn {
+  width: auto !important;
+  text-align: center !important;
+  padding: 10px 16px !important;
+}
+
+.client-appointments-header {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid #f1e5eb;
+}
+
+.client-appointments-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.client-appointments-count {
+  font-size: 14px;
+  color: #666;
+}
+
+.client-appointment-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1e5eb;
+}
+
+.client-appointment-row:last-child {
+  border-bottom: none;
+}
+
+.client-appointment-datecol {
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: start;
+  align-content: center;
+  line-height: 1.1;
+  width: 100%;
+}
+
+.client-appointment-date {
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #444;
+  text-align: left;
+  justify-self: start;
+}
+
+.client-appointment-time {
+  margin: 4px 0 0 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 0.95;
+  color: var(--text);
+  text-align: left;
+  justify-self: start;
+}
+
+.client-appointment-service {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.client-appointment-status {
+  font-size: 14px;
+  color: #9a8c95;
+  line-height: 1.2;
+}
+
+.client-appointment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.client-appointment-edit-btn {
+  width: auto !important;
+  text-align: center !important;
+  min-width: 84px;
+  padding: 9px 14px !important;
+}
+
+.client-new-appointment-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px;
+}
+
+.client-new-appointment-btn {
+  width: auto !important;
+  text-align: center !important;
+  padding: 10px 16px !important;
+}
+
+.client-appointment-empty{
+	font-size: 14px;
+	padding-left: 15px;
+}
+

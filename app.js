@@ -780,6 +780,10 @@ function renderRevenue() {
   list.appendChild(byCustomerCard);
 }
 
+// =============================
+// CLIENT DETAIL SCREEN UPDATE
+// =============================
+
 function openClientDetail(clientId) {
   state.selectedClientId = clientId;
 
@@ -787,84 +791,138 @@ function openClientDetail(clientId) {
   const client = customerById(data, clientId);
   const content = document.getElementById("clientDetailContent");
 
+  if (!client || !content) return;
+
   const appts = data.appointments
     .filter(a => String(a.customerId) === String(clientId))
     .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
   content.innerHTML = `
-    <div class="detail-card">
-      <div class="detail-block">
-        <div class="inline-header">
-          <div>
-            <div class="detail-label">Naam</div>
-            <div class="detail-value">${fullName(client)}</div>
+    <div class="client-detail-page">
+
+      <div class="client-detail-card">
+        <div class="client-detail-table">
+          <div class="client-detail-row">
+            <div class="client-detail-label">Voornaam:</div>
+            <div class="client-detail-value">${client.firstName || "-"}</div>
           </div>
-          <button class="ghost-btn detail-action-btn" id="editClientBtn" type="button">Bewerk</button>
+
+          <div class="client-detail-row">
+            <div class="client-detail-label">Naam:</div>
+            <div class="client-detail-value">${client.lastName || "-"}</div>
+          </div>
+
+          <div class="client-detail-row">
+            <div class="client-detail-label">Telefoon:</div>
+            <div class="client-detail-value">${client.phone || "-"}</div>
+          </div>
+
+          <div class="client-detail-row">
+            <div class="client-detail-label">E-mail:</div>
+            <div class="client-detail-value">${client.email || "-"}</div>
+          </div>
+
+          <div class="client-detail-note-block">
+            <div class="client-detail-label">Notitie:</div>
+            <div class="client-detail-note">${(client.note || "-").replace(/\n/g, "<br>")}</div>
+          </div>
+        </div>
+
+        <div class="client-detail-footer">
+          <button class="btn btn-primary client-detail-edit-btn" id="editClientBtn" type="button">
+            Bewerken
+          </button>
         </div>
       </div>
 
-      <div class="detail-block">
-        <div class="info-grid">
-          <div>
-            <div class="detail-label">Telefoon</div>
-            <div class="detail-value">${client.phone || "-"}</div>
-          </div>
-          <div>
-            <div class="detail-label">E-mail</div>
-            <div class="detail-value">${client.email || "-"}</div>
-          </div>
+      <div class="client-appointments-section">
+        <div class="client-appointments-header">
+          <div class="client-appointments-title">AFSPRAKEN</div>
+          <div class="client-appointments-count">${appts.length} totaal</div>
         </div>
-      </div>
-
-      <div class="detail-block">
-        <div class="detail-label">Notitie</div>
-        <div class="detail-value">${client.note || "-"}</div>
-      </div>
-    </div>
-
-    <div class="detail-card">
-      <div class="detail-block">
-        <div class="inline-header">
-          <div>
-            <div class="detail-label">Afspraken</div>
-            <div class="detail-value">${appts.length} totaal</div>
-          </div>
-          <button class="btn btn-primary detail-action-btn" id="newClientAppointmentBtn" type="button">Nieuwe afspraak</button>
+		
+		<div class="client-new-appointment-bar">
+          <button
+            class="btn btn-primary client-new-appointment-btn"
+            id="newClientAppointmentBtn"
+            type="button"
+          >
+            Nieuwe afspraak
+          </button>
         </div>
-      </div>
 
-      ${
-        appts.length
-          ? appts.map(app => {
-              const service = serviceById(data, app.serviceId);
-              return `
-                <div class="detail-block">
-                  <div class="inline-header">
-                    <div>
-                      <div class="detail-value">${formatShortDate(app.date)} · ${app.time}</div>
-                      <div class="meta">
-                        ${service ? service.name : ""} · ${app.status} · ${euro(app.price)}${app.paid ? " · " + app.paymentMethod : ""}
+        <div class="client-appointments-list">
+          ${
+            appts.length
+              ? appts.map(app => {
+                  const service = serviceById(data, app.serviceId);
+
+                  return `
+                    <div class="client-appointment-row">
+                      <div class="client-appointment-datecol">
+                        <div class="client-appointment-date">${formatShortDate(app.date)}</div>
+                        <div class="client-appointment-time">${app.time || ""}</div>
+                      </div>
+
+                      <div class="client-appointment-main">
+                        <div class="client-appointment-service">${service ? service.name : "-"}</div>
+                        <div class="client-appointment-status">
+                          ${app.status || "-"}${app.paid ? " · betaald" : ""}
+                        </div>
+                      </div>
+
+                      <div class="client-appointment-actions">
+                        <button
+                          class="btn btn-primary client-appointment-edit-btn from-detail-edit"
+                          data-id="${app.id}"
+                          type="button"
+                        >
+                          Bewerk
+                        </button>
                       </div>
                     </div>
-                    <button class="ghost-btn detail-action-btn from-detail-edit" data-id="${app.id}" type="button">Bewerk</button>
-                  </div>
-                </div>
-              `;
-            }).join("")
-          : `<div class="detail-block"><div class="detail-value">Nog geen afspraken.</div></div>`
-      }
+                  `;
+                }).join("")
+              : `<div class="client-appointment-empty">Nog geen afspraken.</div>`
+          }
+        </div>
+
+      </div>
+
     </div>
   `;
 
-  document.getElementById("editClientBtn").addEventListener("click", () => openEditClientDialog(clientId));
-  document.getElementById("newClientAppointmentBtn").addEventListener("click", () => openNewAppointmentDialog(clientId));
+  const editClientBtn = document.getElementById("editClientBtn");
+  if (editClientBtn) {
+    editClientBtn.addEventListener("click", () => {
+      openEditClientDialog(clientId);
+    });
+  }
+
+  const newClientAppointmentBtn = document.getElementById("newClientAppointmentBtn");
+  if (newClientAppointmentBtn) {
+    newClientAppointmentBtn.addEventListener("click", () => {
+      openNewAppointmentDialog(clientId);
+    });
+  }
 
   content.querySelectorAll(".from-detail-edit").forEach(btn => {
-    btn.addEventListener("click", () => openEditAppointmentDialog(btn.dataset.id));
+    btn.addEventListener("click", () => {
+      openEditAppointmentDialog(btn.dataset.id);
+    });
   });
 
   switchScreen("clientDetailScreen", "Klant");
 }
+
+// =============================
+// HELPERS (ongewijzigd gedrag)
+// =============================
+
+function createAppointmentForClient(clientId) {
+  openNewAppointment(clientId);
+}
+
 
 function populateAppointmentForm(customerId = null) {
   const data = getData();
