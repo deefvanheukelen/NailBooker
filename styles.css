@@ -1537,3 +1537,471 @@ button {
 	padding-bottom: 10px;
 }
 
+
+
+/* =========================================================
+   15. OMZET NIEUWE LAYOUT
+========================================================= */
+#revenueScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+  background: #fbf7f9;
+}
+
+.revenue-screen-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 8px 108px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.revenue-period-strip {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.revenue-period-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.revenue-period-chip {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  align-items: stretch;
+  border: 1px solid #d8ccd3;
+  background: #f8f6f7;
+  color: #675e67;
+  min-height: 54px;
+  border-radius: 22px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+}
+
+.revenue-period-main,
+.revenue-period-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-height: 54px;
+  padding: 0;
+}
+
+.revenue-period-main {
+  padding: 0 18px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 98px;
+}
+
+.revenue-period-toggle {
+  width: 56px;
+  display: grid;
+  place-items: center;
+  border-left: 1px solid rgba(104, 90, 99, 0.18);
+}
+
+.revenue-period-main:focus-visible,
+.revenue-period-toggle:focus-visible {
+  outline: 2px solid rgba(165, 86, 122, 0.28);
+  outline-offset: -2px;
+}
+
+.revenue-period-caret {
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 11px solid currentColor;
+  transform: translateY(1px);
+  opacity: 0.86;
+}
+
+.revenue-period-chip.active {
+  background: #a5567a;
+  border-color: #a5567a;
+  color: #fff;
+}
+
+.revenue-period-chip.active .revenue-period-toggle {
+  border-left-color: rgba(255, 255, 255, 0.46);
+}
+
+.revenue-period-chip-wide {
+  min-width: 164px;
+}
+
+.revenue-period-chip-wide .revenue-period-main {
+  min-width: 108px;
+}
+
+.revenue-filter-card,
+.revenue-summary-card,
+.revenue-chart-card,
+.revenue-list-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 10px;
+}
+
+.revenue-filter-card {
+  padding: 12px;
+}
+
+.revenue-filter-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.revenue-hidden-inputs {
+  display: none;
+}
+
+.revenue-summary-card {
+  padding: 16px;
+}
+
+.revenue-summary-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.revenue-main-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.revenue-main-line strong,
+.revenue-open-line strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.revenue-main-line-secondary strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.revenue-main-label,
+.revenue-open-label {
+  font-size: 14px;
+  color: #59525a;
+}
+
+.revenue-method-breakdown {
+  display: grid;
+  gap: 4px;
+}
+
+.revenue-method-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: #615862;
+}
+
+.revenue-method-row strong {
+  font-weight: 500;
+}
+
+.revenue-open-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.revenue-chart-card {
+  padding: 16px 12px 14px;
+}
+
+.revenue-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 12px;
+}
+
+.revenue-chart-head h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.revenue-chart-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.revenue-chart-wrap {
+  min-height: 280px;
+}
+
+.revenue-bars {
+  height: 260px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px 0;
+  scrollbar-width: none;
+}
+
+.revenue-bars::-webkit-scrollbar {
+  display: none;
+}
+
+.revenue-bar-col {
+  flex: 0 0 auto;
+  min-width: 22px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.revenue-bar-stack {
+  width: 18px;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  overflow: hidden;
+  background: #f3e7ec;
+}
+
+.revenue-bar-segment {
+  display: block;
+  width: 100%;
+}
+
+.revenue-bar-segment.paid {
+  background: #a5567a;
+}
+
+.revenue-bar-segment.unpaid {
+  background: #d89ab2;
+}
+
+.revenue-bar-label {
+  font-size: 13px;
+  color: #453f46;
+  white-space: nowrap;
+}
+
+.revenue-chart-legend {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.revenue-chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.revenue-chart-legend i.paid {
+  background: #a5567a;
+}
+
+.revenue-chart-legend i.unpaid {
+  background: #d89ab2;
+}
+
+.revenue-list-head {
+  padding-bottom: 10px;
+}
+
+.revenue-customer-list {
+  padding-top: 0;
+}
+
+.revenue-customer-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid #f1e5eb;
+  font-size: 14px;
+}
+
+.revenue-customer-row:first-child {
+  border-top: none;
+}
+
+@media (max-width: 420px) {
+  .revenue-summary-top {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-period-chip-wide {
+    min-width: 118px;
+  }
+
+  .revenue-bar-col {
+    min-width: 20px;
+  }
+
+  .revenue-bar-stack {
+    width: 16px;
+  }
+}
+
+
+/* =========================================================
+   16. OMZET PICKERS
+========================================================= */
+.revenue-wheel-dialog::backdrop {
+  background: rgba(42, 27, 36, 0.34);
+}
+
+.revenue-wheel-card {
+  max-width: 420px;
+  width: min(92vw, 420px);
+}
+
+.revenue-wheel-shell {
+  position: relative;
+  margin: 6px 0 12px;
+  padding: 18px 0;
+}
+
+.revenue-wheel-highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 48px;
+  transform: translateY(-50%);
+  border-top: 1px solid #eadbe3;
+  border-bottom: 1px solid #eadbe3;
+  background: rgba(245, 235, 240, 0.45);
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.revenue-wheel-columns {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.revenue-wheel-columns.two-cols {
+  grid-template-columns: 1fr 1fr;
+}
+
+.revenue-wheel-column {
+  position: relative;
+  height: 220px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  padding: 86px 0;
+}
+
+.revenue-wheel-column::-webkit-scrollbar {
+  display: none;
+}
+
+.revenue-wheel-option {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: center;
+  color: #817581;
+  font-size: 18px;
+  font-weight: 500;
+  transition: transform 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+  opacity: 0.62;
+  user-select: none;
+}
+
+.revenue-wheel-option.active {
+  color: #a5567a;
+  opacity: 1;
+  transform: scale(1.02);
+  font-weight: 700;
+}
+
+
+#revenueNativeDatePicker {
+  position: absolute;
+  inset: auto;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 420px) {
+  .revenue-wheel-option {
+    font-size: 17px;
+  }
+}
+
+
+@media (pointer: fine) {
+  .revenue-wheel-column {
+    scroll-behavior: smooth;
+  }
+
+  .revenue-wheel-option {
+    cursor: pointer;
+  }
+
+  .revenue-wheel-option:hover {
+    opacity: 0.9;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .revenue-period-chip {
+    grid-template-columns: minmax(0, 1fr) 48px;
+    border-radius: 18px;
+    min-height: 48px;
+  }
+
+  .revenue-period-main,
+  .revenue-period-toggle {
+    min-height: 48px;
+  }
+
+  .revenue-period-main {
+    min-width: 84px;
+    padding: 0 14px 0 16px;
+  }
+
+  .revenue-period-toggle {
+    width: 48px;
+  }
+
+  .revenue-period-chip-wide {
+    min-width: 142px;
+  }
+}
