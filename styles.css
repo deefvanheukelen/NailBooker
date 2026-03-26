@@ -721,16 +721,23 @@ button {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
+  
+  cursor: grab;
+  user-select: none;
+}
+
+.bottom-nav:active {
+  cursor: grabbing;
 }
 
 .bottom-nav::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
 .nav-btn {
-  flex: 0 0 calc((100% - 18px) / 4); /* 4 knoppen mooi verdeeld */
-  min-width: 0;
+  flex: 0 0 auto; /* breedte mag zichzelf bepalen */
+  min-width: calc((100% - 18px) / 4); /* minstens huidige breedte */
   border: none;
   border-radius: 16px;
   background: transparent;
@@ -738,7 +745,7 @@ button {
   display: grid;
   gap: 4px;
   place-items: center;
-  padding: 8px 6px;
+  padding: 8px 10px;
   font-family: 'Montserrat', sans-serif;
   font-size: 15px;
   font-weight: 400;
@@ -1527,5 +1534,6 @@ button {
 .client-appointment-empty{
 	font-size: 14px;
 	padding-left: 15px;
+	padding-bottom: 10px;
 }
 
