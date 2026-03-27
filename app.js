@@ -741,10 +741,20 @@ function renderCalendar() {
       const dots = document.createElement("div");
       dots.className = "day-dots";
 
-      appts.slice(0, 4).forEach(() => {
+      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
+      const visibleDots = Math.min(appts.length, maxVisibleDots);
+
+      Array.from({ length: visibleDots }).forEach(() => {
         const i = document.createElement("i");
         dots.appendChild(i);
       });
+
+      if (appts.length > visibleDots) {
+        const more = document.createElement("span");
+        more.className = "day-dots-more";
+        more.textContent = "+";
+        dots.appendChild(more);
+      }
 
       cell.appendChild(dots);
     }
