@@ -438,9 +438,18 @@ button {
   font-weight: 700;
 }
 
-.day-cell.selected {
+ .day-cell.selected {
   background: var(--primary-soft);
   border-color: var(--primary);
+}
+
+.day-cell.today {
+  border-width: 2px;
+  border-color: var(--primary-dark);
+}
+
+.day-cell.today.selected {
+  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
 }
 
 .day-dots {
@@ -463,18 +472,32 @@ button {
 /* =========================================================
    7. AFSRPRAKEN / KLANTEN / DIENSTEN / OMZET
 ========================================================= */
-.appointment-row {
+ .appointment-row {
   display: grid;
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 72px 1fr auto;
   gap: 12px;
   align-items: center;
   padding: 14px;
   cursor: pointer;
 }
 
+.time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .time {
   font-size: 18px;
   font-weight: 700;
+  line-height: 1.1;
+}
+
+.time-end {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.1;
 }
 
 .main-name,
@@ -921,6 +944,21 @@ button {
 
 .inline-header .ghost-btn {
   white-space: nowrap;
+}
+
+
+.agenda-list-header {
+  gap: 10px;
+}
+
+.today-jump-btn {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 6px 12px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-dark);
+  color: var(--primary-color);
+  font-size: 0.75rem;
 }
 
 .info-grid {
@@ -2079,4 +2117,69 @@ button {
 .settings-save-hint {
   color: var(--muted);
   font-size: 13px;
+}
+
+
+/* =========================================================
+   APP MELDINGEN
+========================================================= */
+.app-message-card {
+  position: relative;
+  overflow: hidden;
+  padding-top: 22px;
+}
+
+.app-message-badge {
+  width: 54px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  margin: 0 auto 14px;
+}
+
+.app-message-head {
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.app-message-head h3 {
+  text-align: center;
+}
+
+.app-message-text {
+  margin: 0;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.app-message-card[data-variant="success"] .app-message-badge {
+  background: var(--success-bg);
+}
+
+.app-message-card[data-variant="warning"] .app-message-badge {
+  background: #f3d6a4;
+}
+
+.app-message-card[data-variant="danger"] .app-message-badge {
+  background: #f2bfd0;
+}
+
+#appMessageDialogActions {
+  margin-top: 22px;
+}
+
+#appMessageDialogActions .btn {
+  min-width: 120px;
+}
+
+@media (max-width: 480px) {
+  #appMessageDialogActions {
+    justify-content: stretch;
+  }
+
+  #appMessageDialogActions .btn {
+    flex: 1;
+  }
 }

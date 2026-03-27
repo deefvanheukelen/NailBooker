@@ -176,20 +176,195 @@ function findAppointmentOverlap(payload, appointments, breakMinutes = 0, exclude
     }) || null;
 }
 
-function buildOverlapMessage(overlapApp) {
+function findNextAvailableStartTime(payload, appointments, breakMinutes = 0, excludeId = null) {
+  const durationWithBreak = Math.max(0, Number(payload.duration || 0)) + Math.max(0, Number(breakMinutes) || 0);
+  const dayAppointments = appointments
+    .filter(app => app.date === payload.date)
+    .filter(app => String(app.id) !== String(excludeId || ""))
+    .map(app => ({
+      ...app,
+      range: appointmentTimeRange(app, breakMinutes)
+    }))
+    .sort((a, b) => a.range.startMinutes - b.range.startMinutes);
+
+  let candidateStart = minutesFromTimeString(payload.time || "00:00");
+
+  for (const appointment of dayAppointments) {
+    if (candidateStart + durationWithBreak <= appointment.range.startMinutes) {
+      return candidateStart;
+    }
+
+    const overlaps = candidateStart < appointment.range.endMinutes && candidateStart + durationWithBreak > appointment.range.startMinutes;
+    if (overlaps) {
+      candidateStart = appointment.range.endMinutes;
+    }
+  }
+
+  return candidateStart;
+}
+
+function buildOverlapMessage(payload, overlapApp, appointments, breakMinutes = 0, excludeId = null) {
   const data = getData();
   const customer = customerById(data, overlapApp.customerId);
   const service = serviceById(data, overlapApp.serviceId);
-  const settings = getSettings();
-  const range = appointmentTimeRange(overlapApp, settings.defaultBreakMinutes);
+  const range = appointmentTimeRange(overlapApp, breakMinutes);
+  const nextPossibleStart = findNextAvailableStartTime(payload, appointments, breakMinutes, excludeId);
 
   return [
     "Deze afspraak overlapt met een bestaande afspraak.",
     "",
     `${overlapApp.time} - ${timeStringFromMinutes(range.endMinutes)} · ${customer ? fullName(customer) : "Onbekende klant"}${service ? ` (${service.name})` : ""}`,
     "",
+    `Eerstvolgend mogelijk tijdstip voor deze behandeling: ${timeStringFromMinutes(nextPossibleStart)}`,
+    "",
     "Wil je deze afspraak toch opslaan?"
   ].join("\n");
+}
+
+
+function getAppointmentEndTime(appointment, breakMinutes = 0) {
+  const range = appointmentTimeRange(appointment, breakMinutes);
+  return timeStringFromMinutes(range.endMinutes);
+}
+
+function isAppointmentInPast(payload) {
+  const appointmentDateTime = new Date(`${payload.date}T${payload.time || "00:00"}:00`);
+  return appointmentDateTime.getTime() < Date.now();
+}
+
+function buildPastAppointmentMessage(payload) {
+  return [
+    "Deze afspraak valt in het verleden.",
+    "",
+    `${formatLongDate(payload.date)} om ${payload.time}`,
+    "",
+    "Wil je deze afspraak toch opslaan?"
+  ].join("\n");
+}
+
+function jumpToToday() {
+  state.selectedDate = todayStr;
+  state.currentYear = today.getFullYear();
+  state.currentMonth = today.getMonth();
+  renderCalendar();
+  renderAgendaList();
+}
+
+
+function setDialogMessage(container, message) {
+  if (!container) return;
+  container.textContent = message || "";
+}
+
+function openStyledDialog(dialog) {
+  if (!dialog) return;
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "open");
+  }
+}
+
+function closeStyledDialog(dialog) {
+  if (!dialog) return;
+  if (typeof dialog.close === "function") {
+    dialog.close();
+  } else {
+    dialog.removeAttribute("open");
+  }
+}
+
+function showAppDialog({
+  title = "Melding",
+  message = "",
+  confirmText = "OK",
+  cancelText = "Annuleren",
+  showCancel = false,
+  variant = "info"
+} = {}) {
+  return new Promise(resolve => {
+    const dialog = document.getElementById("appMessageDialog");
+    const titleEl = document.getElementById("appMessageDialogTitle");
+    const messageEl = document.getElementById("appMessageDialogText");
+    const confirmBtn = document.getElementById("appMessageConfirmBtn");
+    const cancelBtn = document.getElementById("appMessageCancelBtn");
+    const card = dialog?.querySelector(".app-message-card");
+
+    if (!dialog || !titleEl || !messageEl || !confirmBtn || !cancelBtn || !card) {
+      if (showCancel) {
+        resolve(window.confirm(message));
+        return;
+      }
+      window.alert(message);
+      resolve(true);
+      return;
+    }
+
+    titleEl.textContent = title;
+    setDialogMessage(messageEl, message);
+    confirmBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    cancelBtn.classList.toggle("hidden", !showCancel);
+    card.dataset.variant = variant;
+
+    let settled = false;
+
+    const cleanup = (result) => {
+      if (settled) return;
+      settled = true;
+      dialog.removeEventListener("cancel", onCancel);
+      dialog.removeEventListener("click", onBackdropClick);
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancelClick);
+      closeStyledDialog(dialog);
+      resolve(result);
+    };
+
+    const onConfirm = () => cleanup(true);
+    const onCancel = (event) => {
+      event.preventDefault();
+      cleanup(false);
+    };
+    const onCancelClick = () => cleanup(false);
+    const onBackdropClick = (event) => {
+      const rect = dialog.getBoundingClientRect();
+      const clickedInside = (
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      );
+      if (!clickedInside && showCancel) cleanup(false);
+    };
+
+    dialog.addEventListener("cancel", onCancel);
+    dialog.addEventListener("click", onBackdropClick);
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancelClick);
+    openStyledDialog(dialog);
+    confirmBtn.focus();
+  });
+}
+
+async function appAlert(message, options = {}) {
+  await showAppDialog({
+    title: options.title || "Melding",
+    message,
+    confirmText: options.confirmText || "OK",
+    showCancel: false,
+    variant: options.variant || "info"
+  });
+}
+
+async function appConfirm(message, options = {}) {
+  return showAppDialog({
+    title: options.title || "Bevestiging",
+    message,
+    confirmText: options.confirmText || "Bevestigen",
+    cancelText: options.cancelText || "Annuleren",
+    showCancel: true,
+    variant: options.variant || "warning"
+  });
 }
 
 
@@ -371,12 +546,12 @@ async function registerAccount(event) {
   const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
 
   if (!firstName || !lastName || !email || !password || !passwordConfirm) {
-    alert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
+    await appAlert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
     return;
   }
 
   if (password !== passwordConfirm) {
-    alert("De wachtwoorden komen niet overeen.");
+    await appAlert("De wachtwoorden komen niet overeen.");
     return;
   }
 
@@ -393,7 +568,7 @@ async function registerAccount(event) {
   });
 
   if (error) {
-    alert("Registratie mislukt: " + error.message);
+    await appAlert("Registratie mislukt: " + error.message, { title: "Registratie mislukt", variant: "danger" });
     return;
   }
 
@@ -413,7 +588,7 @@ async function registerAccount(event) {
     }
   } catch (profileError) {
     console.error("Profiel opslaan mislukt:", profileError.message);
-    alert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.");
+    await appAlert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
   }
 
   document.getElementById("registerForm").reset();
@@ -426,11 +601,11 @@ async function registerAccount(event) {
     rerenderAll();
     await syncAuthUI();
     switchScreen("agendaScreen", "Agenda");
-    alert("Registratie gelukt. Je bent nu ingelogd.");
+    await appAlert("Registratie gelukt. Je bent nu ingelogd.", { title: "Registratie gelukt", variant: "success" });
   } else {
     await syncAuthUI();
     switchScreen("accountScreen", "Account");
-    alert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.");
+    await appAlert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.", { title: "Registratie gelukt", variant: "success" });
   }
 }
 
@@ -444,7 +619,7 @@ async function loginAccount() {
   });
 
   if (error) {
-    alert("Inloggen mislukt: " + error.message);
+    await appAlert("Inloggen mislukt: " + error.message, { title: "Inloggen mislukt", variant: "danger" });
     return;
   }
 
@@ -461,7 +636,7 @@ async function logoutAccount() {
   const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
-    alert("Uitloggen mislukt: " + error.message);
+    await appAlert("Uitloggen mislukt: " + error.message, { title: "Uitloggen mislukt", variant: "danger" });
     return;
   }
 
@@ -557,7 +732,9 @@ function renderCalendar() {
     const appts = data.appointments.filter(a => a.date === dateStr);
 
     const cell = document.createElement("div");
-    cell.className = "day-cell" + (dateStr === state.selectedDate ? " selected" : "");
+    const isSelected = dateStr === state.selectedDate;
+    const isToday = dateStr === todayStr;
+    cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}`;
     cell.innerHTML = `<button class="day-button" aria-label="${dateStr}"></button><span class="day-number">${day}</span>`;
 
     if (appts.length) {
@@ -587,6 +764,10 @@ function renderAgendaList() {
   const list = document.getElementById("agendaList");
 
   document.getElementById("agendaListTitle").textContent = `Afspraken op ${formatLongDate(state.selectedDate)}`;
+  const jumpBtn = document.getElementById("jumpToTodayBtn");
+  if (jumpBtn) {
+    jumpBtn.classList.toggle("hidden", state.selectedDate === todayStr);
+  }
 
   const appts = data.appointments
     .filter(a => a.date === state.selectedDate)
@@ -608,8 +789,13 @@ function renderAgendaList() {
 
     const row = document.createElement("div");
     row.className = "appointment-row";
+    const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
+
     row.innerHTML = `
-      <div class="time">${app.time}</div>
+      <div class="time-block">
+        <div class="time">${app.time}</div>
+        <div class="time-end">tot ${endTime}</div>
+      </div>
       <div>
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
         <div class="meta">${service ? service.name : ""} · ${app.status}${app.paid ? " · betaald" : ""}</div>
@@ -1261,7 +1447,7 @@ async function saveSettingsFromForm(event) {
     saveData(data);
     state.settingsSavePending = false;
     renderSettings();
-    alert("Instellingen opgeslagen op dit toestel.");
+    await appAlert("Instellingen opgeslagen op dit toestel.", { title: "Instellingen opgeslagen", variant: "success" });
     return;
   }
 
@@ -1285,7 +1471,7 @@ async function saveSettingsFromForm(event) {
 
   if (error) {
     renderSettings();
-    alert("Opslaan instellingen mislukt: " + error.message);
+    await appAlert("Opslaan instellingen mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -1293,7 +1479,7 @@ async function saveSettingsFromForm(event) {
   data.settings = settings;
   saveData(data);
   renderSettings();
-  alert("Instellingen opgeslagen.");
+  await appAlert("Instellingen opgeslagen.", { title: "Instellingen opgeslagen", variant: "success" });
 }
 
 // =============================
@@ -1632,7 +1818,7 @@ async function saveClientFromForm(event) {
   }
 
   if (error) {
-    alert("Opslaan klant mislukt: " + error.message);
+    await appAlert("Opslaan klant mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -1698,7 +1884,7 @@ async function saveServiceFromForm(event) {
   }
 
   if (error) {
-    alert("Opslaan dienst mislukt: " + error.message);
+    await appAlert("Opslaan dienst mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -1726,10 +1912,25 @@ async function saveAppointmentFromForm(event) {
     status: id ? document.getElementById("appointmentStatus").value : "gepland"
   };
 
+  if (isAppointmentInPast(localPayload)) {
+    const confirmedPast = await appConfirm(buildPastAppointmentMessage(localPayload), {
+      title: "Afspraak in het verleden",
+      confirmText: "Toch opslaan",
+      cancelText: "Annuleren",
+      variant: "warning"
+    });
+    if (!confirmedPast) return;
+  }
+
   if (settings.overlapWarningsEnabled) {
     const overlapApp = findAppointmentOverlap(localPayload, data.appointments, settings.defaultBreakMinutes, id);
     if (overlapApp) {
-      const confirmed = window.confirm(buildOverlapMessage(overlapApp));
+      const confirmed = await appConfirm(buildOverlapMessage(localPayload, overlapApp, data.appointments, settings.defaultBreakMinutes, id), {
+        title: "Overlap gedetecteerd",
+        confirmText: "Toch opslaan",
+        cancelText: "Annuleren",
+        variant: "warning"
+      });
       if (!confirmed) return;
     }
   }
@@ -1791,7 +1992,7 @@ async function saveAppointmentFromForm(event) {
   }
 
   if (error) {
-    alert("Opslaan afspraak mislukt: " + error.message);
+    await appAlert("Opslaan afspraak mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -1828,7 +2029,7 @@ async function deleteCurrentAppointment() {
     .eq("user_id", user.id);
 
   if (error) {
-    alert("Verwijderen afspraak mislukt: " + error.message);
+    await appAlert("Verwijderen afspraak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
     return;
   }
 
@@ -1859,7 +2060,7 @@ async function deleteCurrentService() {
     .eq("user_id", user.id);
 
   if (error) {
-    alert("Verwijderen dienst mislukt: " + error.message);
+    await appAlert("Verwijderen dienst mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
     return;
   }
 
@@ -1901,7 +2102,7 @@ async function confirmPayment(event) {
     .eq("user_id", user.id);
 
   if (error) {
-    alert("Betaling opslaan mislukt: " + error.message);
+    await appAlert("Betaling opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -1938,7 +2139,7 @@ async function markUnpaid() {
     .eq("user_id", user.id);
 
   if (error) {
-    alert("Betaling bijwerken mislukt: " + error.message);
+    await appAlert("Betaling bijwerken mislukt: " + error.message, { title: "Bijwerken mislukt", variant: "danger" });
     return;
   }
 
@@ -2028,6 +2229,7 @@ function registerEvents() {
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
+  document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => switchScreen(btn.dataset.screen, btn.dataset.title));

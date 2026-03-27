@@ -126,8 +126,9 @@
         </section>
 
         <section class="agenda-list-panel">
-          <div class="section-head sticky-inside">
+          <div class="section-head sticky-inside inline-header agenda-list-header">
             <h2 id="agendaListTitle">Afspraken</h2>
+            <button id="jumpToTodayBtn" class="ghost-btn today-jump-btn hidden" type="button">Vandaag</button>
           </div>
           <div id="agendaList" class="scroll-list"></div>
         </section>
@@ -829,6 +830,21 @@
         </button>
       </div>
     </form>
+  </dialog>
+
+
+  <dialog id="appMessageDialog" class="modal modal-small">
+    <div class="modal-card app-message-card" data-variant="info">
+      <div class="app-message-badge" aria-hidden="true"></div>
+      <div class="modal-head app-message-head">
+        <h3 id="appMessageDialogTitle">Melding</h3>
+      </div>
+      <p id="appMessageDialogText" class="app-message-text"></p>
+      <div class="modal-actions end-only" id="appMessageDialogActions">
+        <button id="appMessageCancelBtn" class="btn btn-secondary action-btn hidden" type="button">Annuleren</button>
+        <button id="appMessageConfirmBtn" class="btn btn-primary action-btn" type="button">OK</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- =========================================================
