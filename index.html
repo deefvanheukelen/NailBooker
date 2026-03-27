@@ -589,7 +589,7 @@
         </select>
       </div>
 
-      <div class="modal-actions">
+      <div class="modal-actions triple-actions">
         <button
           id="deleteAppointmentBtn"
           class="btn btn-danger action-btn"
@@ -677,7 +677,7 @@
         </div>
       </div>
 
-      <div class="modal-actions">
+      <div class="modal-actions triple-actions">
         <button id="deleteServiceBtn" class="btn btn-danger action-btn" type="button">
           Verwijderen
         </button>
@@ -707,7 +707,7 @@
       <label class="field-label" for="paymentMethodName">Naam betaalwijze</label>
       <input id="paymentMethodName" class="field" type="text" required />
 
-      <div class="modal-actions">
+      <div class="modal-actions triple-actions">
         <button id="deletePaymentMethodBtn" class="btn btn-danger action-btn" type="button">
           Verwijderen
         </button>
@@ -740,18 +740,22 @@
       <label class="field-label" for="paymentMethod">Betaalwijze</label>
       <select id="paymentMethod" class="field"></select>
 
-      <div class="modal-actions">
-        <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">
-          Markeer onbetaald
-        </button>
+      <div class="payment-dialog-actions">
+        <div class="payment-top-action">
+          <button id="markUnpaidBtn" class="btn btn-secondary action-btn" type="button">
+            Markeer onbetaald
+          </button>
+        </div>
 
-        <div class="right-actions">
-          <button class="btn btn-secondary action-btn" type="button" data-close="paymentDialog">
-            Annuleren
-          </button>
-          <button class="btn btn-primary action-btn" type="submit">
-            Opslaan
-          </button>
+        <div class="modal-actions payment-bottom-actions">
+          <div class="right-actions">
+            <button class="btn btn-secondary action-btn" type="button" data-close="paymentDialog">
+              Annuleren
+            </button>
+            <button class="btn btn-primary action-btn" type="submit">
+              Opslaan
+            </button>
+          </div>
         </div>
       </div>
     </form>

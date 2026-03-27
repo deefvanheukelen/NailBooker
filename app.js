@@ -876,6 +876,16 @@ function renderAgendaList() {
     row.className = "appointment-row";
     const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
 
+    const appointmentMetaParts = [];
+    if (service?.name) {
+      appointmentMetaParts.push(service.name);
+    }
+    if ((app.status || "").toLowerCase() === "no-show") {
+      appointmentMetaParts.push("no show");
+    } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
+      appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
+    }
+
     row.innerHTML = `
       <div class="time-block">
         <div class="time">${app.time}</div>
@@ -883,7 +893,7 @@ function renderAgendaList() {
       </div>
       <div>
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
-        <div class="meta">${service ? service.name : ""} · ${app.status}${app.paid ? ` · betaald${paymentMethodNameForAppointment(app, data) ? ` (${paymentMethodNameForAppointment(app, data)})` : ""}` : ""}</div>
+        <div class="meta">${appointmentMetaParts.join(" · ")}</div>
       </div>
       <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
     `;

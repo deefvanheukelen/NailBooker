@@ -665,6 +665,7 @@ button {
 
 .btn {
   min-height: 48px;
+  min-width: 0;
   border: none;
   border-radius: 8px;
   padding: 12px 18px;
@@ -888,10 +889,12 @@ button {
 ========================================================= */
 .modal {
   width: min(92vw, 420px);
+  max-width: calc(100vw - 16px);
   border: none;
   border-radius: 24px;
   padding: 0;
   background: transparent;
+  overflow: hidden;
 }
 
 .modal::backdrop {
@@ -899,10 +902,14 @@ button {
 }
 
 .modal-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: #ffffff;
   border-radius: 24px;
   padding: 18px;
   box-shadow: 0 24px 44px rgba(84, 48, 65, 0.25);
+  overflow-x: hidden;
 }
 
 .modal-small {
@@ -951,6 +958,147 @@ button {
 
 .two-buttons > * {
   flex: 1;
+}
+
+.payment-dialog-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.payment-top-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.payment-top-action .btn {
+  width: auto;
+}
+
+.modal-actions,
+.right-actions {
+  min-width: 0;
+}
+
+.modal-actions.triple-actions {
+  align-items: stretch;
+}
+
+.modal-actions.triple-actions > .btn,
+.modal-actions.triple-actions > .right-actions {
+  flex: 1 1 0;
+}
+
+.modal-actions.triple-actions > .btn-danger {
+  flex: 0.9 1 0;
+}
+
+.modal-actions.triple-actions > .right-actions {
+  flex: 1.1 1 0;
+}
+
+.modal-actions.triple-actions .right-actions {
+  margin-left: 0;
+}
+
+.modal-actions.triple-actions .right-actions > .btn {
+  flex: 1 1 0;
+}
+
+.payment-bottom-actions {
+  justify-content: flex-end;
+}
+
+.payment-bottom-actions .right-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.payment-bottom-actions .right-actions > .btn {
+  flex: 1 1 0;
+}
+
+@media (max-width: 420px) {
+  .modal {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+  }
+
+  .modal-card {
+    padding: 14px 12px;
+  }
+
+  .modal-actions {
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .modal-actions > .btn,
+  .modal-actions > .right-actions,
+  .right-actions > .btn {
+    min-width: 0;
+  }
+
+  .modal-actions.triple-actions > .btn-danger {
+    flex: 0.82 1 0;
+  }
+
+  .modal-actions.triple-actions > .right-actions,
+  .payment-bottom-actions .right-actions {
+    flex: 1.18 1 0;
+  }
+
+  .payment-bottom-actions .right-actions > .btn,
+  .modal-actions.triple-actions .right-actions > .btn {
+    flex: 1 1 0;
+  }
+
+  .right-actions {
+    flex: 1.18 1 0;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .modal-actions .btn,
+  .right-actions .btn,
+  .payment-top-action .btn {
+    min-height: 42px;
+    min-width: 0;
+    padding: 9px 6px;
+    font-size: clamp(9px, 3vw, 13px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .payment-top-action .btn {
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    padding-inline: 10px;
+    font-size: clamp(10px, 3.1vw, 13px);
+  }
+}
+
+@media (max-width: 360px) {
+  .modal-card {
+    padding: 12px 10px;
+  }
+
+  .modal-actions,
+  .right-actions {
+    gap: 6px;
+  }
+
+  .modal-actions .btn,
+  .right-actions .btn {
+    padding: 8px 5px;
+    font-size: clamp(8px, 2.9vw, 11px);
+  }
 }
 
 /* =========================================================
