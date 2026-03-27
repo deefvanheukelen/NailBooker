@@ -2005,3 +2005,78 @@ button {
     min-width: 142px;
   }
 }
+
+
+/* =========================================================
+   17. INSTELLINGEN
+========================================================= */
+.settings-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.settings-group {
+  border-bottom: 1px solid #f1e5eb;
+  padding-bottom: 14px;
+}
+
+.settings-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.settings-switch-row span {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-switch-row strong {
+  font-size: 15px;
+}
+
+.settings-switch-row small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.settings-switch-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--primary-dark);
+  flex: 0 0 auto;
+}
+
+.settings-suggestion-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text);
+}
+
+.settings-suggestion-list li + li {
+  margin-top: 8px;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-save-hint {
+  color: var(--muted);
+  font-size: 13px;
+}

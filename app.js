@@ -14,7 +14,8 @@ const state = {
   selectedDate: todayStr,
   selectedClientId: null,
   previousMainScreen: "clientsScreen",
-  clientLetter: ""
+  clientLetter: "",
+  settingsSavePending: false
 };
 
 const monthNames = [
@@ -51,24 +52,41 @@ function addDaysStr(dateStr, days) {
   return formatDateInput(d);
 }
 
+function getDefaultSettings() {
+  return {
+    defaultBreakMinutes: 10,
+    notificationsEnabled: false,
+    reminderMinutes: 30,
+    overlapWarningsEnabled: true
+  };
+}
+
+function normalizeData(data) {
+  const defaults = getDefaultSettings();
+  const safe = data && typeof data === "object" ? data : {};
+
+  return {
+    customers: Array.isArray(safe.customers) ? safe.customers : [],
+    services: Array.isArray(safe.services) ? safe.services : [],
+    appointments: Array.isArray(safe.appointments) ? safe.appointments : [],
+    settings: {
+      ...defaults,
+      ...(safe.settings || {})
+    }
+  };
+}
+
 function seedData() {
   if (localStorage.getItem(STORAGE_KEY)) return;
-
-  const data = {
-    customers: [],
-    services: [],
-    appointments: []
-  };
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeData({})));
 }
 
 function getData() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  return normalizeData(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"));
 }
 
 function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeData(data)));
 }
 
 function euro(value) {
@@ -117,6 +135,63 @@ function weekBounds(dateStr) {
     end: formatDateInput(end)
   };
 }
+function minutesFromTimeString(timeStr) {
+  const [hours = "0", minutes = "0"] = String(timeStr || "00:00").split(":");
+  return (Number(hours) * 60) + Number(minutes);
+}
+
+function timeStringFromMinutes(totalMinutes) {
+  const safeMinutes = Math.max(0, Number(totalMinutes) || 0);
+  const hours = Math.floor(safeMinutes / 60) % 24;
+  const minutes = safeMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function getSettings() {
+  return getData().settings || getDefaultSettings();
+}
+
+function appointmentTimeRange(appointment, breakMinutes = 0) {
+  const startMinutes = minutesFromTimeString(appointment.time || appointment.appointment_time || "00:00");
+  const duration = Number(appointment.duration || 0);
+  const buffer = Math.max(0, Number(breakMinutes) || 0);
+  return {
+    startMinutes,
+    endMinutes: startMinutes + duration + buffer
+  };
+}
+
+function findAppointmentOverlap(payload, appointments, breakMinutes = 0, excludeId = null) {
+  const newRange = appointmentTimeRange({
+    time: payload.time,
+    duration: payload.duration
+  }, breakMinutes);
+
+  return appointments
+    .filter(app => app.date === payload.date)
+    .filter(app => String(app.id) !== String(excludeId || ""))
+    .find(app => {
+      const existingRange = appointmentTimeRange(app, breakMinutes);
+      return newRange.startMinutes < existingRange.endMinutes && newRange.endMinutes > existingRange.startMinutes;
+    }) || null;
+}
+
+function buildOverlapMessage(overlapApp) {
+  const data = getData();
+  const customer = customerById(data, overlapApp.customerId);
+  const service = serviceById(data, overlapApp.serviceId);
+  const settings = getSettings();
+  const range = appointmentTimeRange(overlapApp, settings.defaultBreakMinutes);
+
+  return [
+    "Deze afspraak overlapt met een bestaande afspraak.",
+    "",
+    `${overlapApp.time} - ${timeStringFromMinutes(range.endMinutes)} · ${customer ? fullName(customer) : "Onbekende klant"}${service ? ` (${service.name})` : ""}`,
+    "",
+    "Wil je deze afspraak toch opslaan?"
+  ].join("\n");
+}
+
 
 /* =========================
    AUTH / SUPABASE HELPERS
@@ -430,7 +505,7 @@ function updateTopbar(screenId, title) {
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "revenueScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -451,6 +526,10 @@ function switchScreen(screenId, title) {
 
   if (screenId === "accountScreen") {
     syncAuthUI();
+  }
+
+  if (screenId === "settingsScreen") {
+    renderSettings();
   }
 }
 
@@ -1121,6 +1200,102 @@ function renderRevenue() {
   renderRevenueChart(filtered, type, anchor);
 }
 
+function renderSettings() {
+  const settings = getSettings();
+
+  const breakInput = document.getElementById("settingsDefaultBreakMinutes");
+  const notificationsToggle = document.getElementById("settingsNotificationsEnabled");
+  const reminderSelect = document.getElementById("settingsReminderMinutes");
+  const overlapToggle = document.getElementById("settingsOverlapWarningsEnabled");
+  const reminderWrap = document.getElementById("settingsReminderWrap");
+  const saveHint = document.getElementById("settingsSaveHint");
+
+  if (!breakInput || !notificationsToggle || !reminderSelect || !overlapToggle || !reminderWrap || !saveHint) return;
+
+  breakInput.value = Number(settings.defaultBreakMinutes || 0);
+  notificationsToggle.checked = Boolean(settings.notificationsEnabled);
+  reminderSelect.value = String(settings.reminderMinutes || 30);
+  overlapToggle.checked = settings.overlapWarningsEnabled !== false;
+  reminderWrap.classList.toggle("hidden", !notificationsToggle.checked);
+  saveHint.textContent = state.settingsSavePending ? "Instellingen opslaan..." : "Instellingen worden per gebruiker bewaard.";
+}
+
+async function loadSettingsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return getDefaultSettings();
+
+  const { data, error } = await supabaseClient
+    .from("user_settings")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Fout bij laden instellingen:", error.message);
+    return getDefaultSettings();
+  }
+
+  return {
+    defaultBreakMinutes: Number(data?.default_break_minutes ?? 10),
+    notificationsEnabled: Boolean(data?.notifications_enabled ?? false),
+    reminderMinutes: Number(data?.reminder_minutes ?? 30),
+    overlapWarningsEnabled: data?.overlap_warnings_enabled !== false
+  };
+}
+
+async function saveSettingsFromForm(event) {
+  if (event) event.preventDefault();
+
+  const settings = {
+    defaultBreakMinutes: Math.max(0, Number(document.getElementById("settingsDefaultBreakMinutes")?.value || 0)),
+    notificationsEnabled: Boolean(document.getElementById("settingsNotificationsEnabled")?.checked),
+    reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
+    overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked)
+  };
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    data.settings = settings;
+    saveData(data);
+    state.settingsSavePending = false;
+    renderSettings();
+    alert("Instellingen opgeslagen op dit toestel.");
+    return;
+  }
+
+  state.settingsSavePending = true;
+  renderSettings();
+
+  const payload = {
+    user_id: user.id,
+    default_break_minutes: settings.defaultBreakMinutes,
+    notifications_enabled: settings.notificationsEnabled,
+    reminder_minutes: settings.reminderMinutes,
+    overlap_warnings_enabled: settings.overlapWarningsEnabled,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabaseClient
+    .from("user_settings")
+    .upsert(payload, { onConflict: "user_id" });
+
+  state.settingsSavePending = false;
+
+  if (error) {
+    renderSettings();
+    alert("Opslaan instellingen mislukt: " + error.message);
+    return;
+  }
+
+  const data = getData();
+  data.settings = settings;
+  saveData(data);
+  renderSettings();
+  alert("Instellingen opgeslagen.");
+}
+
 // =============================
 // CLIENT DETAIL SCREEN UPDATE
 // =============================
@@ -1536,28 +1711,37 @@ async function saveAppointmentFromForm(event) {
   event.preventDefault();
 
   const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("appointmentId").value;
+  const id = rawId ? Number(rawId) : null;
+  const settings = getSettings();
+
+  const localPayload = {
+    customerId: Number(document.getElementById("appointmentCustomer").value),
+    date: document.getElementById("appointmentDate").value,
+    time: document.getElementById("appointmentTime").value,
+    serviceId: Number(document.getElementById("appointmentService").value),
+    duration: Number(document.getElementById("appointmentDuration").value),
+    price: Number(document.getElementById("appointmentPrice").value),
+    status: id ? document.getElementById("appointmentStatus").value : "gepland"
+  };
+
+  if (settings.overlapWarningsEnabled) {
+    const overlapApp = findAppointmentOverlap(localPayload, data.appointments, settings.defaultBreakMinutes, id);
+    if (overlapApp) {
+      const confirmed = window.confirm(buildOverlapMessage(overlapApp));
+      if (!confirmed) return;
+    }
+  }
 
   if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("appointmentId").value);
-
-    const payload = {
-      customerId: Number(document.getElementById("appointmentCustomer").value),
-      date: document.getElementById("appointmentDate").value,
-      time: document.getElementById("appointmentTime").value,
-      serviceId: Number(document.getElementById("appointmentService").value),
-      duration: Number(document.getElementById("appointmentDuration").value),
-      price: Number(document.getElementById("appointmentPrice").value),
-      status: id ? document.getElementById("appointmentStatus").value : "gepland"
-    };
-
     if (id) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
-      Object.assign(existingApp, payload);
+      Object.assign(existingApp, localPayload);
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
-        ...payload,
+        ...localPayload,
         paid: false,
         paymentMethod: ""
       });
@@ -1566,8 +1750,8 @@ async function saveAppointmentFromForm(event) {
     saveData(data);
     closeDialog("appointmentDialog");
 
-    state.selectedDate = payload.date;
-    const picked = new Date(payload.date + "T00:00:00");
+    state.selectedDate = localPayload.date;
+    const picked = new Date(localPayload.date + "T00:00:00");
     state.currentYear = picked.getFullYear();
     state.currentMonth = picked.getMonth();
 
@@ -1575,20 +1759,21 @@ async function saveAppointmentFromForm(event) {
     return;
   }
 
-  const id = document.getElementById("appointmentId").value;
-  const existingApp = getData().appointments.find(a => String(a.id) === String(id));
+  const existingApp = data.appointments.find(a => String(a.id) === String(id));
+  const isPaid = existingApp ? Boolean(existingApp.paid) : false;
+  const existingPaymentMethod = existingApp?.paymentMethod?.trim() || null;
 
   const payload = {
     user_id: user.id,
-    customer_id: Number(document.getElementById("appointmentCustomer").value),
-    appointment_date: document.getElementById("appointmentDate").value,
-    appointment_time: document.getElementById("appointmentTime").value,
-    service_id: Number(document.getElementById("appointmentService").value),
-    duration: Number(document.getElementById("appointmentDuration").value),
-    price: Number(document.getElementById("appointmentPrice").value),
-    status: id ? document.getElementById("appointmentStatus").value : "gepland",
-    paid: existingApp ? existingApp.paid : false,
-    payment_method: existingApp ? existingApp.paymentMethod : null
+    customer_id: localPayload.customerId,
+    appointment_date: localPayload.date,
+    appointment_time: localPayload.time,
+    service_id: localPayload.serviceId,
+    duration: localPayload.duration,
+    price: localPayload.price,
+    status: localPayload.status,
+    paid: isPaid,
+    payment_method: isPaid ? existingPaymentMethod : null
   };
 
   let error;
@@ -1854,6 +2039,7 @@ function registerEvents() {
       clientsScreen: "Klanten",
       servicesScreen: "Diensten",
       revenueScreen: "Omzet",
+      settingsScreen: "Instellingen",
       accountScreen: "Account"
     };
 
@@ -1862,6 +2048,8 @@ function registerEvents() {
 
   document.getElementById("clientSearch").addEventListener("input", renderClients);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
+  document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsFromForm);
+  document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", renderSettings);
 
   document.getElementById("appointmentForm").addEventListener("submit", saveAppointmentFromForm);
   document.getElementById("deleteAppointmentBtn").addEventListener("click", deleteCurrentAppointment);
@@ -2065,7 +2253,7 @@ async function loadAppointmentsFromSupabase() {
     price: Number(a.price || 0),
     status: a.status,
     paid: Boolean(a.paid),
-    paymentMethod: a.payment_method || ""
+    paymentMethod: a.payment_method ?? null
   }));
 }
 
@@ -2073,11 +2261,13 @@ async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
+  const settings = await loadSettingsFromSupabase();
 
   saveData({
     customers,
     services,
-    appointments
+    appointments,
+    settings
   });
 }
 
