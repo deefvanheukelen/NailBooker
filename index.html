@@ -161,64 +161,109 @@
         </section>
       </section>
 
+      
       <!-- ===================== OMZET ======================= -->
       <section id="revenueScreen" class="screen">
+        <section class="revenue-screen-shell">
 
-        <!-- Filters -->
-        <section class="section-head revenue-filters-wrap">
-          <div class="filter-grid">
-            <select id="revenuePeriodType" class="field compact-field">
-              <option value="day">Dag</option>
-              <option value="week">Week</option>
-              <option value="month" selected>Maand</option>
-              <option value="year">Jaar</option>
-            </select>
+          <section class="revenue-period-strip">
+            <div id="revenueYearChip" class="revenue-period-chip active" role="group" aria-label="Jaar kiezen">
+              <button id="revenueYearMain" class="revenue-period-main" type="button">
+                <span id="revenueYearLabel">2026</span>
+              </button>
+              <button id="revenueYearToggle" class="revenue-period-toggle" type="button" aria-label="Jaarkeuze openen">
+                <span class="revenue-period-caret" aria-hidden="true"></span>
+              </button>
+            </div>
 
-            <input id="revenueDate" class="field compact-field" type="date" />
+            <div id="revenueMonthChip" class="revenue-period-chip" role="group" aria-label="Maand kiezen">
+              <button id="revenueMonthMain" class="revenue-period-main" type="button">
+                <span id="revenueMonthLabel">Maart</span>
+              </button>
+              <button id="revenueMonthToggle" class="revenue-period-toggle" type="button" aria-label="Maandkeuze openen">
+                <span class="revenue-period-caret" aria-hidden="true"></span>
+              </button>
+            </div>
 
-            <select id="revenuePaymentStatusFilter" class="field compact-field">
-              <option value="">Alle betalingen</option>
-              <option value="paid">Betaald</option>
-              <option value="unpaid">Onbetaald</option>
-            </select>
+            <div id="revenueDayChip" class="revenue-period-chip revenue-period-chip-wide" role="group" aria-label="Dag kiezen">
+              <button id="revenueDayMain" class="revenue-period-main" type="button">
+                <span id="revenueDayLabel">Wo 25-03</span>
+              </button>
+              <button id="revenueDayToggle" class="revenue-period-toggle" type="button" aria-label="Dagkeuze openen">
+                <span class="revenue-period-caret" aria-hidden="true"></span>
+              </button>
+            </div>
+          </section>
 
-            <select id="revenuePaymentFilter" class="field compact-field">
-              <option value="">Alle betaalmiddelen</option>
-            </select>
+          <section class="revenue-filter-card">
+            <div class="revenue-filter-grid">
+              <select id="revenuePaymentFilter" class="field compact-field">
+                <option value="">Alle betaalmethodes</option>
+              </select>
 
-            <select id="revenueCustomerFilter" class="field compact-field">
-              <option value="">Alle klanten</option>
-            </select>
-          </div>
-        </section>
+              <select id="revenueCustomerFilter" class="field compact-field">
+                <option value="">Alle klanten</option>
+              </select>
 
-        <!-- Samenvatting -->
-        <section class="summary-card">
-          <div class="summary-block">
-            <span class="summary-label">Totaal</span>
-            <strong id="plannedRevenue">€ 0,00</strong>
-          </div>
+              <select id="revenuePaymentStatusFilter" class="field compact-field">
+                <option value="">Alle statussen</option>
+                <option value="paid">Betaald</option>
+                <option value="unpaid">Onbetaald</option>
+              </select>
+            </div>
 
-          <div class="summary-block">
-            <span class="summary-label">Betaald</span>
-            <strong id="paidRevenue">€ 0,00</strong>
-          </div>
+            <div class="revenue-hidden-inputs" aria-hidden="true">
+              <select id="revenuePeriodType" class="field compact-field">
+                <option value="day">Dag</option>
+                <option value="month" selected>Maand</option>
+                <option value="year">Jaar</option>
+              </select>
+              <input id="revenueDate" class="field compact-field" type="date" />
+              <input id="revenueNativeDatePicker" class="field compact-field" type="date" />
+            </div>
+          </section>
 
-          <div class="summary-block">
-            <span class="summary-label">Openstaand</span>
-            <strong id="openRevenue">€ 0,00</strong>
-          </div>
-        </section>
+          <section class="revenue-summary-card">
+            <div class="revenue-summary-top">
+              <div class="revenue-main-totals">
+                <div class="revenue-main-line">
+                  <span class="revenue-main-label">Totaal:</span>
+                  <strong id="plannedRevenue">€ 0,00</strong>
+                </div>
 
-        <!-- Detailoverzicht -->
-        <section class="revenue-panel">
-          <div class="section-head">
-            <h2 id="revenueTitle">Overzicht</h2>
-          </div>
+                <div class="revenue-main-line revenue-main-line-secondary">
+                  <span class="revenue-main-label">Betaald:</span>
+                  <strong id="paidRevenue">€ 0,00</strong>
+                </div>
+              </div>
 
-          <div id="paymentMethodList" class="scroll-list"></div>
+              <div id="paymentMethodList" class="revenue-method-breakdown"></div>
+            </div>
+
+            <div class="revenue-open-line">
+              <span class="revenue-open-label">Onbetaald:</span>
+              <strong id="openRevenue">€ 0,00</strong>
+            </div>
+          </section>
+
+          <section class="revenue-chart-card">
+            <div class="revenue-chart-head">
+              <h2 id="revenueTitle">Omzet</h2>
+              <div id="revenueChartSubtitle" class="revenue-chart-subtitle">Per dag</div>
+            </div>
+
+            <div id="revenueChart" class="revenue-chart-wrap"></div>
+          </section>
+
+          <section class="revenue-list-panel">
+            <div class="section-head revenue-list-head">
+              <h2>Top klanten</h2>
+            </div>
+            <div id="revenueCustomerList" class="scroll-list revenue-customer-list"></div>
+          </section>
         </section>
       </section>
+
 
       <!-- ===================== KLANTDETAIL ================= -->
       <section id="clientDetailScreen" class="screen">
@@ -693,6 +738,31 @@
         </button>
         <button class="btn btn-primary action-btn" type="submit">
           Opslaan
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <!-- ===================== OMZET PICKER ================== -->
+  <dialog id="revenueWheelPickerDialog" class="modal revenue-wheel-dialog">
+    <form method="dialog" id="revenueWheelPickerForm" class="modal-card revenue-wheel-card">
+      <div class="modal-head">
+        <h3 id="revenueWheelPickerTitle">Kies</h3>
+        <button class="icon-btn" type="button" data-close="revenueWheelPickerDialog">✕</button>
+      </div>
+
+      <div class="revenue-wheel-shell">
+        <div class="revenue-wheel-highlight" aria-hidden="true"></div>
+        <div id="revenueWheelColumns" class="revenue-wheel-columns"></div>
+      </div>
+
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="revenueWheelPickerDialog">
+          Annuleren
+        </button>
+        <button id="revenueWheelConfirmBtn" class="btn btn-primary action-btn" type="submit">
+          Kies
         </button>
       </div>
     </form>

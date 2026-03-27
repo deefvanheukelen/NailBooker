@@ -29,6 +29,22 @@ const longMonthNames = [
 
 const paymentMethods = ["cash", "payconiq", "bancontact", "kaart", "overschrijving", "anders"];
 
+const paymentMethodLabels = {
+  cash: "Cash",
+  payconiq: "Payconiq",
+  bancontact: "Bancontact",
+  kaart: "Kaart",
+  overschrijving: "Overschrijving",
+  anders: "Andere"
+};
+
+const revenuePickerState = {
+  mode: "year",
+  columns: [],
+  selected: {}
+};
+
+
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
@@ -429,6 +445,10 @@ function switchScreen(screenId, title) {
 
   updateTopbar(screenId, title);
 
+  if (screenId === "revenueScreen") {
+    renderRevenue();
+  }
+
   if (screenId === "accountScreen") {
     syncAuthUI();
   }
@@ -639,6 +659,75 @@ function renderServices() {
   });
 }
 
+
+function paymentMethodLabel(key) {
+  return paymentMethodLabels[key] || "Andere";
+}
+
+function formatRevenueDayChip(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const days = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
+  return `${days[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function shiftRevenueDate(baseDateStr, mode, step) {
+  const d = new Date(baseDateStr + "T00:00:00");
+
+  if (mode === "year") {
+    d.setFullYear(d.getFullYear() + step);
+    return formatDateInput(d);
+  }
+
+  if (mode === "month") {
+    d.setMonth(d.getMonth() + step);
+    return formatDateInput(d);
+  }
+
+  d.setDate(d.getDate() + step);
+  return formatDateInput(d);
+}
+
+function setRevenuePeriod(type, dateStr) {
+  const safeDate = dateStr || document.getElementById("revenueDate").value || todayStr;
+  const periodType = document.getElementById("revenuePeriodType");
+  const dateInput = document.getElementById("revenueDate");
+
+  if (periodType) periodType.value = type;
+  if (dateInput) dateInput.value = safeDate;
+
+  renderRevenue();
+}
+
+function syncRevenuePeriodChips() {
+  const type = document.getElementById("revenuePeriodType").value;
+  const anchor = document.getElementById("revenueDate").value || todayStr;
+  const anchorDate = new Date(anchor + "T00:00:00");
+
+  const yearChip = document.getElementById("revenueYearChip");
+  const monthChip = document.getElementById("revenueMonthChip");
+  const dayChip = document.getElementById("revenueDayChip");
+
+  const yearLabel = document.getElementById("revenueYearLabel");
+  const monthLabel = document.getElementById("revenueMonthLabel");
+  const dayLabel = document.getElementById("revenueDayLabel");
+
+  if (yearLabel) {
+    yearLabel.textContent = String(anchorDate.getFullYear());
+  }
+
+  if (monthLabel) {
+    monthLabel.textContent = longMonthNames[anchorDate.getMonth()].charAt(0).toUpperCase() + longMonthNames[anchorDate.getMonth()].slice(1);
+  }
+
+  if (dayLabel) {
+    dayLabel.textContent = formatRevenueDayChip(anchor);
+  }
+
+  if (yearChip) yearChip.classList.toggle("active", type === "year");
+  if (monthChip) monthChip.classList.toggle("active", type === "month");
+  if (dayChip) dayChip.classList.toggle("active", type === "day");
+}
+
 function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
@@ -647,13 +736,10 @@ function revenueFilteredAppointments() {
   const paymentFilter = document.getElementById("revenuePaymentFilter").value;
   const customerFilter = document.getElementById("revenueCustomerFilter").value;
 
-  let filtered = [...data.appointments];
+  let filtered = data.appointments.filter(a => a.status !== "no-show");
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
-  } else if (type === "week") {
-    const bounds = weekBounds(anchor);
-    filtered = filtered.filter(a => a.date >= bounds.start && a.date <= bounds.end);
   } else if (type === "month") {
     const prefix = anchor.slice(0, 7);
     filtered = filtered.filter(a => a.date.startsWith(prefix));
@@ -674,110 +760,365 @@ function renderRevenueFilters() {
   const data = getData();
   const paymentSel = document.getElementById("revenuePaymentFilter");
   const customerSel = document.getElementById("revenueCustomerFilter");
-  const existingPayment = paymentSel.value;
-  const existingCustomer = customerSel.value;
+  const existingPayment = paymentSel ? paymentSel.value : "";
+  const existingCustomer = customerSel ? customerSel.value : "";
 
-  paymentSel.innerHTML =
-    `<option value="">Alle betaalmiddelen</option>` +
-    paymentMethods.map(m => `<option value="${m}">${m}</option>`).join("");
+  if (paymentSel) {
+    paymentSel.innerHTML =
+      `<option value="">Alle betaalmethodes</option>` +
+      paymentMethods.map(m => `<option value="${m}">${paymentMethodLabel(m)}</option>`).join("");
+    paymentSel.value = existingPayment;
+  }
 
-  customerSel.innerHTML =
-    `<option value="">Alle klanten</option>` +
-    data.customers
-      .sort((a, b) => fullName(a).localeCompare(fullName(b)))
-      .map(c => `<option value="${c.id}">${fullName(c)}</option>`)
-      .join("");
+  if (customerSel) {
+    customerSel.innerHTML =
+      `<option value="">Alle klanten</option>` +
+      data.customers
+        .slice()
+        .sort((a, b) => fullName(a).localeCompare(fullName(b)))
+        .map(c => `<option value="${c.id}">${fullName(c)}</option>`)
+        .join("");
+    customerSel.value = existingCustomer;
+  }
+}
 
-  paymentSel.value = existingPayment;
-  customerSel.value = existingCustomer;
+
+function clampRevenueDay(year, monthIndex, day) {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  return Math.min(day, daysInMonth);
+}
+
+function getRevenueDataYears() {
+  const data = getData();
+  const appointmentYears = data.appointments
+    .map(a => Number(String(a.date || "").slice(0, 4)))
+    .filter(Boolean);
+
+  const currentYear = new Date((document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getFullYear();
+  const minYear = appointmentYears.length ? Math.min(...appointmentYears, currentYear) : currentYear - 3;
+  const maxYear = appointmentYears.length ? Math.max(...appointmentYears, currentYear) : currentYear + 3;
+
+  return Array.from({ length: (maxYear - minYear + 5) }, (_, i) => minYear - 2 + i);
+}
+
+function centerRevenueWheelColumn(column, value, behavior = "auto") {
+  if (!column) return;
+  const option = column.querySelector(`.revenue-wheel-option[data-value="${value}"]`);
+  if (!option) return;
+  const target = option.offsetTop - (column.clientHeight / 2) + (option.offsetHeight / 2);
+  if (behavior === "smooth") {
+    column.scrollTo({ top: target, behavior: "smooth" });
+  } else {
+    column.scrollTop = target;
+  }
+  updateRevenueWheelColumnSelection(column);
+}
+
+function updateRevenueWheelColumnSelection(column) {
+  if (!column) return null;
+  const options = Array.from(column.querySelectorAll(".revenue-wheel-option"));
+  if (!options.length) return null;
+
+  const columnCenter = column.scrollTop + (column.clientHeight / 2);
+  let closest = options[0];
+  let bestDistance = Infinity;
+
+  options.forEach(option => {
+    const optionCenter = option.offsetTop + (option.offsetHeight / 2);
+    const distance = Math.abs(optionCenter - columnCenter);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      closest = option;
+    }
+  });
+
+  options.forEach(option => option.classList.toggle("active", option === closest));
+  return closest?.dataset?.value ?? null;
+}
+
+function attachRevenueWheelColumnEvents(column, key) {
+  if (!column) return;
+  let timeoutId = null;
+  const optionHeight = 48;
+
+  const finish = (behavior = "smooth") => {
+    const value = updateRevenueWheelColumnSelection(column);
+    if (value != null) {
+      revenuePickerState.selected[key] = value;
+      centerRevenueWheelColumn(column, value, behavior);
+    }
+  };
+
+  column.addEventListener("scroll", () => {
+    updateRevenueWheelColumnSelection(column);
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => finish("smooth"), 110);
+  });
+
+  column.addEventListener("wheel", (event) => {
+    if (window.matchMedia("(pointer:fine)").matches) {
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? 1 : -1;
+      const targetTop = column.scrollTop + (direction * optionHeight);
+      column.scrollTo({ top: targetTop, behavior: "smooth" });
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => finish("smooth"), 130);
+    }
+  }, { passive: false });
+
+  column.querySelectorAll(".revenue-wheel-option").forEach(option => {
+    option.addEventListener("click", () => {
+      revenuePickerState.selected[key] = option.dataset.value;
+      centerRevenueWheelColumn(column, option.dataset.value, "smooth");
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => finish("smooth"), 130);
+    });
+  });
+
+  finish("auto");
+}
+
+function buildRevenueWheelColumn(key, values, formatter = value => value) {
+  return `
+    <div class="revenue-wheel-column" data-key="${key}">
+      ${values.map(value => `<div class="revenue-wheel-option" data-value="${value}">${formatter(value)}</div>`).join("")}
+    </div>
+  `;
+}
+
+function openRevenueWheelPicker(mode) {
+  const dialog = document.getElementById("revenueWheelPickerDialog");
+  const title = document.getElementById("revenueWheelPickerTitle");
+  const columnsWrap = document.getElementById("revenueWheelColumns");
+  const anchor = document.getElementById("revenueDate").value || todayStr;
+  const anchorDate = new Date(anchor + "T00:00:00");
+  const selectedYear = anchorDate.getFullYear();
+  const selectedMonthIndex = anchorDate.getMonth();
+
+  revenuePickerState.mode = mode;
+  revenuePickerState.columns = [];
+  revenuePickerState.selected = {};
+
+  if (mode === "year") {
+    title.textContent = "Kies jaar";
+    columnsWrap.className = "revenue-wheel-columns";
+    const years = getRevenueDataYears();
+    columnsWrap.innerHTML = buildRevenueWheelColumn("year", years, value => value);
+  } else {
+    title.textContent = "Kies maand";
+    columnsWrap.className = "revenue-wheel-columns";
+    const months = Array.from({ length: 12 }, (_, i) => i);
+    columnsWrap.innerHTML =
+      buildRevenueWheelColumn("monthIndex", months, value => longMonthNames[value].charAt(0).toUpperCase() + longMonthNames[value].slice(1));
+  }
+
+  const columns = Array.from(columnsWrap.querySelectorAll(".revenue-wheel-column"));
+  revenuePickerState.columns = columns;
+
+  columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
+
+  if (mode === "year") {
+    centerRevenueWheelColumn(columnsWrap.querySelector('[data-key="year"]'), selectedYear);
+    revenuePickerState.selected.year = String(selectedYear);
+  } else {
+    centerRevenueWheelColumn(columnsWrap.querySelector('[data-key="monthIndex"]'), selectedMonthIndex);
+    revenuePickerState.selected.monthIndex = String(selectedMonthIndex);
+  }
+
+  if (typeof dialog.showModal === "function") dialog.showModal();
+}
+
+function applyRevenueWheelPickerSelection() {
+  const anchor = document.getElementById("revenueDate").value || todayStr;
+  const anchorDate = new Date(anchor + "T00:00:00");
+  const currentDay = anchorDate.getDate();
+
+  if (revenuePickerState.mode === "year") {
+    const year = Number(revenuePickerState.selected.year || anchorDate.getFullYear());
+    const monthIndex = anchorDate.getMonth();
+    const day = clampRevenueDay(year, monthIndex, currentDay);
+    setRevenuePeriod("year", formatDateInput(new Date(year, monthIndex, day)));
+    return;
+  }
+
+  const year = anchorDate.getFullYear();
+  const monthIndex = Number(revenuePickerState.selected.monthIndex || anchorDate.getMonth());
+  const day = clampRevenueDay(year, monthIndex, currentDay);
+  setRevenuePeriod("month", formatDateInput(new Date(year, monthIndex, day)));
+}
+
+function openRevenueDayPicker() {
+  const nativeInput = document.getElementById("revenueNativeDatePicker");
+  const revenueDate = document.getElementById("revenueDate").value || todayStr;
+
+  if (!nativeInput) {
+    setRevenuePeriod("day", revenueDate);
+    return;
+  }
+
+  nativeInput.value = revenueDate;
+
+  if (typeof nativeInput.showPicker === "function") {
+    nativeInput.showPicker();
+  } else {
+    nativeInput.click();
+  }
+}
+
+
+function buildRevenueChartData(filtered, type, anchor) {
+  if (type === "year") {
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = String(index + 1).padStart(2, "0");
+      const prefix = `${anchor.slice(0, 4)}-${month}`;
+      const items = filtered.filter(a => a.date.startsWith(prefix));
+      return {
+        label: String(index + 1),
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
+      };
+    });
+  }
+
+  if (type === "month") {
+    const year = Number(anchor.slice(0, 4));
+    const monthIndex = Number(anchor.slice(5, 7)) - 1;
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+      const day = String(index + 1).padStart(2, "0");
+      const key = `${anchor.slice(0, 7)}-${day}`;
+      const items = filtered.filter(a => a.date === key);
+      return {
+        label: String(index + 1),
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
+      };
+    });
+  }
+
+  const items = filtered.slice().sort((a, b) => a.time.localeCompare(b.time));
+  return items.map(a => ({
+    label: a.time || "",
+    paid: a.paid ? Number(a.price || 0) : 0,
+    unpaid: !a.paid ? Number(a.price || 0) : 0
+  }));
+}
+
+function renderRevenueChart(filtered, type, anchor) {
+  const chartWrap = document.getElementById("revenueChart");
+  const subtitle = document.getElementById("revenueChartSubtitle");
+
+  if (!chartWrap) return;
+
+  const chartData = buildRevenueChartData(filtered, type, anchor);
+  const visibleData = chartData.filter(item => item.paid > 0 || item.unpaid > 0);
+  const dataToRender = visibleData.length ? visibleData : chartData;
+  const maxValue = Math.max(...dataToRender.map(item => item.paid + item.unpaid), 0);
+
+  if (subtitle) {
+    subtitle.textContent =
+      type === "year" ? "Per maand" :
+      type === "month" ? "Per dag" :
+      "Per afspraak";
+  }
+
+  if (!dataToRender.length || maxValue === 0) {
+    chartWrap.innerHTML = `<div class="empty-state">Geen omzetgegevens voor deze selectie.</div>`;
+    return;
+  }
+
+  chartWrap.innerHTML = `
+    <div class="revenue-bars">
+      ${dataToRender.map(item => {
+        const total = item.paid + item.unpaid;
+        const totalHeight = Math.max(8, (total / maxValue) * 220);
+        const paidHeight = total > 0 ? (item.paid / total) * totalHeight : 0;
+        const unpaidHeight = totalHeight - paidHeight;
+
+        return `
+          <div class="revenue-bar-col" title="${item.label} · ${euro(total)}">
+            <div class="revenue-bar-stack" style="height:${totalHeight}px">
+              ${unpaidHeight > 0 ? `<span class="revenue-bar-segment unpaid" style="height:${unpaidHeight}px"></span>` : ""}
+              ${paidHeight > 0 ? `<span class="revenue-bar-segment paid" style="height:${paidHeight}px"></span>` : ""}
+            </div>
+            <span class="revenue-bar-label">${item.label}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <div class="revenue-chart-legend">
+      <span><i class="paid"></i> Betaald</span>
+      <span><i class="unpaid"></i> Onbetaald</span>
+    </div>
+  `;
 }
 
 function renderRevenue() {
   renderRevenueFilters();
+  syncRevenuePeriodChips();
 
   const data = getData();
-  const list = document.getElementById("paymentMethodList");
+  const methodList = document.getElementById("paymentMethodList");
+  const customerList = document.getElementById("revenueCustomerList");
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const filtered = revenueFilteredAppointments();
 
-  let title = "Overzicht";
+  let title = "Omzet";
   if (type === "day") title = `Omzet op ${formatLongDate(anchor)}`;
-  if (type === "week") {
-    const bounds = weekBounds(anchor);
-    title = `Omzet week ${formatShortDate(bounds.start)} - ${formatShortDate(bounds.end)}`;
-  }
   if (type === "month") {
     const d = new Date(anchor + "T00:00:00");
     title = `Omzet ${longMonthNames[d.getMonth()]} ${d.getFullYear()}`;
   }
   if (type === "year") title = `Omzet ${anchor.slice(0, 4)}`;
 
-  document.getElementById("revenueTitle").textContent = title;
+  const titleEl = document.getElementById("revenueTitle");
+  if (titleEl) titleEl.textContent = title;
 
   const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const total = filtered.filter(a => a.status !== "no-show").reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const open = filtered.filter(a => !a.paid && a.status !== "no-show").reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const total = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
 
   document.getElementById("plannedRevenue").textContent = euro(total);
   document.getElementById("paidRevenue").textContent = euro(paid);
   document.getElementById("openRevenue").textContent = euro(open);
 
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state">Geen afspraken voor deze selectie.</div>`;
-    return;
-  }
-
   const byMethod = {};
   filtered.filter(a => a.paid).forEach(a => {
-    const key = a.paymentMethod || "onbekend";
+    const key = a.paymentMethod || "anders";
     byMethod[key] = (byMethod[key] || 0) + Number(a.price || 0);
   });
 
+  if (methodList) {
+    methodList.innerHTML = paymentMethods.map(method => `
+      <div class="revenue-method-row">
+        <span>${paymentMethodLabel(method)}:</span>
+        <strong>${euro(byMethod[method] || 0)}</strong>
+      </div>
+    `).join("");
+  }
+
   const customerTotals = {};
   filtered.forEach(a => {
-    const cust = customerById(data, a.customerId);
-    const key = cust ? fullName(cust) : "Onbekend";
+    const customer = customerById(data, a.customerId);
+    const key = customer ? fullName(customer) : "Onbekend";
     customerTotals[key] = (customerTotals[key] || 0) + Number(a.price || 0);
   });
 
-  list.innerHTML = "";
-
-  const byMethodCard = document.createElement("div");
-  byMethodCard.className = "revenue-card";
-  byMethodCard.innerHTML =
-    `<div class="detail-block"><div class="detail-label">Per betaalmethode</div></div>` +
-    (
-      Object.keys(byMethod).length
-        ? Object.entries(byMethod).map(([method, amount]) => `
-            <div class="detail-block">
-              <div class="inline-header">
-                <div class="detail-value">${method}</div>
-                <div class="detail-value">${euro(amount)}</div>
-              </div>
-            </div>
-          `).join("")
-        : `<div class="detail-block"><div class="detail-value">Nog geen geregistreerde betalingen.</div></div>`
-    );
-
-  list.appendChild(byMethodCard);
-
-  const byCustomerCard = document.createElement("div");
-  byCustomerCard.className = "revenue-card";
-  byCustomerCard.innerHTML =
-    `<div class="detail-block"><div class="detail-label">Per klant</div></div>` +
-    Object.entries(customerTotals)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, amount]) => `
-        <div class="detail-block">
-          <div class="inline-header">
-            <div class="detail-value">${name}</div>
-            <div class="detail-value">${euro(amount)}</div>
+  if (customerList) {
+    const entries = Object.entries(customerTotals).sort((a, b) => b[1] - a[1]);
+    customerList.innerHTML = entries.length
+      ? entries.map(([name, amount]) => `
+          <div class="revenue-customer-row">
+            <span>${name}</span>
+            <strong>${euro(amount)}</strong>
           </div>
-        </div>
-      `).join("");
+        `).join("")
+      : `<div class="empty-state">Geen klantgegevens voor deze selectie.</div>`;
+  }
 
-  list.appendChild(byCustomerCard);
+  renderRevenueChart(filtered, type, anchor);
 }
 
 // =============================
@@ -1538,10 +1879,75 @@ function registerEvents() {
   });
 
   document.getElementById("revenueDate").value = todayStr;
+
   ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter", "revenueCustomerFilter"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
+
+  const revenueYearMain = document.getElementById("revenueYearMain");
+  const revenueYearToggle = document.getElementById("revenueYearToggle");
+  const revenueMonthMain = document.getElementById("revenueMonthMain");
+  const revenueMonthToggle = document.getElementById("revenueMonthToggle");
+  const revenueDayMain = document.getElementById("revenueDayMain");
+  const revenueDayToggle = document.getElementById("revenueDayToggle");
+
+  if (revenueYearMain) {
+    revenueYearMain.addEventListener("click", () => {
+      const anchor = document.getElementById("revenueDate").value || todayStr;
+      setRevenuePeriod("year", anchor);
+    });
+  }
+
+  if (revenueYearToggle) {
+    revenueYearToggle.addEventListener("click", () => {
+      openRevenueWheelPicker("year");
+    });
+  }
+
+  if (revenueMonthMain) {
+    revenueMonthMain.addEventListener("click", () => {
+      const anchor = document.getElementById("revenueDate").value || todayStr;
+      setRevenuePeriod("month", anchor);
+    });
+  }
+
+  if (revenueMonthToggle) {
+    revenueMonthToggle.addEventListener("click", () => {
+      openRevenueWheelPicker("month");
+    });
+  }
+
+  if (revenueDayMain) {
+    revenueDayMain.addEventListener("click", () => {
+      const anchor = document.getElementById("revenueDate").value || todayStr;
+      setRevenuePeriod("day", anchor);
+    });
+  }
+
+  if (revenueDayToggle) {
+    revenueDayToggle.addEventListener("click", () => {
+      openRevenueDayPicker();
+    });
+  }
+
+  const revenueWheelPickerForm = document.getElementById("revenueWheelPickerForm");
+  if (revenueWheelPickerForm) {
+    revenueWheelPickerForm.addEventListener("submit", event => {
+      event.preventDefault();
+      applyRevenueWheelPickerSelection();
+      closeDialog("revenueWheelPickerDialog");
+    });
+  }
+
+  const revenueNativeDatePicker = document.getElementById("revenueNativeDatePicker");
+  if (revenueNativeDatePicker) {
+    revenueNativeDatePicker.addEventListener("change", event => {
+      const pickedDate = event.target.value;
+      if (!pickedDate) return;
+      setRevenuePeriod("day", pickedDate);
+    });
+  }
 
   const registerBtn = document.getElementById("registerBtn");
   const registerForm = document.getElementById("registerForm");
