@@ -3,5 +3,16 @@ const SUPABASE_ANON_KEY = "sb_publishable_CooJe-_05o0_DnryGaj9ng_OAX_46EL";
 
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_ANON_KEY
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: window.localStorage
+    }
+  }
 );
+
+window.supabaseClient = supabaseClient;
+window.recreateSupabaseClient = () => supabaseClient;

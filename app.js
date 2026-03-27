@@ -28,16 +28,14 @@ const longMonthNames = [
   "juli", "augustus", "september", "oktober", "november", "december"
 ];
 
-const paymentMethods = ["cash", "payconiq", "bancontact", "kaart", "overschrijving", "anders"];
-
-const paymentMethodLabels = {
-  cash: "Cash",
-  payconiq: "Payconiq",
-  bancontact: "Bancontact",
-  kaart: "Kaart",
-  overschrijving: "Overschrijving",
-  anders: "Andere"
-};
+const defaultPaymentMethods = [
+  { id: 1, name: "Cash", sortOrder: 1 },
+  { id: 2, name: "Payconiq", sortOrder: 2 },
+  { id: 3, name: "Bancontact", sortOrder: 3 },
+  { id: 4, name: "Kaart", sortOrder: 4 },
+  { id: 5, name: "Overschrijving", sortOrder: 5 },
+  { id: 6, name: "Andere", sortOrder: 6 }
+];
 
 const revenuePickerState = {
   mode: "year",
@@ -64,11 +62,25 @@ function getDefaultSettings() {
 function normalizeData(data) {
   const defaults = getDefaultSettings();
   const safe = data && typeof data === "object" ? data : {};
+  const paymentMethods = normalizePaymentMethods(safe.paymentMethods);
+
+  const appointments = Array.isArray(safe.appointments) ? safe.appointments.map(appointment => {
+    const paymentMethodName = appointment?.paymentMethodName
+      || appointment?.paymentMethodLabel
+      || appointment?.paymentMethod
+      || null;
+
+    return {
+      ...appointment,
+      paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null
+    };
+  }) : [];
 
   return {
     customers: Array.isArray(safe.customers) ? safe.customers : [],
     services: Array.isArray(safe.services) ? safe.services : [],
-    appointments: Array.isArray(safe.appointments) ? safe.appointments : [],
+    appointments,
+    paymentMethods,
     settings: {
       ...defaults,
       ...(safe.settings || {})
@@ -87,6 +99,62 @@ function getData() {
 
 function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeData(data)));
+}
+
+
+function normalizePaymentMethods(items) {
+  const source = Array.isArray(items) && items.length ? items : defaultPaymentMethods;
+  return source
+    .map((item, index) => {
+      if (typeof item === "string") {
+        return { id: index + 1, name: item, sortOrder: index + 1 };
+      }
+      const id = Number(item?.id);
+      const sortOrder = Number(item?.sortOrder ?? item?.sort_order ?? index + 1);
+      const name = String(item?.name || item?.label || "").trim();
+      if (!name) return null;
+      return {
+        id: Number.isFinite(id) ? id : index + 1,
+        name,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : index + 1
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "nl-BE"));
+}
+
+function getPaymentMethods(data = getData()) {
+  return normalizePaymentMethods(data?.paymentMethods);
+}
+
+function paymentMethodNameById(data, id) {
+  if (id == null || id === "") return null;
+  const method = getPaymentMethods(data).find(item => String(item.id) === String(id));
+  return method?.name || null;
+}
+
+function paymentMethodNameForAppointment(appointment, data = getData()) {
+  if (!appointment) return "";
+  return appointment.paymentMethodName || "";
+}
+
+function buildPaymentMethodOptions(methods, selectedValue = "") {
+  return methods.map(method => {
+    const selected = String(method.name) === String(selectedValue) ? ' selected' : '';
+    return `<option value="${method.name}"${selected}>${method.name}</option>`;
+  }).join("");
+}
+
+function getRevenuePaymentFilterOptions(data = getData()) {
+  const names = new Set();
+  getPaymentMethods(data).forEach(method => {
+    if (method.name) names.add(method.name);
+  });
+  (data.appointments || []).forEach(appointment => {
+    const name = paymentMethodNameForAppointment(appointment, data);
+    if (name) names.add(name);
+  });
+  return Array.from(names).sort((a, b) => a.localeCompare(b, "nl-BE"));
 }
 
 function euro(value) {
@@ -672,6 +740,9 @@ function updateTopbar(screenId, title) {
   } else if (screenId === "servicesScreen") {
     fab.onclick = openNewServiceDialog;
     fab.style.display = "block";
+  } else if (screenId === "paymentMethodsScreen") {
+    fab.onclick = openNewPaymentMethodDialog;
+    fab.style.display = "block";
   } else {
     fab.style.display = "none";
   }
@@ -680,7 +751,7 @@ function updateTopbar(screenId, title) {
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -705,6 +776,10 @@ function switchScreen(screenId, title) {
 
   if (screenId === "settingsScreen") {
     renderSettings();
+  }
+
+  if (screenId === "paymentMethodsScreen") {
+    renderPaymentMethods();
   }
 }
 
@@ -808,7 +883,7 @@ function renderAgendaList() {
       </div>
       <div>
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
-        <div class="meta">${service ? service.name : ""} · ${app.status}${app.paid ? " · betaald" : ""}</div>
+        <div class="meta">${service ? service.name : ""} · ${app.status}${app.paid ? ` · betaald${paymentMethodNameForAppointment(app, data) ? ` (${paymentMethodNameForAppointment(app, data)})` : ""}` : ""}</div>
       </div>
       <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
     `;
@@ -935,8 +1010,10 @@ function renderServices() {
 }
 
 
-function paymentMethodLabel(key) {
-  return paymentMethodLabels[key] || "Andere";
+function paymentMethodLabel(value) {
+  if (!value) return "";
+  const data = getData();
+  return paymentMethodNameById(data, value) || String(value);
 }
 
 function formatRevenueDayChip(dateStr) {
@@ -1025,7 +1102,7 @@ function revenueFilteredAppointments() {
 
   if (paymentStatusFilter === "paid") filtered = filtered.filter(a => a.paid);
   if (paymentStatusFilter === "unpaid") filtered = filtered.filter(a => !a.paid);
-  if (paymentFilter) filtered = filtered.filter(a => a.paymentMethod === paymentFilter);
+  if (paymentFilter) filtered = filtered.filter(a => paymentMethodNameForAppointment(a, data) === paymentFilter);
   if (customerFilter) filtered = filtered.filter(a => String(a.customerId) === String(customerFilter));
 
   return filtered;
@@ -1040,8 +1117,8 @@ function renderRevenueFilters() {
 
   if (paymentSel) {
     paymentSel.innerHTML =
-      `<option value="">Alle betaalmethodes</option>` +
-      paymentMethods.map(m => `<option value="${m}">${paymentMethodLabel(m)}</option>`).join("");
+      `<option value="">Alle betaalwijzen</option>` +
+      getRevenuePaymentFilterOptions(data).map(name => `<option value="${name}">${name}</option>`).join("");
     paymentSel.value = existingPayment;
   }
 
@@ -1293,9 +1370,9 @@ function renderRevenueChart(filtered, type, anchor) {
 
   if (subtitle) {
     subtitle.textContent =
-      type === "year" ? "Per maand" :
-      type === "month" ? "Per dag" :
-      "Per afspraak";
+      type === "year" ? "Jaaromzet" :
+      type === "month" ? "Maandomzet" :
+      "Dagomzet";
   }
 
   if (!dataToRender.length || maxValue === 0) {
@@ -1361,17 +1438,20 @@ function renderRevenue() {
 
   const byMethod = {};
   filtered.filter(a => a.paid).forEach(a => {
-    const key = a.paymentMethod || "anders";
+    const key = paymentMethodNameForAppointment(a, data) || "Onbekend";
     byMethod[key] = (byMethod[key] || 0) + Number(a.price || 0);
   });
 
   if (methodList) {
-    methodList.innerHTML = paymentMethods.map(method => `
-      <div class="revenue-method-row">
-        <span>${paymentMethodLabel(method)}:</span>
-        <strong>${euro(byMethod[method] || 0)}</strong>
-      </div>
-    `).join("");
+    const methodNames = Object.keys(byMethod).length ? Object.keys(byMethod).sort((a, b) => a.localeCompare(b, "nl-BE")) : getRevenuePaymentFilterOptions(data);
+    methodList.innerHTML = methodNames.length
+      ? methodNames.map(method => `
+          <div class="revenue-method-row">
+            <span>${method}:</span>
+            <strong>${euro(byMethod[method] || 0)}</strong>
+          </div>
+        `).join("")
+      : `<div class="empty-state">Nog geen betaalgegevens.</div>`;
   }
 
   const customerTotals = {};
@@ -1706,11 +1786,71 @@ function openPaymentDialog(id) {
   const app = data.appointments.find(a => String(a.id) === String(id));
   if (!app) return;
 
+  const methods = getPaymentMethods(data);
+  const paymentMethodSelect = document.getElementById("paymentMethod");
+  const selectedName = paymentMethodNameForAppointment(app, data) || methods[0]?.name || "";
+
+  if (paymentMethodSelect) {
+    paymentMethodSelect.innerHTML = buildPaymentMethodOptions(methods, selectedName);
+    if (!methods.some(method => String(method.name) === String(selectedName))) {
+      paymentMethodSelect.value = methods[0]?.name || "";
+    }
+  }
+
   document.getElementById("paymentAppointmentId").value = id;
   document.getElementById("paymentAmount").textContent = euro(app.price);
-  document.getElementById("paymentMethod").value = app.paymentMethod || "cash";
+  document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
+    ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
+    : "Nog niet betaald";
 
   document.getElementById("paymentDialog").showModal();
+}
+
+function renderPaymentMethods() {
+  const data = getData();
+  const list = document.getElementById("paymentMethodsList");
+  if (!list) return;
+
+  const methods = getPaymentMethods(data);
+  if (!methods.length) {
+    list.innerHTML = `<div class="empty-state">Nog geen betaalwijzen.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  methods.forEach(method => {
+    const usageCount = (data.appointments || []).filter(app => paymentMethodNameForAppointment(app, data) === method.name).length;
+    const card = document.createElement("div");
+    card.className = "service-card payment-method-card";
+    card.innerHTML = `
+      <button type="button" data-id="${method.id}">
+        <div class="client-name">${method.name}</div>
+        <div class="meta">${usageCount} betaling${usageCount === 1 ? "" : "en"}</div>
+      </button>
+    `;
+    card.querySelector("button").addEventListener("click", () => openEditPaymentMethodDialog(method.id));
+    list.appendChild(card);
+  });
+}
+
+function openNewPaymentMethodDialog() {
+  document.getElementById("paymentMethodModalTitle").textContent = "Nieuwe betaalwijze";
+  document.getElementById("paymentMethodId").value = "";
+  document.getElementById("paymentMethodName").value = "";
+  document.getElementById("deletePaymentMethodBtn").style.visibility = "hidden";
+  document.getElementById("paymentMethodDialog").showModal();
+}
+
+function openEditPaymentMethodDialog(id) {
+  const data = getData();
+  const method = getPaymentMethods(data).find(item => String(item.id) === String(id));
+  if (!method) return;
+
+  document.getElementById("paymentMethodModalTitle").textContent = "Betaalwijze bewerken";
+  document.getElementById("paymentMethodId").value = method.id;
+  document.getElementById("paymentMethodName").value = method.name;
+  document.getElementById("deletePaymentMethodBtn").style.visibility = "visible";
+  document.getElementById("paymentMethodDialog").showModal();
 }
 
 function openNewClientDialog() {
@@ -1770,6 +1910,112 @@ function openEditServiceDialog(id) {
 /* =========================
    SAVE / DELETE
 ========================= */
+
+async function savePaymentMethodFromForm(event) {
+  event.preventDefault();
+
+  const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("paymentMethodId").value;
+  const id = rawId ? Number(rawId) : null;
+  const name = document.getElementById("paymentMethodName").value.trim();
+
+  if (!name) {
+    await appAlert("Geef een naam voor de betaalwijze in.", { title: "Betaalwijze", variant: "warning" });
+    return;
+  }
+
+  const duplicate = getPaymentMethods(data).find(method => method.name.toLowerCase() === name.toLowerCase() && String(method.id) !== String(id || ""));
+  if (duplicate) {
+    await appAlert("Er bestaat al een betaalwijze met deze naam.", { title: "Dubbele betaalwijze", variant: "warning" });
+    return;
+  }
+
+  if (!user) {
+    const methods = getPaymentMethods(data);
+    if (id) {
+      const existing = methods.find(method => Number(method.id) === id);
+      if (existing) existing.name = name;
+    } else {
+      methods.push({ id: nextId(methods), name, sortOrder: methods.length + 1 });
+    }
+    data.paymentMethods = methods.map((method, index) => ({ ...method, sortOrder: index + 1 }));
+    saveData(data);
+    closeDialog("paymentMethodDialog");
+    rerenderAll();
+    return;
+  }
+
+  let error;
+  if (id) {
+    ({ error } = await supabaseClient
+      .from("payment_methods")
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq("id", Number(id))
+      .eq("user_id", user.id));
+  } else {
+    ({ error } = await supabaseClient
+      .from("payment_methods")
+      .insert({
+        user_id: user.id,
+        name,
+        sort_order: getPaymentMethods(data).length + 1
+      }));
+  }
+
+  if (error) {
+    await appAlert("Opslaan betaalwijze mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("paymentMethodDialog");
+  rerenderAll();
+}
+
+async function deleteCurrentPaymentMethod() {
+  const id = document.getElementById("paymentMethodId").value;
+  if (!id) return;
+
+  const data = getData();
+  if (getPaymentMethods(data).length <= 1) {
+    await appAlert("Er moet minstens één betaalwijze overblijven.", { title: "Betaalwijze", variant: "warning" });
+    return;
+  }
+
+  const confirmed = await appConfirm("Deze betaalwijze wordt verwijderd uit de keuzelijst. Eerdere betalingen behouden hun opgeslagen naam.", {
+    title: "Betaalwijze verwijderen",
+    confirmText: "Verwijderen",
+    cancelText: "Annuleren",
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    data.paymentMethods = getPaymentMethods(data).filter(method => String(method.id) !== String(id));
+    saveData(data);
+    closeDialog("paymentMethodDialog");
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("payment_methods")
+    .delete()
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("Verwijderen betaalwijze mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("paymentMethodDialog");
+  rerenderAll();
+}
 
 async function saveClientFromForm(event) {
   event.preventDefault();
@@ -1954,7 +2200,7 @@ async function saveAppointmentFromForm(event) {
         id: nextId(data.appointments),
         ...localPayload,
         paid: false,
-        paymentMethod: ""
+        paymentMethodName: null
       });
     }
 
@@ -1972,7 +2218,7 @@ async function saveAppointmentFromForm(event) {
 
   const existingApp = data.appointments.find(a => String(a.id) === String(id));
   const isPaid = existingApp ? Boolean(existingApp.paid) : false;
-  const existingPaymentMethod = existingApp?.paymentMethod?.trim() || null;
+  const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
 
   const payload = {
     user_id: user.id,
@@ -1984,7 +2230,7 @@ async function saveAppointmentFromForm(event) {
     price: localPayload.price,
     status: localPayload.status,
     paid: isPaid,
-    payment_method: isPaid ? existingPaymentMethod : null
+    payment_method_label: isPaid ? existingPaymentMethodName : null
   };
 
   let error;
@@ -2083,16 +2329,21 @@ async function confirmPayment(event) {
   event.preventDefault();
 
   const id = document.getElementById("paymentAppointmentId").value;
-  const method = document.getElementById("paymentMethod").value;
+  const methodName = document.getElementById("paymentMethod").value.trim();
   const user = await getCurrentUser();
+  const data = getData();
+
+  if (!methodName) {
+    await appAlert("Kies een geldige betaalwijze.", { title: "Betaling", variant: "warning" });
+    return;
+  }
 
   if (!user) {
-    const data = getData();
     const appointment = data.appointments.find(a => String(a.id) === String(id));
     if (!appointment) return;
 
     appointment.paid = true;
-    appointment.paymentMethod = method;
+    appointment.paymentMethodName = methodName;
     if (appointment.status === "gepland") appointment.status = "afgerond";
 
     saveData(data);
@@ -2105,7 +2356,7 @@ async function confirmPayment(event) {
     .from("appointments")
     .update({
       paid: true,
-      payment_method: method,
+      payment_method_label: methodName,
       status: "afgerond"
     })
     .eq("id", Number(id))
@@ -2131,7 +2382,7 @@ async function markUnpaid() {
     if (!appointment) return;
 
     appointment.paid = false;
-    appointment.paymentMethod = "";
+    appointment.paymentMethodName = null;
 
     saveData(data);
     closeDialog("paymentDialog");
@@ -2143,7 +2394,7 @@ async function markUnpaid() {
     .from("appointments")
     .update({
       paid: false,
-      payment_method: null
+      payment_method_label: null
     })
     .eq("id", Number(id))
     .eq("user_id", user.id);
@@ -2199,6 +2450,7 @@ function rerenderAll() {
   renderAgendaList();
   renderClients();
   renderServices();
+  renderPaymentMethods();
   renderRevenue();
 
   if (state.selectedClientId && state.currentScreen === "clientDetailScreen") {
@@ -2250,6 +2502,7 @@ function registerEvents() {
       agendaScreen: "Agenda",
       clientsScreen: "Klanten",
       servicesScreen: "Diensten",
+      paymentMethodsScreen: "Betaalwijze",
       revenueScreen: "Omzet",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
@@ -2270,6 +2523,9 @@ function registerEvents() {
 
   document.getElementById("serviceForm").addEventListener("submit", saveServiceFromForm);
   document.getElementById("deleteServiceBtn").addEventListener("click", deleteCurrentService);
+
+  document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
+  document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
 
   document.getElementById("paymentForm").addEventListener("submit", confirmPayment);
   document.getElementById("markUnpaidBtn").addEventListener("click", markUnpaid);
@@ -2416,6 +2672,49 @@ async function loadCustomersFromSupabase() {
   }));
 }
 
+async function loadPaymentMethodsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  let { data, error } = await supabaseClient
+    .from("payment_methods")
+    .select("id, name, sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Fout bij laden betaalwijzen:", error.message);
+    return [];
+  }
+
+  if (!data || !data.length) {
+    const seedPayload = defaultPaymentMethods.map((method, index) => ({
+      user_id: user.id,
+      name: method.name,
+      sort_order: index + 1
+    }));
+
+    const { data: inserted, error: insertError } = await supabaseClient
+      .from("payment_methods")
+      .insert(seedPayload)
+      .select("id, name, sort_order");
+
+    if (insertError) {
+      console.error("Fout bij aanmaken standaard betaalwijzen:", insertError.message);
+      return normalizePaymentMethods(defaultPaymentMethods);
+    }
+
+    data = inserted || [];
+  }
+
+  return normalizePaymentMethods((data || []).map(method => ({
+    id: method.id,
+    name: method.name,
+    sortOrder: method.sort_order
+  })));
+}
+
 async function loadServicesFromSupabase() {
   const user = await getCurrentUser();
   if (!user) return [];
@@ -2465,19 +2764,21 @@ async function loadAppointmentsFromSupabase() {
     price: Number(a.price || 0),
     status: a.status,
     paid: Boolean(a.paid),
-    paymentMethod: a.payment_method ?? null
+    paymentMethodName: a.payment_method_label ?? null
   }));
 }
 
 async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
+  const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
     customers,
     services,
+    paymentMethods,
     appointments,
     settings
   });
