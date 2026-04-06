@@ -816,19 +816,48 @@ async function savePasswordFromForm(event) {
 
   if (submitBtn) submitBtn.disabled = true;
 
-  try {
-    await verifyCurrentPassword(user.email, currentPassword);
-    await ensureActiveAuthSession({ email: user.email, password: currentPassword });
+  const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: `nailbooker-password-change-${Date.now()}`
+    }
+  });
 
-    const { error } = await supabaseClient.auth.updateUser({
+  try {
+    const { error: signInError } = await tempClient.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    });
+
+    if (signInError) {
+      throw new Error("Het huidige wachtwoord is onjuist.");
+    }
+
+    const { error: updatePasswordError } = await tempClient.auth.updateUser({
       password: newPassword
     });
 
-    if (error) {
-      throw new Error(`Wachtwoord wijzigen mislukt: ${error.message || error}`);
+    if (updatePasswordError) {
+      throw new Error(`Wachtwoord wijzigen mislukt: ${updatePasswordError.message || updatePasswordError}`);
     }
 
-    await ensureActiveAuthSession({ email: user.email, password: newPassword });
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (signOutError) {
+      console.warn("Hoofdclient signOut na wachtwoordwijziging mislukt:", signOutError?.message || signOutError);
+    }
+
+    const { error: signInWithNewPasswordError } = await supabaseClient.auth.signInWithPassword({
+      email: user.email,
+      password: newPassword
+    });
+
+    if (signInWithNewPasswordError) {
+      throw new Error("Wachtwoord aangepast, maar opnieuw aanmelden mislukte. Log één keer opnieuw in met je nieuwe wachtwoord.");
+    }
+
     closeDialog("passwordDialog");
     await refreshAuthState();
     await loadAllDataFromSupabase();
@@ -838,6 +867,12 @@ async function savePasswordFromForm(event) {
     console.error("savePasswordFromForm error:", error);
     await appAlert(`Opslaan mislukt. ${error.message || error}`, { title: "Opslaan mislukt", variant: "danger" });
   } finally {
+    try {
+      await tempClient.auth.signOut();
+    } catch (tempSignOutError) {
+      console.warn("Tijdelijke client signOut mislukt:", tempSignOutError?.message || tempSignOutError);
+    }
+
     if (submitBtn) submitBtn.disabled = false;
   }
 }
