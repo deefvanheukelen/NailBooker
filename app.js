@@ -2853,6 +2853,34 @@ function rerenderAll() {
    EVENTS
 ========================= */
 
+
+let authRefreshTimer = null;
+
+function scheduleAuthUiRefresh() {
+  if (authRefreshTimer) {
+    window.clearTimeout(authRefreshTimer);
+  }
+
+  authRefreshTimer = window.setTimeout(async () => {
+    authRefreshTimer = null;
+
+    try {
+      await syncAuthUI();
+      const user = await getCurrentUser();
+
+      if (user) {
+        await loadAllDataFromSupabase();
+      } else {
+        seedData();
+      }
+
+      rerenderAll();
+    } catch (error) {
+      console.error("Fout bij verwerken auth state change:", error?.message || error);
+    }
+  }, 0);
+}
+
 function registerEvents() {
   document.getElementById("prevMonthBtn").addEventListener("click", () => {
     state.currentMonth--;
@@ -3034,11 +3062,10 @@ function registerEvents() {
     });
   }
 
-	supabaseClient.auth.onAuthStateChange(async () => {
-		await syncAuthUI();
-		await loadAllDataFromSupabase();
-		rerenderAll();
-	});
+  supabaseClient.auth.onAuthStateChange((event) => {
+    console.info("Auth state change:", event);
+    scheduleAuthUiRefresh();
+  });
 }
 
 function registerServiceWorker() {
