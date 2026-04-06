@@ -459,6 +459,16 @@ async function getCurrentProfile() {
     return profile ?? null;
 }
 
+async function refreshAuthState() {
+  try {
+    await supabaseClient.auth.getSession();
+    await supabaseClient.auth.getUser();
+  } catch (error) {
+    console.error("Fout bij vernieuwen auth-status:", error?.message || error);
+  }
+}
+
+
 
 function extractFirstNameFromUser(user, profile = null) {
   if (profile?.first_name?.trim()) return profile.first_name.trim();
@@ -549,6 +559,156 @@ async function upsertProfile(userId, values) {
     .upsert(payload, { onConflict: "id" });
 
   if (error) throw error;
+}
+
+
+function resetEditProfileForm() {
+  const form = document.getElementById("editProfileForm");
+  if (form) form.reset();
+}
+
+function resetPasswordForm() {
+  const form = document.getElementById("passwordForm");
+  if (form) form.reset();
+}
+
+async function openEditProfileDialog() {
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Log eerst in om je profiel te wijzigen.", { title: "Niet ingelogd", variant: "warning" });
+    switchScreen("accountScreen", "Account");
+    return;
+  }
+
+  const profile = await getCurrentProfile();
+  document.getElementById("editFirstName").value =
+    profile?.first_name?.trim() ||
+    user.user_metadata?.first_name?.trim() ||
+    "";
+  document.getElementById("editLastName").value =
+    profile?.last_name?.trim() ||
+    user.user_metadata?.last_name?.trim() ||
+    "";
+
+  const avatarInput = document.getElementById("editAvatar");
+  if (avatarInput) avatarInput.value = "";
+
+  document.getElementById("editProfileDialog").showModal();
+}
+
+async function saveProfileFromForm(event) {
+  if (event) event.preventDefault();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Je sessie is verlopen. Log opnieuw in om je profiel te wijzigen.", { title: "Sessie verlopen", variant: "warning" });
+    closeDialog("editProfileDialog");
+    switchScreen("accountScreen", "Account");
+    return;
+  }
+
+  const firstName = document.getElementById("editFirstName").value.trim();
+  const lastName = document.getElementById("editLastName").value.trim();
+  const avatarFile = document.getElementById("editAvatar").files?.[0] || null;
+
+  if (!firstName || !lastName) {
+    await appAlert("Vul zowel voornaam als naam in.", { title: "Profiel bewerken", variant: "warning" });
+    return;
+  }
+
+  try {
+    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
+
+    if (avatarFile) {
+      avatarUrl = await uploadAvatar(user.id, avatarFile);
+    }
+
+    const { error: authError } = await supabaseClient.auth.updateUser({
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(),
+        avatar_url: avatarUrl
+      }
+    });
+
+    if (authError) throw authError;
+
+    await upsertProfile(user.id, {
+      first_name: firstName,
+      last_name: lastName,
+      avatar_url: avatarUrl
+    });
+
+    resetEditProfileForm();
+    closeDialog("editProfileDialog");
+    await refreshAuthState();
+    await syncAuthUI();
+    await appAlert("Je profielgegevens zijn opgeslagen.", { title: "Profiel bijgewerkt", variant: "success" });
+  } catch (error) {
+    console.error("Profiel bijwerken mislukt:", error?.message || error);
+    await appAlert("Profiel bijwerken mislukt: " + (error?.message || "Onbekende fout"), {
+      title: "Opslaan mislukt",
+      variant: "danger"
+    });
+  }
+}
+
+async function openPasswordDialog() {
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Log eerst in om je wachtwoord te wijzigen.", { title: "Niet ingelogd", variant: "warning" });
+    switchScreen("accountScreen", "Account");
+    return;
+  }
+
+  resetPasswordForm();
+  document.getElementById("passwordDialog").showModal();
+}
+
+async function savePasswordFromForm(event) {
+  if (event) event.preventDefault();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Je sessie is verlopen. Log opnieuw in om je wachtwoord te wijzigen.", { title: "Sessie verlopen", variant: "warning" });
+    closeDialog("passwordDialog");
+    switchScreen("accountScreen", "Account");
+    return;
+  }
+
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  if (!newPassword || !confirmPassword) {
+    await appAlert("Vul beide wachtwoordvelden in.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    await appAlert("De wachtwoorden komen niet overeen.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    await appAlert("Kies een wachtwoord van minstens 8 tekens.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+
+    resetPasswordForm();
+    closeDialog("passwordDialog");
+    await appAlert("Je wachtwoord is gewijzigd.", { title: "Wachtwoord bijgewerkt", variant: "success" });
+  } catch (error) {
+    console.error("Wachtwoord wijzigen mislukt:", error?.message || error);
+    await appAlert("Wachtwoord wijzigen mislukt: " + (error?.message || "Onbekende fout"), {
+      title: "Opslaan mislukt",
+      variant: "danger"
+    });
+  }
 }
 
 async function syncAuthUI() {
@@ -701,6 +861,14 @@ async function loginAccount() {
 }
 
 async function logoutAccount() {
+  const confirmed = await appConfirm("Weet je zeker dat je wilt uitloggen?", {
+    title: "Uitloggen",
+    confirmText: "Uitloggen",
+    cancelText: "Annuleren",
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
   const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
@@ -708,10 +876,12 @@ async function logoutAccount() {
     return;
   }
 
-  authUserCache = null;
-  authProfileCache = null;
-  authInitialized = true;
+  if (typeof authUserCache !== "undefined") authUserCache = null;
+  if (typeof authProfileCache !== "undefined") authProfileCache = null;
+  if (typeof authInitialized !== "undefined") authInitialized = true;
 
+  resetEditProfileForm();
+  resetPasswordForm();
   localStorage.removeItem(STORAGE_KEY);
   seedData();
   rerenderAll();
@@ -2451,7 +2621,13 @@ function saveMonthPicker(event) {
 }
 
 function closeDialog(id) {
-  document.getElementById(id).close();
+  const dialog = document.getElementById(id);
+  if (!dialog) return;
+  if (typeof dialog.close === "function" && dialog.open) {
+    dialog.close();
+    return;
+  }
+  dialog.removeAttribute("open");
 }
 
 function rerenderAll() {
@@ -2620,10 +2796,18 @@ function registerEvents() {
   const openRegisterBtn = document.getElementById("openRegisterDialogBtn");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
+  const editProfileBtn = document.getElementById("editProfileBtn");
+  const changePasswordBtn = document.getElementById("changePasswordBtn");
+  const editProfileForm = document.getElementById("editProfileForm");
+  const passwordForm = document.getElementById("passwordForm");
   const headerAccountBtn = document.getElementById("headerAccountBtn");
 
   if (registerBtn) registerBtn.addEventListener("click", registerAccount);
   if (registerForm) registerForm.addEventListener("submit", registerAccount);
+  if (editProfileBtn) editProfileBtn.addEventListener("click", openEditProfileDialog);
+  if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
+  if (editProfileForm) editProfileForm.addEventListener("submit", saveProfileFromForm);
+  if (passwordForm) passwordForm.addEventListener("submit", savePasswordFromForm);
 
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {

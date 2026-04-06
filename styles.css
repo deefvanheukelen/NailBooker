@@ -550,8 +550,9 @@ button {
 
 .alphabet-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow: auto;
+  overflow: visible;
   margin-top: 12px;
   padding-bottom: 2px;
   -webkit-overflow-scrolling: touch;
@@ -1197,8 +1198,8 @@ button {
 
 .account-data-row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: start;
   padding: 14px 0;
   border-bottom: 1px solid #f2e8ed;
@@ -1323,8 +1324,8 @@ button {
 
 .account-data-row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: start;
   padding: 14px 0;
   border-bottom: 1px solid #f2e8ed;
@@ -2411,5 +2412,26 @@ button {
 
   #appMessageDialogActions .btn {
     flex: 1;
+  }
+}
+
+
+.account-data-label {
+  margin-bottom: 0;
+}
+
+.account-data-value {
+  width: 100%;
+}
+
+@media (max-width: 400px) {
+  .alphabet-filter {
+    gap: 5px;
+  }
+
+  .alphabet-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
   }
 }
