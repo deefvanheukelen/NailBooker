@@ -459,9 +459,33 @@ async function getCurrentProfile() {
     return profile ?? null;
 }
 
+async function ensureActiveAuthSession() {
+  try {
+    let { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    let session = data?.session ?? null;
+
+    if (!session?.access_token) {
+      const refreshResult = await supabaseClient.auth.refreshSession();
+      session = refreshResult?.data?.session ?? null;
+    }
+
+    if (!session?.access_token) {
+      const retry = await supabaseClient.auth.getSession();
+      session = retry?.data?.session ?? null;
+    }
+
+    return session || null;
+  } catch (error) {
+    console.error("Fout bij controleren auth-sessie:", error?.message || error);
+    return null;
+  }
+}
+
 async function refreshAuthState() {
   try {
-    await supabaseClient.auth.getSession();
+    await ensureActiveAuthSession();
     await supabaseClient.auth.getUser();
   } catch (error) {
     console.error("Fout bij vernieuwen auth-status:", error?.message || error);
@@ -649,8 +673,8 @@ function buildPasswordChangedEmailHtml(user, profile = null) {
 async function sendPasswordChangedConfirmationEmail(user, profile = null) {
   try {
     const endpoint = window.NAILBOOKER_PASSWORD_CHANGED_EMAIL_ENDPOINT || `${SUPABASE_URL}/functions/v1/password-changed-email`;
-    const sessionData = await supabaseClient.auth.getSession();
-    const accessToken = sessionData?.data?.session?.access_token;
+    const session = await ensureActiveAuthSession();
+    const accessToken = session?.access_token;
     if (!accessToken) return false;
 
     const response = await fetch(endpoint, {
@@ -743,6 +767,14 @@ async function saveProfileFromForm(event) {
   const firstName = document.getElementById("editFirstName").value.trim();
   const lastName = document.getElementById("editLastName").value.trim();
   const avatarFile = document.getElementById("editAvatar").files?.[0] || null;
+  const activeSession = await ensureActiveAuthSession();
+
+  if (!activeSession) {
+    await appAlert("Je sessie is niet meer actief. Log opnieuw in en probeer daarna opnieuw.", { title: "Sessie verlopen", variant: "warning" });
+    closeDialog("editProfileDialog");
+    switchScreen("accountScreen", "Account");
+    return;
+  }
 
   if (!firstName || !lastName) {
     await appAlert("Vul zowel voornaam als naam in.", { title: "Profiel bewerken", variant: "warning" });
@@ -827,6 +859,17 @@ async function savePasswordFromForm(event) {
   const currentPassword = currentPasswordInput.value;
   const newPassword = newPasswordInput.value;
   const confirmPassword = confirmPasswordInput.value;
+  const activeSession = await ensureActiveAuthSession();
+
+  if (!activeSession) {
+    await appAlert("Je sessie is niet meer actief. Log opnieuw in en probeer daarna opnieuw.", {
+      title: "Sessie verlopen",
+      variant: "warning"
+    });
+    closeDialog("passwordDialog");
+    switchScreen("accountScreen", "Account");
+    return;
+  }
 
   if (!currentPassword || !newPassword || !confirmPassword) {
     await appAlert("Vul huidig wachtwoord, nieuw wachtwoord en bevestiging in.", { title: "Wachtwoord wijzigen", variant: "warning" });
