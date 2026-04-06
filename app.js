@@ -674,6 +674,37 @@ async function sendPasswordChangedConfirmationEmail(user, profile = null) {
   }
 }
 
+async function verifyCurrentPasswordWithoutChangingSession(email, password) {
+  if (!email || !password) return false;
+
+  const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: `nailbooker-password-check-${Date.now()}`
+    }
+  });
+
+  try {
+    const { error } = await tempClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    return !error;
+  } catch (error) {
+    console.warn("Controle huidig wachtwoord mislukt:", error?.message || error);
+    return false;
+  } finally {
+    try {
+      await tempClient.auth.signOut();
+    } catch (_) {
+      // geen actie nodig
+    }
+  }
+}
+
 async function openEditProfileDialog() {
   const user = await getCurrentUser();
   if (!user) {
@@ -779,9 +810,23 @@ async function savePasswordFromForm(event) {
     return;
   }
 
-  const currentPassword = document.getElementById("currentPassword").value;
-  const newPassword = document.getElementById("newPassword").value;
-  const confirmPassword = document.getElementById("confirmPassword").value;
+  const form = document.getElementById("passwordForm");
+  const submitBtn = form?.querySelector('button[type="submit"]');
+  const currentPasswordInput = document.getElementById("currentPassword");
+  const newPasswordInput = document.getElementById("newPassword");
+  const confirmPasswordInput = document.getElementById("confirmPassword");
+
+  if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+    await appAlert("De velden voor het wijzigen van het wachtwoord zijn niet correct geladen. Herlaad de app en probeer opnieuw.", {
+      title: "Wachtwoord wijzigen",
+      variant: "danger"
+    });
+    return;
+  }
+
+  const currentPassword = currentPasswordInput.value;
+  const newPassword = newPasswordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
 
   if (!currentPassword || !newPassword || !confirmPassword) {
     await appAlert("Vul huidig wachtwoord, nieuw wachtwoord en bevestiging in.", { title: "Wachtwoord wijzigen", variant: "warning" });
@@ -803,17 +848,20 @@ async function savePasswordFromForm(event) {
     return;
   }
 
-  try {
-    const { error: reauthError } = await supabaseClient.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword
-    });
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Opslaan...";
+  }
 
-    if (reauthError) {
+  try {
+    const passwordIsValid = await verifyCurrentPasswordWithoutChangingSession(user.email, currentPassword);
+
+    if (!passwordIsValid) {
       await appAlert("Het huidige wachtwoord is niet correct.", {
         title: "Wachtwoord wijzigen",
         variant: "warning"
       });
+      currentPasswordInput.focus();
       return;
     }
 
@@ -821,7 +869,8 @@ async function savePasswordFromForm(event) {
     if (error) throw error;
 
     const profile = await getCurrentProfile();
-    const mailSent = await sendPasswordChangedConfirmationEmail(user, profile);
+    const refreshedUser = await getCurrentUser();
+    const mailSent = await sendPasswordChangedConfirmationEmail(refreshedUser || user, profile);
 
     resetPasswordForm();
     closeDialog("passwordDialog");
@@ -843,6 +892,11 @@ async function savePasswordFromForm(event) {
       title: "Opslaan mislukt",
       variant: "danger"
     });
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Opslaan";
+    }
   }
 }
 
