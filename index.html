@@ -138,6 +138,7 @@
       <section id="clientsScreen" class="screen">
         <section class="clients-panel">
           <div class="section-head">
+            <div id="clientsCount" class="clients-count">0 klanten</div>
             <input
               id="clientSearch"
               class="search-input"
@@ -550,8 +551,15 @@
 
       <input type="hidden" id="appointmentId" />
 
-      <label class="field-label" for="appointmentCustomer">Klant</label>
-      <select id="appointmentCustomer" class="field" required></select>
+      <label class="field-label" for="appointmentCustomerSearch">Klant</label>
+      <input
+        id="appointmentCustomerSearch"
+        class="field"
+        type="search"
+        placeholder="Typ naam, telefoon of e-mail..."
+        autocomplete="off"
+      />
+      <select id="appointmentCustomer" class="field appointment-customer-select" required></select>
 
       <div class="field-row">
         <div>
@@ -833,6 +841,9 @@
         <h3>Wachtwoord wijzigen</h3>
         <button class="icon-btn" type="button" data-close="passwordDialog">✕</button>
       </div>
+
+      <label class="field-label" for="currentPassword">Huidig wachtwoord</label>
+      <input id="currentPassword" class="field" type="password" required autocomplete="current-password" />
 
       <label class="field-label" for="newPassword">Nieuw wachtwoord</label>
       <input id="newPassword" class="field" type="password" required autocomplete="new-password" />

@@ -572,6 +572,108 @@ function resetPasswordForm() {
   if (form) form.reset();
 }
 
+function getSortedCustomers(data = getData()) {
+  return (data.customers || [])
+    .slice()
+    .sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
+}
+
+function renderAppointmentCustomerOptions(filterValue = "", preferredCustomerId = null) {
+  const data = getData();
+  const customerSelect = document.getElementById("appointmentCustomer");
+  if (!customerSelect) return;
+
+  const normalizedFilter = String(filterValue || "").trim().toLowerCase();
+  const customers = getSortedCustomers(data).filter(customer => {
+    if (!normalizedFilter) return true;
+    return [fullName(customer), customer.phone, customer.email]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedFilter);
+  });
+
+  if (!customers.length) {
+    customerSelect.innerHTML = '<option value="">Geen klanten gevonden</option>';
+    customerSelect.value = "";
+    return;
+  }
+
+  customerSelect.innerHTML = customers
+    .map(customer => `<option value="${customer.id}">${fullName(customer)}</option>`)
+    .join("");
+
+  const preferredValue = preferredCustomerId != null ? String(preferredCustomerId) : "";
+  const hasPreferred = preferredValue && customers.some(customer => String(customer.id) === preferredValue);
+  customerSelect.value = hasPreferred ? preferredValue : String(customers[0].id);
+}
+
+function syncAppointmentCustomerSearchFromSelection() {
+  const customerSelect = document.getElementById("appointmentCustomer");
+  const customerSearch = document.getElementById("appointmentCustomerSearch");
+  if (!customerSelect || !customerSearch) return;
+
+  const data = getData();
+  const customer = customerById(data, customerSelect.value);
+  if (customer) {
+    customerSearch.value = fullName(customer);
+  }
+}
+
+function buildPasswordChangedEmailHtml(user, profile = null) {
+  const firstName = extractFirstNameFromUser(user, profile);
+  const changedAt = new Intl.DateTimeFormat("nl-BE", {
+    dateStyle: "full",
+    timeStyle: "short"
+  }).format(new Date());
+
+  return `
+    <div style="margin:0;padding:24px;background:#f7f4f6;font-family:Arial,Helvetica,sans-serif;color:#4e4650;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #eddfe6;box-shadow:0 2px 4px rgba(170,120,145,0.12);">
+        <div style="padding:22px 24px;background:linear-gradient(180deg,#f8e8ee 0%,#ffffff 100%);border-bottom:1px solid #eddfe6;">
+          <div style="font-family:Montserrat,Arial,Helvetica,sans-serif;font-size:24px;line-height:1.2;color:#b86d87;font-weight:600;">NailBooker</div>
+          <div style="margin-top:6px;font-size:13px;color:#8c838d;">Bevestiging wachtwoordwijziging</div>
+        </div>
+        <div style="padding:24px;line-height:1.6;font-size:15px;">
+          <p style="margin:0 0 14px;">Hallo ${firstName},</p>
+          <p style="margin:0 0 14px;">Het wachtwoord van je NailBooker-account werd gewijzigd op <strong>${changedAt}</strong>.</p>
+          <p style="margin:0 0 14px;">Was jij dit niet? Wijzig dan zo snel mogelijk opnieuw je wachtwoord en neem indien nodig contact op met de beheerder van je app.</p>
+          <div style="margin-top:18px;padding:14px 16px;background:#f8e8ee;border:1px solid #e4d1da;color:#4e4650;">
+            Account: <strong>${user?.email || "-"}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function sendPasswordChangedConfirmationEmail(user, profile = null) {
+  try {
+    const endpoint = window.NAILBOOKER_PASSWORD_CHANGED_EMAIL_ENDPOINT || `${SUPABASE_URL}/functions/v1/password-changed-email`;
+    const sessionData = await supabaseClient.auth.getSession();
+    const accessToken = sessionData?.data?.session?.access_token;
+    if (!accessToken) return false;
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        email: user?.email || "",
+        subject: "Je wachtwoord werd gewijzigd",
+        html: buildPasswordChangedEmailHtml(user, profile),
+        firstName: extractFirstNameFromUser(user, profile)
+      })
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.warn("Bevestigingsmail kon niet verstuurd worden:", error?.message || error);
+    return false;
+  }
+}
+
 async function openEditProfileDialog() {
   const user = await getCurrentUser();
   if (!user) {
@@ -677,11 +779,12 @@ async function savePasswordFromForm(event) {
     return;
   }
 
+  const currentPassword = document.getElementById("currentPassword").value;
   const newPassword = document.getElementById("newPassword").value;
   const confirmPassword = document.getElementById("confirmPassword").value;
 
-  if (!newPassword || !confirmPassword) {
-    await appAlert("Vul beide wachtwoordvelden in.", { title: "Wachtwoord wijzigen", variant: "warning" });
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    await appAlert("Vul huidig wachtwoord, nieuw wachtwoord en bevestiging in.", { title: "Wachtwoord wijzigen", variant: "warning" });
     return;
   }
 
@@ -695,13 +798,45 @@ async function savePasswordFromForm(event) {
     return;
   }
 
+  if (currentPassword === newPassword) {
+    await appAlert("Kies een ander nieuw wachtwoord dan je huidige wachtwoord.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
   try {
+    const { error: reauthError } = await supabaseClient.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    });
+
+    if (reauthError) {
+      await appAlert("Het huidige wachtwoord is niet correct.", {
+        title: "Wachtwoord wijzigen",
+        variant: "warning"
+      });
+      return;
+    }
+
     const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
     if (error) throw error;
 
+    const profile = await getCurrentProfile();
+    const mailSent = await sendPasswordChangedConfirmationEmail(user, profile);
+
     resetPasswordForm();
     closeDialog("passwordDialog");
-    await appAlert("Je wachtwoord is gewijzigd.", { title: "Wachtwoord bijgewerkt", variant: "success" });
+    await refreshAuthState();
+    await syncAuthUI();
+
+    await appAlert(
+      mailSent
+        ? "Je wachtwoord is gewijzigd. Er werd ook een bevestiging gemaild."
+        : "Je wachtwoord is gewijzigd. De bevestigingsmail kon niet automatisch verstuurd worden omdat daar nog een mail-endpoint of Edge Function voor nodig is.",
+      {
+        title: "Wachtwoord bijgewerkt",
+        variant: mailSent ? "success" : "warning"
+      }
+    );
   } catch (error) {
     console.error("Wachtwoord wijzigen mislukt:", error?.message || error);
     await appAlert("Wachtwoord wijzigen mislukt: " + (error?.message || "Onbekende fout"), {
@@ -1127,6 +1262,7 @@ function renderClients() {
   const data = getData();
   const q = document.getElementById("clientSearch").value.trim().toLowerCase();
   const list = document.getElementById("clientsList");
+  const clientsCount = document.getElementById("clientsCount");
 
   let clients = data.customers.filter(c =>
     [fullName(c), c.phone, c.email].join(" ").toLowerCase().includes(q)
@@ -1137,6 +1273,14 @@ function renderClients() {
   }
 
   clients.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || ""));
+
+  if (clientsCount) {
+    const total = data.customers.length;
+    const visible = clients.length;
+    clientsCount.textContent = visible === total
+      ? `${total} klant${total === 1 ? "" : "en"}`
+      : `${total} klant${total === 1 ? "" : "en"} · ${visible} zichtbaar`;
+  }
 
   if (!clients.length) {
     list.innerHTML = `<div class="empty-state">Geen klanten gevonden.</div>`;
@@ -1898,15 +2042,17 @@ function createAppointmentForClient(clientId) {
 
 function populateAppointmentForm(customerId = null) {
   const data = getData();
-  const customerSelect = document.getElementById("appointmentCustomer");
   const serviceSelect = document.getElementById("appointmentService");
+  const customerSearch = document.getElementById("appointmentCustomerSearch");
+  const selectedCustomer = customerId ? customerById(data, customerId) : null;
 
-  customerSelect.innerHTML = data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
-  serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  renderAppointmentCustomerOptions(selectedCustomer ? fullName(selectedCustomer) : "", customerId);
 
-  if (customerId) {
-    customerSelect.value = String(customerId);
+  if (customerSearch) {
+    customerSearch.value = selectedCustomer ? fullName(selectedCustomer) : "";
   }
+
+  serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 }
 
 function syncServiceDefaults() {
@@ -2348,6 +2494,11 @@ async function saveAppointmentFromForm(event) {
     status: id ? document.getElementById("appointmentStatus").value : "gepland"
   };
 
+  if (!Number.isFinite(localPayload.customerId) || localPayload.customerId <= 0) {
+    await appAlert("Kies eerst een klant uit de gefilterde lijst.", { title: "Afspraak", variant: "warning" });
+    return;
+  }
+
   if (isAppointmentInPast(localPayload)) {
     const confirmedPast = await appConfirm(buildPastAppointmentMessage(localPayload), {
       title: "Afspraak in het verleden",
@@ -2698,6 +2849,11 @@ function registerEvents() {
   });
 
   document.getElementById("clientSearch").addEventListener("input", renderClients);
+  document.getElementById("appointmentCustomerSearch")?.addEventListener("input", event => {
+    const currentSelectedId = document.getElementById("appointmentCustomer")?.value || null;
+    renderAppointmentCustomerOptions(event.target.value, currentSelectedId);
+  });
+  document.getElementById("appointmentCustomer")?.addEventListener("change", syncAppointmentCustomerSearchFromSelection);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
   document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsFromForm);
   document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", renderSettings);
