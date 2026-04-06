@@ -459,40 +459,6 @@ async function getCurrentProfile() {
     return profile ?? null;
 }
 
-async function ensureActiveAuthSession() {
-  try {
-    let { data, error } = await supabaseClient.auth.getSession();
-    if (error) throw error;
-
-    let session = data?.session ?? null;
-
-    if (!session?.access_token) {
-      const refreshResult = await supabaseClient.auth.refreshSession();
-      session = refreshResult?.data?.session ?? null;
-    }
-
-    if (!session?.access_token) {
-      const retry = await supabaseClient.auth.getSession();
-      session = retry?.data?.session ?? null;
-    }
-
-    return session || null;
-  } catch (error) {
-    console.error("Fout bij controleren auth-sessie:", error?.message || error);
-    return null;
-  }
-}
-
-async function refreshAuthState() {
-  try {
-    await ensureActiveAuthSession();
-    await supabaseClient.auth.getUser();
-  } catch (error) {
-    console.error("Fout bij vernieuwen auth-status:", error?.message || error);
-  }
-}
-
-
 
 function extractFirstNameFromUser(user, profile = null) {
   if (profile?.first_name?.trim()) return profile.first_name.trim();
@@ -585,364 +551,6 @@ async function upsertProfile(userId, values) {
   if (error) throw error;
 }
 
-
-function resetEditProfileForm() {
-  const form = document.getElementById("editProfileForm");
-  if (form) form.reset();
-}
-
-function resetPasswordForm() {
-  const form = document.getElementById("passwordForm");
-  if (form) form.reset();
-}
-
-function getSortedCustomers(data = getData()) {
-  return (data.customers || [])
-    .slice()
-    .sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
-}
-
-function renderAppointmentCustomerOptions(filterValue = "", preferredCustomerId = null) {
-  const data = getData();
-  const customerSelect = document.getElementById("appointmentCustomer");
-  if (!customerSelect) return;
-
-  const normalizedFilter = String(filterValue || "").trim().toLowerCase();
-  const customers = getSortedCustomers(data).filter(customer => {
-    if (!normalizedFilter) return true;
-    return [fullName(customer), customer.phone, customer.email]
-      .join(" ")
-      .toLowerCase()
-      .includes(normalizedFilter);
-  });
-
-  if (!customers.length) {
-    customerSelect.innerHTML = '<option value="">Geen klanten gevonden</option>';
-    customerSelect.value = "";
-    return;
-  }
-
-  customerSelect.innerHTML = customers
-    .map(customer => `<option value="${customer.id}">${fullName(customer)}</option>`)
-    .join("");
-
-  const preferredValue = preferredCustomerId != null ? String(preferredCustomerId) : "";
-  const hasPreferred = preferredValue && customers.some(customer => String(customer.id) === preferredValue);
-  customerSelect.value = hasPreferred ? preferredValue : String(customers[0].id);
-}
-
-function syncAppointmentCustomerSearchFromSelection() {
-  const customerSelect = document.getElementById("appointmentCustomer");
-  const customerSearch = document.getElementById("appointmentCustomerSearch");
-  if (!customerSelect || !customerSearch) return;
-
-  const data = getData();
-  const customer = customerById(data, customerSelect.value);
-  if (customer) {
-    customerSearch.value = fullName(customer);
-  }
-}
-
-function buildPasswordChangedEmailHtml(user, profile = null) {
-  const firstName = extractFirstNameFromUser(user, profile);
-  const changedAt = new Intl.DateTimeFormat("nl-BE", {
-    dateStyle: "full",
-    timeStyle: "short"
-  }).format(new Date());
-
-  return `
-    <div style="margin:0;padding:24px;background:#f7f4f6;font-family:Arial,Helvetica,sans-serif;color:#4e4650;">
-      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #eddfe6;box-shadow:0 2px 4px rgba(170,120,145,0.12);">
-        <div style="padding:22px 24px;background:linear-gradient(180deg,#f8e8ee 0%,#ffffff 100%);border-bottom:1px solid #eddfe6;">
-          <div style="font-family:Montserrat,Arial,Helvetica,sans-serif;font-size:24px;line-height:1.2;color:#b86d87;font-weight:600;">NailBooker</div>
-          <div style="margin-top:6px;font-size:13px;color:#8c838d;">Bevestiging wachtwoordwijziging</div>
-        </div>
-        <div style="padding:24px;line-height:1.6;font-size:15px;">
-          <p style="margin:0 0 14px;">Hallo ${firstName},</p>
-          <p style="margin:0 0 14px;">Het wachtwoord van je NailBooker-account werd gewijzigd op <strong>${changedAt}</strong>.</p>
-          <p style="margin:0 0 14px;">Was jij dit niet? Wijzig dan zo snel mogelijk opnieuw je wachtwoord en neem indien nodig contact op met de beheerder van je app.</p>
-          <div style="margin-top:18px;padding:14px 16px;background:#f8e8ee;border:1px solid #e4d1da;color:#4e4650;">
-            Account: <strong>${user?.email || "-"}</strong>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-async function sendPasswordChangedConfirmationEmail(user, profile = null) {
-  try {
-    const endpoint = window.NAILBOOKER_PASSWORD_CHANGED_EMAIL_ENDPOINT || `${SUPABASE_URL}/functions/v1/password-changed-email`;
-    const session = await ensureActiveAuthSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) return false;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        email: user?.email || "",
-        subject: "Je wachtwoord werd gewijzigd",
-        html: buildPasswordChangedEmailHtml(user, profile),
-        firstName: extractFirstNameFromUser(user, profile)
-      })
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.warn("Bevestigingsmail kon niet verstuurd worden:", error?.message || error);
-    return false;
-  }
-}
-
-async function verifyCurrentPasswordWithoutChangingSession(email, password) {
-  if (!email || !password) return false;
-
-  const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storageKey: `nailbooker-password-check-${Date.now()}`
-    }
-  });
-
-  try {
-    const { error } = await tempClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    return !error;
-  } catch (error) {
-    console.warn("Controle huidig wachtwoord mislukt:", error?.message || error);
-    return false;
-  } finally {
-    try {
-      await tempClient.auth.signOut();
-    } catch (_) {
-      // geen actie nodig
-    }
-  }
-}
-
-async function openEditProfileDialog() {
-  const user = await getCurrentUser();
-  if (!user) {
-    await appAlert("Log eerst in om je profiel te wijzigen.", { title: "Niet ingelogd", variant: "warning" });
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  const profile = await getCurrentProfile();
-  document.getElementById("editFirstName").value =
-    profile?.first_name?.trim() ||
-    user.user_metadata?.first_name?.trim() ||
-    "";
-  document.getElementById("editLastName").value =
-    profile?.last_name?.trim() ||
-    user.user_metadata?.last_name?.trim() ||
-    "";
-
-  const avatarInput = document.getElementById("editAvatar");
-  if (avatarInput) avatarInput.value = "";
-
-  document.getElementById("editProfileDialog").showModal();
-}
-
-async function saveProfileFromForm(event) {
-  if (event) event.preventDefault();
-
-  const user = await getCurrentUser();
-  if (!user) {
-    await appAlert("Je sessie is verlopen. Log opnieuw in om je profiel te wijzigen.", { title: "Sessie verlopen", variant: "warning" });
-    closeDialog("editProfileDialog");
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  const firstName = document.getElementById("editFirstName").value.trim();
-  const lastName = document.getElementById("editLastName").value.trim();
-  const avatarFile = document.getElementById("editAvatar").files?.[0] || null;
-  const activeSession = await ensureActiveAuthSession();
-
-  if (!activeSession) {
-    await appAlert("Je sessie is niet meer actief. Log opnieuw in en probeer daarna opnieuw.", { title: "Sessie verlopen", variant: "warning" });
-    closeDialog("editProfileDialog");
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  if (!firstName || !lastName) {
-    await appAlert("Vul zowel voornaam als naam in.", { title: "Profiel bewerken", variant: "warning" });
-    return;
-  }
-
-  try {
-    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
-
-    if (avatarFile) {
-      avatarUrl = await uploadAvatar(user.id, avatarFile);
-    }
-
-    const { error: authError } = await supabaseClient.auth.updateUser({
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim(),
-        avatar_url: avatarUrl
-      }
-    });
-
-    if (authError) throw authError;
-
-    await upsertProfile(user.id, {
-      first_name: firstName,
-      last_name: lastName,
-      avatar_url: avatarUrl
-    });
-
-    resetEditProfileForm();
-    closeDialog("editProfileDialog");
-    await refreshAuthState();
-    await syncAuthUI();
-    await appAlert("Je profielgegevens zijn opgeslagen.", { title: "Profiel bijgewerkt", variant: "success" });
-  } catch (error) {
-    console.error("Profiel bijwerken mislukt:", error?.message || error);
-    await appAlert("Profiel bijwerken mislukt: " + (error?.message || "Onbekende fout"), {
-      title: "Opslaan mislukt",
-      variant: "danger"
-    });
-  }
-}
-
-async function openPasswordDialog() {
-  const user = await getCurrentUser();
-  if (!user) {
-    await appAlert("Log eerst in om je wachtwoord te wijzigen.", { title: "Niet ingelogd", variant: "warning" });
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  resetPasswordForm();
-  document.getElementById("passwordDialog").showModal();
-}
-
-async function savePasswordFromForm(event) {
-  if (event) event.preventDefault();
-
-  const user = await getCurrentUser();
-  if (!user) {
-    await appAlert("Je sessie is verlopen. Log opnieuw in om je wachtwoord te wijzigen.", { title: "Sessie verlopen", variant: "warning" });
-    closeDialog("passwordDialog");
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  const form = document.getElementById("passwordForm");
-  const submitBtn = form?.querySelector('button[type="submit"]');
-  const currentPasswordInput = document.getElementById("currentPassword");
-  const newPasswordInput = document.getElementById("newPassword");
-  const confirmPasswordInput = document.getElementById("confirmPassword");
-
-  if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
-    await appAlert("De velden voor het wijzigen van het wachtwoord zijn niet correct geladen. Herlaad de app en probeer opnieuw.", {
-      title: "Wachtwoord wijzigen",
-      variant: "danger"
-    });
-    return;
-  }
-
-  const currentPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const confirmPassword = confirmPasswordInput.value;
-  const activeSession = await ensureActiveAuthSession();
-
-  if (!activeSession) {
-    await appAlert("Je sessie is niet meer actief. Log opnieuw in en probeer daarna opnieuw.", {
-      title: "Sessie verlopen",
-      variant: "warning"
-    });
-    closeDialog("passwordDialog");
-    switchScreen("accountScreen", "Account");
-    return;
-  }
-
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    await appAlert("Vul huidig wachtwoord, nieuw wachtwoord en bevestiging in.", { title: "Wachtwoord wijzigen", variant: "warning" });
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    await appAlert("De wachtwoorden komen niet overeen.", { title: "Wachtwoord wijzigen", variant: "warning" });
-    return;
-  }
-
-  if (newPassword.length < 8) {
-    await appAlert("Kies een wachtwoord van minstens 8 tekens.", { title: "Wachtwoord wijzigen", variant: "warning" });
-    return;
-  }
-
-  if (currentPassword === newPassword) {
-    await appAlert("Kies een ander nieuw wachtwoord dan je huidige wachtwoord.", { title: "Wachtwoord wijzigen", variant: "warning" });
-    return;
-  }
-
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Opslaan...";
-  }
-
-  try {
-    const passwordIsValid = await verifyCurrentPasswordWithoutChangingSession(user.email, currentPassword);
-
-    if (!passwordIsValid) {
-      await appAlert("Het huidige wachtwoord is niet correct.", {
-        title: "Wachtwoord wijzigen",
-        variant: "warning"
-      });
-      currentPasswordInput.focus();
-      return;
-    }
-
-    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-    if (error) throw error;
-
-    const profile = await getCurrentProfile();
-    const refreshedUser = await getCurrentUser();
-    const mailSent = await sendPasswordChangedConfirmationEmail(refreshedUser || user, profile);
-
-    resetPasswordForm();
-    closeDialog("passwordDialog");
-    await refreshAuthState();
-    await syncAuthUI();
-
-    await appAlert(
-      mailSent
-        ? "Je wachtwoord is gewijzigd. Er werd ook een bevestiging gemaild."
-        : "Je wachtwoord is gewijzigd. De bevestigingsmail kon niet automatisch verstuurd worden omdat daar nog een mail-endpoint of Edge Function voor nodig is.",
-      {
-        title: "Wachtwoord bijgewerkt",
-        variant: mailSent ? "success" : "warning"
-      }
-    );
-  } catch (error) {
-    console.error("Wachtwoord wijzigen mislukt:", error?.message || error);
-    await appAlert("Wachtwoord wijzigen mislukt: " + (error?.message || "Onbekende fout"), {
-      title: "Opslaan mislukt",
-      variant: "danger"
-    });
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Opslaan";
-    }
-  }
-}
-
 async function syncAuthUI() {
 	const { data: { user } } = await supabaseClient.auth.getUser();
 	const profile = await getCurrentProfile();
@@ -993,6 +601,245 @@ async function syncAuthUI() {
 
   if (guestView) guestView.classList.add("hidden");
   if (loggedInView) loggedInView.classList.remove("hidden");
+}
+
+
+let authRefreshScheduled = false;
+
+async function ensureActiveAuthSession({ email = "", password = "" } = {}) {
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError) {
+    console.error("Fout bij ophalen sessie:", sessionError.message);
+  }
+
+  if (sessionData?.session?.access_token) {
+    return sessionData.session;
+  }
+
+  const safeEmail = String(email || "").trim();
+  const safePassword = String(password || "");
+
+  if (safeEmail && safePassword) {
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email: safeEmail,
+      password: safePassword
+    });
+
+    if (signInError) {
+      throw new Error("Je huidige wachtwoord kon niet geverifieerd worden. Meld je opnieuw aan en probeer daarna opnieuw.");
+    }
+
+    if (signInData?.session?.access_token) {
+      return signInData.session;
+    }
+  }
+
+  const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+  if (refreshError) {
+    console.error("Fout bij verversen sessie:", refreshError.message);
+  }
+
+  if (refreshData?.session?.access_token) {
+    return refreshData.session;
+  }
+
+  throw new Error("Auth session missing!");
+}
+
+async function verifyCurrentPassword(userEmail, password) {
+  const safeEmail = String(userEmail || "").trim();
+  const safePassword = String(password || "");
+  if (!safeEmail || !safePassword) {
+    throw new Error("Vul je huidige wachtwoord in.");
+  }
+
+  const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: `nailbooker-temp-auth-${Date.now()}`
+    }
+  });
+
+  const { error } = await tempClient.auth.signInWithPassword({
+    email: safeEmail,
+    password: safePassword
+  });
+
+  try {
+    await tempClient.auth.signOut();
+  } catch (signOutError) {
+    console.warn("Tijdelijke reauth signOut mislukt:", signOutError?.message || signOutError);
+  }
+
+  if (error) {
+    throw new Error("Het huidige wachtwoord is onjuist.");
+  }
+}
+
+async function refreshAuthState() {
+  try {
+    await ensureActiveAuthSession();
+  } catch (error) {
+    console.warn("Geen actieve sessie tijdens refreshAuthState:", error?.message || error);
+  }
+
+  await syncAuthUI();
+}
+
+function scheduleAuthUiRefresh() {
+  if (authRefreshScheduled) return;
+  authRefreshScheduled = true;
+
+  window.setTimeout(async () => {
+    authRefreshScheduled = false;
+    try {
+      await syncAuthUI();
+      const user = await getCurrentUser();
+      if (user) {
+        await loadAllDataFromSupabase();
+      }
+      rerenderAll();
+    } catch (error) {
+      console.error("Fout bij auth UI refresh:", error?.message || error);
+    }
+  }, 0);
+}
+
+async function openEditProfileDialog() {
+  const { data: userData } = await supabaseClient.auth.getUser();
+  const user = userData?.user;
+  if (!user) {
+    await appAlert("Log eerst in om je profiel te wijzigen.", { title: "Profiel", variant: "warning" });
+    return;
+  }
+
+  const profile = await getCurrentProfile();
+  document.getElementById("editFirstName").value = profile?.first_name || user.user_metadata?.first_name || "";
+  document.getElementById("editLastName").value = profile?.last_name || user.user_metadata?.last_name || "";
+  document.getElementById("editAvatar").value = "";
+  document.getElementById("editProfileDialog").showModal();
+}
+
+async function saveProfileFromForm(event) {
+  event.preventDefault();
+
+  const firstName = document.getElementById("editFirstName")?.value.trim();
+  const lastName = document.getElementById("editLastName")?.value.trim();
+  const avatarFile = document.getElementById("editAvatar")?.files?.[0] || null;
+
+  if (!firstName || !lastName) {
+    await appAlert("Vul voornaam en naam in.", { title: "Profiel", variant: "warning" });
+    return;
+  }
+
+  const { data: userData } = await supabaseClient.auth.getUser();
+  const user = userData?.user;
+  if (!user) {
+    await appAlert("Je bent niet ingelogd.", { title: "Profiel", variant: "warning" });
+    return;
+  }
+
+  try {
+    await ensureActiveAuthSession();
+
+    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
+    if (avatarFile) {
+      avatarUrl = await uploadAvatar(user.id, avatarFile);
+    }
+
+    const { error: updateUserError } = await supabaseClient.auth.updateUser({
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim()
+      }
+    });
+
+    if (updateUserError) {
+      throw new Error(updateUserError.message || "Profiel wijzigen mislukt.");
+    }
+
+    await upsertProfile(user.id, {
+      first_name: firstName,
+      last_name: lastName,
+      avatar_url: avatarUrl
+    });
+
+    closeDialog("editProfileDialog");
+    await refreshAuthState();
+    await loadAllDataFromSupabase();
+    rerenderAll();
+    await appAlert("Je profiel werd aangepast.", { title: "Profiel opgeslagen", variant: "success" });
+  } catch (error) {
+    console.error("saveProfileFromForm error:", error);
+    await appAlert(`Opslaan mislukt. ${error.message || error}`, { title: "Opslaan mislukt", variant: "danger" });
+  }
+}
+
+function openPasswordDialog() {
+  const form = document.getElementById("passwordForm");
+  if (form) form.reset();
+  document.getElementById("passwordDialog").showModal();
+}
+
+async function savePasswordFromForm(event) {
+  event.preventDefault();
+
+  const currentPassword = document.getElementById("currentPassword")?.value || "";
+  const newPassword = document.getElementById("newPassword")?.value || "";
+  const confirmPassword = document.getElementById("confirmPassword")?.value || "";
+  const submitBtn = document.querySelector('#passwordForm button[type="submit"]');
+
+  if (!currentPassword) {
+    await appAlert("Vul je huidige wachtwoord in.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    await appAlert("Je nieuwe wachtwoord moet minstens 6 tekens bevatten.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    await appAlert("De nieuwe wachtwoorden komen niet overeen.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  const { data: userData } = await supabaseClient.auth.getUser();
+  const user = userData?.user;
+  if (!user?.email) {
+    await appAlert("Je bent niet ingelogd.", { title: "Wachtwoord wijzigen", variant: "warning" });
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    await verifyCurrentPassword(user.email, currentPassword);
+    await ensureActiveAuthSession({ email: user.email, password: currentPassword });
+
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      throw new Error(`Wachtwoord wijzigen mislukt: ${error.message || error}`);
+    }
+
+    await ensureActiveAuthSession({ email: user.email, password: newPassword });
+    closeDialog("passwordDialog");
+    await refreshAuthState();
+    await loadAllDataFromSupabase();
+    rerenderAll();
+    await appAlert("Je wachtwoord werd gewijzigd.", { title: "Wachtwoord gewijzigd", variant: "success" });
+  } catch (error) {
+    console.error("savePasswordFromForm error:", error);
+    await appAlert(`Opslaan mislukt. ${error.message || error}`, { title: "Opslaan mislukt", variant: "danger" });
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 async function registerAccount(event) {
@@ -1093,14 +940,6 @@ async function loginAccount() {
 }
 
 async function logoutAccount() {
-  const confirmed = await appConfirm("Weet je zeker dat je wilt uitloggen?", {
-    title: "Uitloggen",
-    confirmText: "Uitloggen",
-    cancelText: "Annuleren",
-    variant: "warning"
-  });
-  if (!confirmed) return;
-
   const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
@@ -1108,12 +947,10 @@ async function logoutAccount() {
     return;
   }
 
-  if (typeof authUserCache !== "undefined") authUserCache = null;
-  if (typeof authProfileCache !== "undefined") authProfileCache = null;
-  if (typeof authInitialized !== "undefined") authInitialized = true;
+  authUserCache = null;
+  authProfileCache = null;
+  authInitialized = true;
 
-  resetEditProfileForm();
-  resetPasswordForm();
   localStorage.removeItem(STORAGE_KEY);
   seedData();
   rerenderAll();
@@ -1359,7 +1196,6 @@ function renderClients() {
   const data = getData();
   const q = document.getElementById("clientSearch").value.trim().toLowerCase();
   const list = document.getElementById("clientsList");
-  const clientsCount = document.getElementById("clientsCount");
 
   let clients = data.customers.filter(c =>
     [fullName(c), c.phone, c.email].join(" ").toLowerCase().includes(q)
@@ -1370,14 +1206,6 @@ function renderClients() {
   }
 
   clients.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || ""));
-
-  if (clientsCount) {
-    const total = data.customers.length;
-    const visible = clients.length;
-    clientsCount.textContent = visible === total
-      ? `${total} klant${total === 1 ? "" : "en"}`
-      : `${total} klant${total === 1 ? "" : "en"} · ${visible} zichtbaar`;
-  }
 
   if (!clients.length) {
     list.innerHTML = `<div class="empty-state">Geen klanten gevonden.</div>`;
@@ -2139,17 +1967,15 @@ function createAppointmentForClient(clientId) {
 
 function populateAppointmentForm(customerId = null) {
   const data = getData();
+  const customerSelect = document.getElementById("appointmentCustomer");
   const serviceSelect = document.getElementById("appointmentService");
-  const customerSearch = document.getElementById("appointmentCustomerSearch");
-  const selectedCustomer = customerId ? customerById(data, customerId) : null;
 
-  renderAppointmentCustomerOptions(selectedCustomer ? fullName(selectedCustomer) : "", customerId);
-
-  if (customerSearch) {
-    customerSearch.value = selectedCustomer ? fullName(selectedCustomer) : "";
-  }
-
+  customerSelect.innerHTML = data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
   serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+
+  if (customerId) {
+    customerSelect.value = String(customerId);
+  }
 }
 
 function syncServiceDefaults() {
@@ -2591,11 +2417,6 @@ async function saveAppointmentFromForm(event) {
     status: id ? document.getElementById("appointmentStatus").value : "gepland"
   };
 
-  if (!Number.isFinite(localPayload.customerId) || localPayload.customerId <= 0) {
-    await appAlert("Kies eerst een klant uit de gefilterde lijst.", { title: "Afspraak", variant: "warning" });
-    return;
-  }
-
   if (isAppointmentInPast(localPayload)) {
     const confirmedPast = await appConfirm(buildPastAppointmentMessage(localPayload), {
       title: "Afspraak in het verleden",
@@ -2869,13 +2690,7 @@ function saveMonthPicker(event) {
 }
 
 function closeDialog(id) {
-  const dialog = document.getElementById(id);
-  if (!dialog) return;
-  if (typeof dialog.close === "function" && dialog.open) {
-    dialog.close();
-    return;
-  }
-  dialog.removeAttribute("open");
+  document.getElementById(id).close();
 }
 
 function rerenderAll() {
@@ -2895,34 +2710,6 @@ function rerenderAll() {
 /* =========================
    EVENTS
 ========================= */
-
-
-let authRefreshTimer = null;
-
-function scheduleAuthUiRefresh() {
-  if (authRefreshTimer) {
-    window.clearTimeout(authRefreshTimer);
-  }
-
-  authRefreshTimer = window.setTimeout(async () => {
-    authRefreshTimer = null;
-
-    try {
-      await syncAuthUI();
-      const user = await getCurrentUser();
-
-      if (user) {
-        await loadAllDataFromSupabase();
-      } else {
-        seedData();
-      }
-
-      rerenderAll();
-    } catch (error) {
-      console.error("Fout bij verwerken auth state change:", error?.message || error);
-    }
-  }, 0);
-}
 
 function registerEvents() {
   document.getElementById("prevMonthBtn").addEventListener("click", () => {
@@ -2974,11 +2761,6 @@ function registerEvents() {
   });
 
   document.getElementById("clientSearch").addEventListener("input", renderClients);
-  document.getElementById("appointmentCustomerSearch")?.addEventListener("input", event => {
-    const currentSelectedId = document.getElementById("appointmentCustomer")?.value || null;
-    renderAppointmentCustomerOptions(event.target.value, currentSelectedId);
-  });
-  document.getElementById("appointmentCustomer")?.addEventListener("change", syncAppointmentCustomerSearchFromSelection);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
   document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsFromForm);
   document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", renderSettings);
@@ -3077,18 +2859,15 @@ function registerEvents() {
   const openRegisterBtn = document.getElementById("openRegisterDialogBtn");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
+  const headerAccountBtn = document.getElementById("headerAccountBtn");
+
   const editProfileBtn = document.getElementById("editProfileBtn");
   const changePasswordBtn = document.getElementById("changePasswordBtn");
   const editProfileForm = document.getElementById("editProfileForm");
   const passwordForm = document.getElementById("passwordForm");
-  const headerAccountBtn = document.getElementById("headerAccountBtn");
 
   if (registerBtn) registerBtn.addEventListener("click", registerAccount);
   if (registerForm) registerForm.addEventListener("submit", registerAccount);
-  if (editProfileBtn) editProfileBtn.addEventListener("click", openEditProfileDialog);
-  if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
-  if (editProfileForm) editProfileForm.addEventListener("submit", saveProfileFromForm);
-  if (passwordForm) passwordForm.addEventListener("submit", savePasswordFromForm);
 
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {
@@ -3098,6 +2877,10 @@ function registerEvents() {
 
   if (loginBtn) loginBtn.addEventListener("click", loginAccount);
   if (logoutBtn) logoutBtn.addEventListener("click", logoutAccount);
+  if (editProfileBtn) editProfileBtn.addEventListener("click", openEditProfileDialog);
+  if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
+  if (editProfileForm) editProfileForm.addEventListener("submit", saveProfileFromForm);
+  if (passwordForm) passwordForm.addEventListener("submit", savePasswordFromForm);
 
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {
@@ -3105,10 +2888,9 @@ function registerEvents() {
     });
   }
 
-  supabaseClient.auth.onAuthStateChange((event) => {
-    console.info("Auth state change:", event);
-    scheduleAuthUiRefresh();
-  });
+	supabaseClient.auth.onAuthStateChange(() => {
+		scheduleAuthUiRefresh();
+	});
 }
 
 function registerServiceWorker() {
