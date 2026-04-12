@@ -550,8 +550,9 @@ button {
 
 .alphabet-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow: auto;
+  overflow: visible;
   margin-top: 12px;
   padding-bottom: 2px;
   -webkit-overflow-scrolling: touch;
@@ -858,6 +859,11 @@ button {
   background: #ffffff;
 }
 
+.appointment-customer-select {
+  margin-top: 10px;
+  max-height: 220px;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -882,54 +888,6 @@ button {
   color: var(--primary-dark);
   font-weight: 700;
   cursor: pointer;
-}
-
-
-.password-field-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.password-field-input {
-  padding-right: 54px;
-}
-
-.password-toggle-btn {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--primary-dark);
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.password-toggle-btn:hover {
-  background: var(--primary-soft);
-  border-color: var(--line);
-}
-
-.password-toggle-btn:focus-visible {
-  outline: none;
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  box-shadow: 0 0 0 3px rgba(217, 145, 171, 0.18);
-}
-
-.password-toggle-btn svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-  fill: currentColor;
 }
 
 /* =========================================================
@@ -1245,8 +1203,8 @@ button {
 
 .account-data-row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: start;
   padding: 14px 0;
   border-bottom: 1px solid #f2e8ed;
@@ -1371,8 +1329,8 @@ button {
 
 .account-data-row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: start;
   padding: 14px 0;
   border-bottom: 1px solid #f2e8ed;
@@ -2459,5 +2417,26 @@ button {
 
   #appMessageDialogActions .btn {
     flex: 1;
+  }
+}
+
+
+.account-data-label {
+  margin-bottom: 0;
+}
+
+.account-data-value {
+  width: 100%;
+}
+
+@media (max-width: 400px) {
+  .alphabet-filter {
+    gap: 5px;
+  }
+
+  .alphabet-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
   }
 }
