@@ -899,18 +899,34 @@ button {
   top: 50%;
   right: 10px;
   transform: translateY(-50%);
-  width: 34px;
+  width: 34px !important;
+  min-width: 34px;
+  max-width: 34px;
   height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: transparent;
+  background: transparent !important;
   color: var(--primary-dark);
-  padding: 0;
-  margin: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: center !important;
+  line-height: 1;
   cursor: pointer;
+  z-index: 2;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.detail-card .password-field-wrap .password-toggle-btn,
+.auth-card .password-field-wrap .password-toggle-btn {
+  width: 34px !important;
+  min-width: 34px;
+  max-width: 34px;
+  padding: 0 !important;
+  background: transparent !important;
 }
 
 .password-toggle-btn:hover {
