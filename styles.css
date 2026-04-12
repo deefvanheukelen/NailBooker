@@ -823,6 +823,11 @@ button {
   stroke-width: 0;
 }
 
+.nav-ico svg {
+  width: 100%;
+  height: 100%;
+}
+
 .fab {
   position: fixed;
   left: 50%;
@@ -888,6 +893,76 @@ button {
   color: var(--primary-dark);
   font-weight: 700;
   cursor: pointer;
+}
+
+
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field {
+  padding-right: 52px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  padding: 0;
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn:active {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid rgba(165, 86, 122, 0.28);
+  outline-offset: 2px;
+}
+
+.password-toggle-icon {
+  position: relative;
+  width: 20px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 12px / 8px;
+  display: inline-block;
+}
+
+.password-toggle-icon::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle-btn.is-visible .password-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(-35deg);
 }
 
 /* =========================================================
@@ -1765,6 +1840,195 @@ button {
 }
 
 
+
+/* =========================================================
+   15. STATISTIEKEN
+========================================================= */
+#statisticsScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+  background: #fbf7f9;
+}
+
+.statistics-screen-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 8px 108px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.statistics-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.statistics-card,
+.statistics-summary-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.statistics-summary-card {
+  padding: 14px;
+}
+
+.statistics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statistics-kpi {
+  background: #fcf8fa;
+  border: 1px solid #f0e3ea;
+  padding: 12px;
+}
+
+.statistics-kpi-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.statistics-kpi-value {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.statistics-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #f1e5eb;
+}
+
+.statistics-card-head h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.statistics-card-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.statistics-card-body {
+  padding: 14px;
+}
+
+.statistics-split {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.statistics-pie-wrap {
+  display: grid;
+  place-items: center;
+}
+
+.statistics-pie {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: var(--pie-gradient, conic-gradient(#e7dce2 0deg 360deg));
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+}
+
+.statistics-pie::after {
+  content: "";
+  position: absolute;
+  inset: 26px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.statistics-pie-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  text-align: center;
+  padding: 20px;
+}
+
+.statistics-pie-center strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.statistics-pie-center span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.statistics-legend {
+  display: grid;
+  gap: 8px;
+}
+
+.statistics-legend-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.statistics-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.statistics-legend-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.statistics-legend-value {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.statistics-empty {
+  border: 1px dashed var(--line-strong);
+  background: #fff;
+  color: var(--muted);
+  padding: 18px 14px;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .statistics-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .statistics-split {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .statistics-legend {
+    width: 100%;
+  }
+}
 
 /* =========================================================
    15. OMZET NIEUWE LAYOUT

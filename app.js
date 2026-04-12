@@ -43,6 +43,8 @@ const revenuePickerState = {
   selected: {}
 };
 
+let appointmentNotificationTimer = null;
+const APPOINTMENT_NOTIFICATION_STORAGE_KEY = "nailbooker_notified_appointments_v1";
 
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr + "T00:00:00");
@@ -318,6 +320,245 @@ function jumpToToday() {
   renderAgendaList();
 }
 
+function getPasswordToggleLabel(isVisible) {
+  return isVisible ? "Verberg wachtwoord" : "Toon wachtwoord";
+}
+
+function syncPasswordToggleButton(button, input) {
+  if (!button || !input) return;
+  const isVisible = input.type === "text";
+  button.classList.toggle("is-visible", isVisible);
+  button.setAttribute("aria-pressed", String(isVisible));
+  button.setAttribute("aria-label", getPasswordToggleLabel(isVisible));
+}
+
+function initPasswordToggles() {
+  document.querySelectorAll("[data-password-toggle]").forEach(button => {
+    const input = document.getElementById(button.dataset.passwordToggle || "");
+    if (!input) return;
+
+    syncPasswordToggleButton(button, input);
+
+    if (button.dataset.passwordToggleBound === "true") return;
+    button.dataset.passwordToggleBound = "true";
+
+    button.addEventListener("click", () => {
+      input.type = input.type === "password" ? "text" : "password";
+      syncPasswordToggleButton(button, input);
+      input.focus({ preventScroll: true });
+      try {
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      } catch (error) {
+        // Sommige browsers ondersteunen dit niet voor alle inputtypes.
+      }
+    });
+  });
+}
+
+function resetPasswordToggles(scope = document) {
+  scope.querySelectorAll("[data-password-toggle]").forEach(button => {
+    const input = document.getElementById(button.dataset.passwordToggle || "");
+    if (!input) return;
+    input.type = "password";
+    syncPasswordToggleButton(button, input);
+  });
+}
+
+function notificationSupportStatus() {
+  return {
+    notificationApi: typeof window !== "undefined" && "Notification" in window,
+    serviceWorkerApi: typeof navigator !== "undefined" && "serviceWorker" in navigator
+  };
+}
+
+function getStoredNotificationMap() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(APPOINTMENT_NOTIFICATION_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveStoredNotificationMap(map) {
+  localStorage.setItem(APPOINTMENT_NOTIFICATION_STORAGE_KEY, JSON.stringify(map || {}));
+}
+
+function pruneStoredNotificationMap(map, appointments) {
+  const validKeys = new Set((appointments || []).map(app => `${app.id}|${app.date}|${app.time}`));
+  Object.keys(map).forEach(key => {
+    if (!validKeys.has(key)) delete map[key];
+  });
+  return map;
+}
+
+function buildAppointmentNotificationBody(appointment, data) {
+  const customer = customerById(data, appointment.customerId);
+  const service = serviceById(data, appointment.serviceId);
+  const customerName = customer ? fullName(customer) : "Onbekende klant";
+  const serviceName = service?.name || "Behandeling";
+  return `${serviceName} met ${customerName} om ${appointment.time}.`;
+}
+
+async function showAppointmentNotification(appointment) {
+  const support = notificationSupportStatus();
+  if (!support.notificationApi || Notification.permission !== "granted") return false;
+
+  const data = getData();
+  const title = "Herinnering afspraak";
+  const body = buildAppointmentNotificationBody(appointment, data);
+
+  try {
+    if (support.serviceWorkerApi) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        await registration.showNotification(title, {
+          body,
+          tag: `appointment-${appointment.id}`,
+          renotify: false,
+          data: {
+            appointmentId: appointment.id,
+            date: appointment.date,
+            time: appointment.time
+          }
+        });
+        return true;
+      }
+    }
+
+    new Notification(title, { body, tag: `appointment-${appointment.id}` });
+    return true;
+  } catch (error) {
+    console.error("Melding tonen mislukt:", error);
+    return false;
+  }
+}
+
+async function runAppointmentNotificationCheck() {
+  const settings = getSettings();
+  if (!settings.notificationsEnabled) return;
+
+  const support = notificationSupportStatus();
+  if (!support.notificationApi || Notification.permission !== "granted") return;
+
+  const data = getData();
+  const appointments = (data.appointments || []).filter(app => String(app.status || "").toLowerCase() !== "no-show");
+  const notifiedMap = pruneStoredNotificationMap(getStoredNotificationMap(), appointments);
+  const now = Date.now();
+  const reminderMs = Math.max(1, Number(settings.reminderMinutes || 30)) * 60 * 1000;
+  let changed = false;
+
+  for (const appointment of appointments) {
+    const key = `${appointment.id}|${appointment.date}|${appointment.time}`;
+    const appointmentDateTime = new Date(`${appointment.date}T${appointment.time || "00:00"}:00`).getTime();
+    const diff = appointmentDateTime - now;
+
+    if (diff < -15 * 60 * 1000) {
+      if (notifiedMap[key]) {
+        delete notifiedMap[key];
+        changed = true;
+      }
+      continue;
+    }
+
+    if (diff <= reminderMs && diff >= 0 && !notifiedMap[key]) {
+      const shown = await showAppointmentNotification(appointment);
+      if (shown) {
+        notifiedMap[key] = new Date().toISOString();
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) saveStoredNotificationMap(notifiedMap);
+}
+
+function stopAppointmentNotifications() {
+  if (appointmentNotificationTimer) {
+    window.clearInterval(appointmentNotificationTimer);
+    appointmentNotificationTimer = null;
+  }
+}
+
+async function startAppointmentNotifications() {
+  stopAppointmentNotifications();
+  const settings = getSettings();
+  if (!settings.notificationsEnabled) return;
+
+  const support = notificationSupportStatus();
+  if (!support.notificationApi || Notification.permission !== "granted") return;
+
+  await runAppointmentNotificationCheck();
+  appointmentNotificationTimer = window.setInterval(() => {
+    runAppointmentNotificationCheck().catch(error => console.error("Controle meldingen mislukt:", error));
+  }, 30000);
+}
+
+async function syncNotificationEngine() {
+  const settings = getSettings();
+  if (!settings.notificationsEnabled) {
+    stopAppointmentNotifications();
+    return;
+  }
+  await startAppointmentNotifications();
+}
+
+async function requestNotificationPermissionIfNeeded() {
+  const support = notificationSupportStatus();
+  if (!support.notificationApi) {
+    throw new Error("Meldingen worden niet ondersteund op dit toestel of in deze browser.");
+  }
+
+  if (Notification.permission === "granted") return "granted";
+  if (Notification.permission === "denied") {
+    throw new Error("Meldingen zijn geblokkeerd in je browserinstellingen.");
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error("Je hebt geen toestemming gegeven voor meldingen.");
+  }
+
+  return permission;
+}
+
+function updateNotificationUiPreview() {
+  const notificationsToggle = document.getElementById("settingsNotificationsEnabled");
+  const reminderWrap = document.getElementById("settingsReminderWrap");
+  const saveHint = document.getElementById("settingsSaveHint");
+  if (!notificationsToggle || !reminderWrap || !saveHint) return;
+
+  const support = notificationSupportStatus();
+  reminderWrap.classList.toggle("hidden", !notificationsToggle.checked);
+
+  if (state.settingsSavePending) {
+    saveHint.textContent = "Instellingen opslaan...";
+    return;
+  }
+
+  if (!support.notificationApi) {
+    saveHint.textContent = "Meldingen worden niet ondersteund op dit toestel of in deze browser.";
+    return;
+  }
+
+  if (notificationsToggle.checked) {
+    if (Notification.permission === "granted") {
+      saveHint.textContent = "Meldingen staan klaar voor aankomende afspraken.";
+    } else if (Notification.permission === "denied") {
+      saveHint.textContent = "Meldingen zijn geblokkeerd in je browserinstellingen.";
+    } else {
+      saveHint.textContent = "Sla op om toestemming voor meldingen te vragen.";
+    }
+    return;
+  }
+
+  saveHint.textContent = "Meldingen zijn uitgeschakeld.";
+}
+
+function onNotificationsToggleChange() {
+  updateNotificationUiPreview();
+}
 
 function setDialogMessage(container, message) {
   if (!container) return;
@@ -781,6 +1022,7 @@ async function saveProfileFromForm(event) {
 function openPasswordDialog() {
   const form = document.getElementById("passwordForm");
   if (form) form.reset();
+  resetPasswordToggles(document.getElementById("passwordDialog") || document);
   document.getElementById("passwordDialog").showModal();
 }
 
@@ -1025,7 +1267,7 @@ function updateTopbar(screenId, title) {
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -1042,6 +1284,10 @@ function switchScreen(screenId, title) {
 
   if (screenId === "revenueScreen") {
     renderRevenue();
+  }
+
+  if (screenId === "statisticsScreen") {
+    renderStatistics();
   }
 
   if (screenId === "accountScreen") {
@@ -1760,6 +2006,199 @@ function renderRevenue() {
   renderRevenueChart(filtered, type, anchor);
 }
 
+const statisticsPalette = [
+  "#a5567a",
+  "#d98ea7",
+  "#e6b1c3",
+  "#8f6b7a",
+  "#c97a98",
+  "#f0c9d6"
+];
+
+function buildStatisticsDataset(items, emptyLabel = "Geen gegevens") {
+  const cleaned = (items || []).filter(item => Number(item?.value || 0) > 0);
+  const total = cleaned.reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+  if (!cleaned.length || total <= 0) {
+    return {
+      total: 0,
+      items: [],
+      gradient: "conic-gradient(#efe4e9 0deg 360deg)",
+      emptyLabel
+    };
+  }
+
+  let currentDeg = 0;
+  const colored = cleaned.map((item, index) => {
+    const value = Number(item.value || 0);
+    const angle = (value / total) * 360;
+    const start = currentDeg;
+    const end = currentDeg + angle;
+    currentDeg = end;
+    return {
+      ...item,
+      value,
+      color: statisticsPalette[index % statisticsPalette.length],
+      percentage: (value / total) * 100,
+      start,
+      end
+    };
+  });
+
+  const gradient = `conic-gradient(${colored.map(item => `${item.color} ${item.start}deg ${item.end}deg`).join(", ")})`;
+  return { total, items: colored, gradient, emptyLabel };
+}
+
+function buildStatisticsLegend(items, formatter = value => String(value)) {
+  return items.map(item => `
+    <div class="statistics-legend-row">
+      <span class="statistics-legend-color" style="background:${item.color}"></span>
+      <span class="statistics-legend-label">${item.label}</span>
+      <span class="statistics-legend-value">${formatter(item.value)} · ${item.percentage.toFixed(0)}%</span>
+    </div>
+  `).join("");
+}
+
+function buildStatisticsPieCard({ title, subtitle = "", centerValue, centerLabel, dataset, formatter = value => String(value) }) {
+  if (!dataset.total || !dataset.items.length) {
+    return `
+      <section class="statistics-card">
+        <div class="statistics-card-head">
+          <h2>${title}</h2>
+          ${subtitle ? `<div class="statistics-card-subtitle">${subtitle}</div>` : ""}
+        </div>
+        <div class="statistics-card-body">
+          <div class="statistics-empty">${dataset.emptyLabel}</div>
+        </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="statistics-card">
+      <div class="statistics-card-head">
+        <h2>${title}</h2>
+        ${subtitle ? `<div class="statistics-card-subtitle">${subtitle}</div>` : ""}
+      </div>
+      <div class="statistics-card-body">
+        <div class="statistics-split">
+          <div class="statistics-pie-wrap">
+            <div class="statistics-pie" style="--pie-gradient:${dataset.gradient}">
+              <div class="statistics-pie-center">
+                <div>
+                  <strong>${centerValue}</strong>
+                  <span>${centerLabel}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="statistics-legend">
+            ${buildStatisticsLegend(dataset.items, formatter)}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderStatistics() {
+  const data = getData();
+  const wrap = document.getElementById("statisticsOverview");
+  if (!wrap) return;
+
+  const appointments = (data.appointments || []).filter(app => String(app.status || "").toLowerCase() !== "geannuleerd");
+  const paidAppointments = appointments.filter(app => app.paid);
+  const uniqueCustomers = new Set(appointments.map(app => String(app.customerId || "")).filter(Boolean)).size;
+  const totalRevenue = paidAppointments.reduce((sum, app) => sum + Number(app.price || 0), 0);
+
+  const serviceCounts = {};
+  const paymentMethodCounts = {};
+  const statusCounts = {};
+  const serviceRevenue = {};
+
+  appointments.forEach(app => {
+    const service = serviceById(data, app.serviceId);
+    const serviceName = service?.name || "Onbekend";
+    const statusName = app.status || "Onbekend";
+    serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+    statusCounts[statusName] = (statusCounts[statusName] || 0) + 1;
+
+    if (app.paid) {
+      const paymentMethod = paymentMethodNameForAppointment(app, data) || "Onbekend";
+      paymentMethodCounts[paymentMethod] = (paymentMethodCounts[paymentMethod] || 0) + 1;
+      serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + Number(app.price || 0);
+    }
+  });
+
+  const sortEntries = obj => Object.entries(obj)
+    .map(([label, value]) => ({ label, value: Number(value || 0) }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "nl-BE"));
+
+  const servicesDataset = buildStatisticsDataset(sortEntries(serviceCounts).slice(0, 6), "Nog geen behandelingen gevonden.");
+  const paymentsDataset = buildStatisticsDataset(sortEntries(paymentMethodCounts).slice(0, 6), "Nog geen betaalde afspraken gevonden.");
+  const statusDataset = buildStatisticsDataset(sortEntries(statusCounts).slice(0, 6), "Nog geen afspraken gevonden.");
+  const serviceRevenueDataset = buildStatisticsDataset(sortEntries(serviceRevenue).slice(0, 6), "Nog geen betaalde omzet gevonden.");
+
+  wrap.innerHTML = `
+    <section class="statistics-summary-card">
+      <div class="statistics-summary-grid">
+        <div class="statistics-kpi">
+          <div class="statistics-kpi-label">Afspraken</div>
+          <div class="statistics-kpi-value">${appointments.length}</div>
+        </div>
+        <div class="statistics-kpi">
+          <div class="statistics-kpi-label">Unieke klanten</div>
+          <div class="statistics-kpi-value">${uniqueCustomers}</div>
+        </div>
+        <div class="statistics-kpi">
+          <div class="statistics-kpi-label">Betaalde afspraken</div>
+          <div class="statistics-kpi-value">${paidAppointments.length}</div>
+        </div>
+        <div class="statistics-kpi">
+          <div class="statistics-kpi-label">Betaalde omzet</div>
+          <div class="statistics-kpi-value">${euro(totalRevenue)}</div>
+        </div>
+      </div>
+    </section>
+
+    ${buildStatisticsPieCard({
+      title: "Meest gekozen behandelingen",
+      subtitle: "Op basis van aantal afspraken",
+      centerValue: servicesDataset.total,
+      centerLabel: "afspraken",
+      dataset: servicesDataset,
+      formatter: value => `${value}x`
+    })}
+
+    ${buildStatisticsPieCard({
+      title: "Meest gekozen betaalwijze",
+      subtitle: "Enkel betaalde afspraken",
+      centerValue: paymentsDataset.total,
+      centerLabel: "betalingen",
+      dataset: paymentsDataset,
+      formatter: value => `${value}x`
+    })}
+
+    ${buildStatisticsPieCard({
+      title: "Afspraakstatussen",
+      subtitle: "Verdeling van alle afspraken",
+      centerValue: statusDataset.total,
+      centerLabel: "statussen",
+      dataset: statusDataset,
+      formatter: value => `${value}x`
+    })}
+
+    ${buildStatisticsPieCard({
+      title: "Omzet per behandeling",
+      subtitle: "Enkel betaalde afspraken",
+      centerValue: euro(serviceRevenueDataset.total),
+      centerLabel: "omzet",
+      dataset: serviceRevenueDataset,
+      formatter: value => euro(value)
+    })}
+  `;
+}
+
 function renderSettings() {
   const settings = getSettings();
 
@@ -1777,7 +2216,8 @@ function renderSettings() {
   reminderSelect.value = String(settings.reminderMinutes || 30);
   overlapToggle.checked = settings.overlapWarningsEnabled !== false;
   reminderWrap.classList.toggle("hidden", !notificationsToggle.checked);
-  saveHint.textContent = state.settingsSavePending ? "Instellingen opslaan..." : "Instellingen worden per gebruiker bewaard.";
+  saveHint.textContent = "Instellingen worden per gebruiker bewaard.";
+  updateNotificationUiPreview();
 }
 
 async function loadSettingsFromSupabase() {
@@ -1806,12 +2246,25 @@ async function loadSettingsFromSupabase() {
 async function saveSettingsFromForm(event) {
   if (event) event.preventDefault();
 
+  const currentSettings = getSettings();
   const settings = {
     defaultBreakMinutes: Math.max(0, Number(document.getElementById("settingsDefaultBreakMinutes")?.value || 0)),
     notificationsEnabled: Boolean(document.getElementById("settingsNotificationsEnabled")?.checked),
     reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
     overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked)
   };
+
+  if (settings.notificationsEnabled && !currentSettings.notificationsEnabled) {
+    try {
+      await requestNotificationPermissionIfNeeded();
+    } catch (error) {
+      settings.notificationsEnabled = false;
+      const toggle = document.getElementById("settingsNotificationsEnabled");
+      if (toggle) toggle.checked = false;
+      updateNotificationUiPreview();
+      await appAlert(error.message || String(error), { title: "Meldingen niet ingeschakeld", variant: "warning" });
+    }
+  }
 
   const user = await getCurrentUser();
 
@@ -1821,6 +2274,7 @@ async function saveSettingsFromForm(event) {
     saveData(data);
     state.settingsSavePending = false;
     renderSettings();
+    await syncNotificationEngine();
     await appAlert("Instellingen opgeslagen op dit toestel.", { title: "Instellingen opgeslagen", variant: "success" });
     return;
   }
@@ -1853,6 +2307,7 @@ async function saveSettingsFromForm(event) {
   data.settings = settings;
   saveData(data);
   renderSettings();
+  await syncNotificationEngine();
   await appAlert("Instellingen opgeslagen.", { title: "Instellingen opgeslagen", variant: "success" });
 }
 
@@ -2725,7 +3180,12 @@ function saveMonthPicker(event) {
 }
 
 function closeDialog(id) {
-  document.getElementById(id).close();
+  const dialog = document.getElementById(id);
+  if (!dialog) return;
+  if (["passwordDialog", "registerDialog"].includes(id)) {
+    resetPasswordToggles(dialog);
+  }
+  dialog.close();
 }
 
 function rerenderAll() {
@@ -2735,7 +3195,9 @@ function rerenderAll() {
   renderClients();
   renderServices();
   renderPaymentMethods();
+  renderStatistics();
   renderRevenue();
+  syncNotificationEngine().catch(error => console.error("Meldingen synchroniseren mislukt:", error));
 
   if (state.selectedClientId && state.currentScreen === "clientDetailScreen") {
     openClientDetail(state.selectedClientId);
@@ -2787,6 +3249,7 @@ function registerEvents() {
       clientsScreen: "Klanten",
       servicesScreen: "Diensten",
       paymentMethodsScreen: "Betaalwijze",
+      statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
@@ -2798,7 +3261,7 @@ function registerEvents() {
   document.getElementById("clientSearch").addEventListener("input", renderClients);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
   document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsFromForm);
-  document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", renderSettings);
+  document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", onNotificationsToggleChange);
 
   document.getElementById("appointmentForm").addEventListener("submit", saveAppointmentFromForm);
   document.getElementById("deleteAppointmentBtn").addEventListener("click", deleteCurrentAppointment);
@@ -2906,6 +3369,9 @@ function registerEvents() {
 
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {
+      const registerFormEl = document.getElementById("registerForm");
+      if (registerFormEl) registerFormEl.reset();
+      resetPasswordToggles(document.getElementById("registerDialog") || document);
       document.getElementById("registerDialog").showModal();
     });
   }
@@ -2926,6 +3392,18 @@ function registerEvents() {
 	supabaseClient.auth.onAuthStateChange(() => {
 		scheduleAuthUiRefresh();
 	});
+
+  initPasswordToggles();
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      runAppointmentNotificationCheck().catch(error => console.error("Controle meldingen mislukt:", error));
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    runAppointmentNotificationCheck().catch(error => console.error("Controle meldingen mislukt:", error));
+  });
 }
 
 function registerServiceWorker() {
@@ -3090,6 +3568,7 @@ async function initAppData() {
 
 async function startApp() {
 	await initAppData();
+  registerServiceWorker();
 	registerEvents();
 	await syncAuthUI();
 	rerenderAll();
