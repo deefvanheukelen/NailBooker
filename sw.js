@@ -8,18 +8,17 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  const targetScreen = event.notification?.data?.screen || 'agendaScreen';
 
   event.waitUntil((async () => {
-    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const existingClient = allClients[0];
-
-    if (existingClient) {
-      existingClient.focus();
-      return;
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientList) {
+      try {
+        await client.focus();
+        client.postMessage({ type: 'OPEN_SCREEN', screen: targetScreen, date: event.notification?.data?.date || null });
+        return;
+      } catch (error) {}
     }
-
-    if (self.clients.openWindow) {
-      await self.clients.openWindow('./');
-    }
+    await self.clients.openWindow('./');
   })());
 });
