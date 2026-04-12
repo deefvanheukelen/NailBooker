@@ -69,6 +69,16 @@
       </div>
 
       <button
+        id="headerNotificationBtn"
+        class="header-notification-btn"
+        type="button"
+        aria-label="Meldingen openen"
+      >
+        <span class="header-notification-icon" aria-hidden="true">🔔</span>
+        <span id="headerNotificationBadge" class="header-notification-badge hidden">0</span>
+      </button>
+
+      <button
         id="headerAccountBtn"
         class="header-account-btn"
         type="button"
@@ -174,6 +184,46 @@
       </section>
 
       
+      <!-- ===================== STATISTIEK ================== -->
+      <section id="statisticsScreen" class="screen">
+        <section class="detail-panel">
+          <div class="scroll-list">
+            <div class="stats-screen-shell">
+              <section class="stats-card">
+                <div class="section-head stats-head">
+                  <h2>Overzicht</h2>
+                </div>
+                <div id="statisticsOverview" class="stats-overview-grid"></div>
+              </section>
+
+              <section class="stats-card">
+                <div class="section-head stats-head">
+                  <h2>Meest gekozen diensten</h2>
+                </div>
+                <div id="statisticsServicesChart" class="stats-chart-block"></div>
+                <div id="statisticsServices" class="stats-table-wrap"></div>
+              </section>
+
+              <section class="stats-card">
+                <div class="section-head stats-head">
+                  <h2>Omzet per klant</h2>
+                </div>
+                <div id="statisticsCustomersChart" class="stats-chart-block"></div>
+                <div id="statisticsCustomers" class="stats-table-wrap"></div>
+              </section>
+
+              <section class="stats-card">
+                <div class="section-head stats-head">
+                  <h2>Betalingen per betaalwijze</h2>
+                </div>
+                <div id="statisticsPaymentsChart" class="stats-chart-block"></div>
+                <div id="statisticsPayments" class="stats-table-wrap"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </section>
+
       <!-- ===================== OMZET ======================= -->
       <section id="revenueScreen" class="screen">
         <section class="revenue-screen-shell">
@@ -208,13 +258,9 @@
           </section>
 
           <section class="revenue-filter-card">
-            <div class="revenue-filter-grid">
+            <div class="revenue-filter-grid revenue-filter-grid-simple">
               <select id="revenuePaymentFilter" class="field compact-field">
                 <option value="">Alle betaalmethodes</option>
-              </select>
-
-              <select id="revenueCustomerFilter" class="field compact-field">
-                <option value="">Alle klanten</option>
               </select>
 
               <select id="revenuePaymentStatusFilter" class="field compact-field">
@@ -236,26 +282,29 @@
           </section>
 
           <section class="revenue-summary-card">
-            <div class="revenue-summary-top">
-              <div class="revenue-main-totals">
-                <div class="revenue-main-line">
-                  <span class="revenue-main-label">Totaal:</span>
-                  <strong id="plannedRevenue">€ 0,00</strong>
-                </div>
-
-                <div class="revenue-main-line revenue-main-line-secondary">
-                  <span class="revenue-main-label">Betaald:</span>
-                  <strong id="paidRevenue">€ 0,00</strong>
-                </div>
-              </div>
-
-              <div id="paymentMethodList" class="revenue-method-breakdown"></div>
+            <div class="revenue-summary-table-wrap">
+              <table class="revenue-summary-table">
+                <tbody id="revenueSummaryTableBody">
+                  <tr>
+                    <th>Totaal</th>
+                    <td id="plannedRevenue">€ 0,00</td>
+                  </tr>
+                  <tr>
+                    <th>Betaald</th>
+                    <td id="paidRevenue">€ 0,00</td>
+                  </tr>
+                  <tr>
+                    <th>Onbetaald</th>
+                    <td id="openRevenue">€ 0,00</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div class="revenue-open-line">
-              <span class="revenue-open-label">Onbetaald:</span>
-              <strong id="openRevenue">€ 0,00</strong>
+            <div class="section-head revenue-list-head">
+              <h2>Betaalwijze</h2>
             </div>
+            <div id="paymentMethodList" class="revenue-method-breakdown revenue-method-table"></div>
           </section>
 
           <section class="revenue-chart-card">
@@ -267,12 +316,6 @@
             <div id="revenueChart" class="revenue-chart-wrap"></div>
           </section>
 
-          <section class="revenue-list-panel">
-            <div class="section-head revenue-list-head">
-              <h2>Top klanten</h2>
-            </div>
-            <div id="revenueCustomerList" class="scroll-list revenue-customer-list"></div>
-          </section>
         </section>
       </section>
 
@@ -303,7 +346,7 @@
                 <label class="settings-switch-row" for="settingsNotificationsEnabled">
                   <span>
                     <strong>Meldingen inschakelen</strong>
-                    <small>Voorbereid voor afspraakherinneringen in de app.</small>
+                    <small>Toon afspraakmeldingen in de app en, waar ondersteund, als systeembericht op Android, iOS en desktop.</small>
                   </span>
                   <input id="settingsNotificationsEnabled" type="checkbox" />
                 </label>
@@ -365,7 +408,10 @@
                   <input id="loginEmail" class="field" type="email" autocomplete="email" />
 
                   <label class="field-label" for="loginPassword">Wachtwoord</label>
-                  <input id="loginPassword" class="field" type="password" autocomplete="current-password" />
+                  <div class="password-field-wrap">
+                    <input id="loginPassword" class="field password-field-input" type="password" autocomplete="current-password" />
+                    <button class="password-toggle-btn" type="button" data-password-toggle="loginPassword" aria-label="Toon of verberg wachtwoord">👁</button>
+                  </div>
 
                   <div class="account-actions">
                     <button id="loginBtn" class="btn btn-primary action-btn full-btn" type="button">
@@ -487,8 +533,25 @@
 	  </button>
 	  
 	  <button class="nav-btn" data-screen="paymentMethodsScreen" data-title="Betaalwijze" type="button">
-		<span class="nav-ico nav-ico-text">€</span>
+		<span class="nav-ico">
+		  <svg viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-betaalwijze">
+			<g>
+			  <path d="m 4.3155366,1.9656409 c -0.404326,-0.02689 -0.745314,0.083022 -1.020284,0.2490665 -0.164017,0.098397 -0.312356,0.2377918 -0.445018,0.4181856 -0.135073,0.1865436 -0.214669,0.3638625 -0.238789,0.5319567 h 2.467495 l -0.09769,0.4120359 h -2.427698 c -0.0024,0.043049 -0.0036,0.084047 -0.0036,0.1229958 0,0.1578443 0.0012,0.2521413 0.0036,0.2828903 h 2.330011 l -0.101301,0.412036 h -2.152727 c 0.101305,0.469434 0.344918,0.802547 0.730842,0.999341 0.277382,0.141445 0.577763,0.219549 0.900889,0.212167 0.723899,-0.01654 1.007746,-0.344407 1.056464,-0.301339 0.04365,0.03859 0.03516,0.590553 0,0.633428 -0.03045,0.03713 -0.634361,0.178344 -0.998576,0.178344 -1.090232,0 -1.827104,-0.385387 -2.210615,-1.156161 -0.07719,-0.155794 -0.143515,-0.344388 -0.198992,-0.56578 h -0.553558 l 0.101305,-0.412036 h 0.379893 c -0.0072,-0.0861 -0.01085,-0.179369 -0.01085,-0.2798155 0,-0.040999 0.0012,-0.083023 0.0036,-0.1260706 h -0.473948 l 0.101305,-0.4120359 h 0.419691 c 0.149545,-0.668277 0.539086,-1.1479606 1.168623,-1.4390505 0.388335,-0.1803939 0.816469,-0.2705908 1.2844,-0.2705908 0.448636,0 1.156417,0.1543244 1.132444,0.2490665 l -0.144722,0.5719304 c -0.03593,0.1420083 -0.25626,-0.260955 -1.002194,-0.3105644 z" id="path-betaalwijze" />
+			</g>
+		  </svg>
+		</span>
 		<span>Betaalwijze</span>
+	  </button>
+
+	  <button class="nav-btn" data-screen="statisticsScreen" data-title="Statistiek" type="button">
+		<span class="nav-ico">
+		  <svg viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-statistiek">
+			<g>
+			  <path d="m 3.7695418,1.4464233 7.29e-5,2.384677 2.3845316,-0.007 -2.919e-4,-0.100655 C 6.1501925,2.4660113 5.1275658,1.4465693 3.8701238,1.4465693 Z m 0.2012377,0.211442 c 1.0670389,0.05176 1.9166733,0.898832 1.9714878,1.965729 l -1.971342,0.0058 z m -0.6621674,0.173249 a 2.1830753,2.1830753 0 0 0 -2.0085139,1.499188 2.1830753,2.1830753 0 0 0 0.7245576,2.399327 2.1830753,2.1830753 0 0 0 2.5025338,0.137026 L 3.3736263,4.0132423 Z m 0.6154476,2.350057 1.1438696,1.859389 a 2.1830753,2.1830753 0 0 0 1.038987,-1.828267 z" id="path-statistiek" />
+			</g>
+		  </svg>
+		</span>
+		<span>Statistiek</span>
 	  </button>
 	  
 	  <button class="nav-btn" data-screen="settingsScreen" data-title="Instellingen" type="button">
@@ -779,10 +842,16 @@
       <input id="registerEmail" class="field" type="email" required autocomplete="email" />
 
       <label class="field-label" for="registerPassword">Wachtwoord</label>
-      <input id="registerPassword" class="field" type="password" required autocomplete="new-password" />
+      <div class="password-field-wrap">
+        <input id="registerPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
+        <button class="password-toggle-btn" type="button" data-password-toggle="registerPassword" aria-label="Toon of verberg wachtwoord">👁</button>
+      </div>
 
       <label class="field-label" for="registerPasswordConfirm">Bevestig wachtwoord</label>
-      <input id="registerPasswordConfirm" class="field" type="password" required autocomplete="new-password" />
+      <div class="password-field-wrap">
+        <input id="registerPasswordConfirm" class="field password-field-input" type="password" required autocomplete="new-password" />
+        <button class="password-toggle-btn" type="button" data-password-toggle="registerPasswordConfirm" aria-label="Toon of verberg wachtwoord">👁</button>
+      </div>
 
       <label class="field-label" for="registerPhoto">Foto (optioneel)</label>
       <input id="registerPhoto" class="field file-field" type="file" accept="image/*" />
@@ -834,14 +903,17 @@
         <button class="icon-btn" type="button" data-close="passwordDialog">✕</button>
       </div>
 
-      <label class="field-label" for="currentPassword">Huidig wachtwoord</label>
-      <input id="currentPassword" class="field" type="password" required autocomplete="current-password" />
-
       <label class="field-label" for="newPassword">Nieuw wachtwoord</label>
-      <input id="newPassword" class="field" type="password" required autocomplete="new-password" />
+      <div class="password-field-wrap">
+        <input id="newPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
+        <button class="password-toggle-btn" type="button" data-password-toggle="newPassword" aria-label="Toon of verberg wachtwoord">👁</button>
+      </div>
 
       <label class="field-label" for="confirmPassword">Bevestig wachtwoord</label>
-      <input id="confirmPassword" class="field" type="password" required autocomplete="new-password" />
+      <div class="password-field-wrap">
+        <input id="confirmPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
+        <button class="password-toggle-btn" type="button" data-password-toggle="confirmPassword" aria-label="Toon of verberg wachtwoord">👁</button>
+      </div>
 
       <div class="modal-actions end-only">
         <button class="btn btn-secondary action-btn" type="button" data-close="passwordDialog">
@@ -893,6 +965,35 @@
       </div>
     </div>
   </dialog>
+
+
+  <style>
+    .header-notification-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:none;border-radius:999px;background:rgba(255,255,255,.55);margin-right:10px;font-size:18px}
+    .header-notification-badge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#c94f7c;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+    .header-notification-badge.hidden{display:none}
+    .password-field-wrap{position:relative}
+    .password-field-input{padding-right:46px}
+    .password-toggle-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:transparent;font-size:18px;line-height:1;cursor:pointer;padding:6px}
+    .revenue-filter-grid-simple{grid-template-columns:1fr 1fr}
+    .revenue-summary-table-wrap,.stats-table-wrap{overflow-x:auto}
+    .revenue-summary-table,.stats-table{width:100%;border-collapse:collapse}
+    .revenue-summary-table th,.revenue-summary-table td,.stats-table th,.stats-table td{padding:10px 12px;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}
+    .revenue-summary-table td,.stats-table td:last-child,.stats-table td:nth-last-child(2){text-align:right}
+    .revenue-method-row,.stats-overview-grid{display:grid}
+    .revenue-method-row{grid-template-columns:1fr auto;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.08)}
+    .stats-screen-shell{display:grid;gap:14px}
+    .stats-card{background:#fff;border-radius:18px;padding:14px}
+    .stats-head{padding:0 0 10px 0}
+    .stats-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .stats-kpi{background:#f8eef2;border-radius:16px;padding:12px}
+    .stats-kpi-label{font-size:12px;opacity:.8}
+    .stats-kpi-value{font-size:20px;font-weight:700;margin-top:4px}
+    @media (max-width:520px){
+      .stats-overview-grid{grid-template-columns:1fr 1fr}
+      .revenue-filter-grid-simple{grid-template-columns:1fr}
+    }
+  </style>
+
 
   <!-- =========================================================
        SCRIPTS
