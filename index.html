@@ -69,16 +69,6 @@
       </div>
 
       <button
-        id="headerNotificationBtn"
-        class="header-notification-btn"
-        type="button"
-        aria-label="Meldingen openen"
-      >
-        <span class="header-notification-icon" aria-hidden="true">🔔</span>
-        <span id="headerNotificationBadge" class="header-notification-badge hidden">0</span>
-      </button>
-
-      <button
         id="headerAccountBtn"
         class="header-account-btn"
         type="button"
@@ -184,43 +174,6 @@
       </section>
 
       
-      <!-- ===================== STATISTIEK ================== -->
-      <section id="statisticsScreen" class="screen">
-        <section class="detail-panel">
-          <div class="scroll-list">
-            <div class="stats-screen-shell">
-              <section class="stats-card">
-                <div class="section-head stats-head">
-                  <h2>Overzicht</h2>
-                </div>
-                <div id="statisticsOverview" class="stats-overview-grid"></div>
-              </section>
-
-              <section class="stats-card">
-                <div class="section-head stats-head">
-                  <h2>Meest gekozen diensten</h2>
-                </div>
-                <div id="statisticsServices" class="stats-chart-card"></div>
-              </section>
-
-              <section class="stats-card">
-                <div class="section-head stats-head">
-                  <h2>Omzet per klant</h2>
-                </div>
-                <div id="statisticsCustomers" class="stats-chart-card"></div>
-              </section>
-
-              <section class="stats-card">
-                <div class="section-head stats-head">
-                  <h2>Betalingen per betaalwijze</h2>
-                </div>
-                <div id="statisticsPayments" class="stats-chart-card"></div>
-              </section>
-            </div>
-          </div>
-        </section>
-      </section>
-
       <!-- ===================== OMZET ======================= -->
       <section id="revenueScreen" class="screen">
         <section class="revenue-screen-shell">
@@ -412,10 +365,7 @@
                   <input id="loginEmail" class="field" type="email" autocomplete="email" />
 
                   <label class="field-label" for="loginPassword">Wachtwoord</label>
-                  <div class="password-field-wrap">
-                    <input id="loginPassword" class="field password-field-input" type="password" autocomplete="current-password" />
-                    <button class="password-toggle-btn" type="button" data-password-toggle="loginPassword" aria-label="Toon of verberg wachtwoord"></button>
-                  </div>
+                  <input id="loginPassword" class="field" type="password" autocomplete="current-password" />
 
                   <div class="account-actions">
                     <button id="loginBtn" class="btn btn-primary action-btn full-btn" type="button">
@@ -539,11 +489,6 @@
 	  <button class="nav-btn" data-screen="paymentMethodsScreen" data-title="Betaalwijze" type="button">
 		<span class="nav-ico nav-ico-text">€</span>
 		<span>Betaalwijze</span>
-	  </button>
-	  
-	  <button class="nav-btn" data-screen="statisticsScreen" data-title="Statistiek" type="button">
-		<span class="nav-ico">📊</span>
-		<span>Statistiek</span>
 	  </button>
 	  
 	  <button class="nav-btn" data-screen="settingsScreen" data-title="Instellingen" type="button">
@@ -834,16 +779,10 @@
       <input id="registerEmail" class="field" type="email" required autocomplete="email" />
 
       <label class="field-label" for="registerPassword">Wachtwoord</label>
-      <div class="password-field-wrap">
-        <input id="registerPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
-        <button class="password-toggle-btn" type="button" data-password-toggle="registerPassword" aria-label="Toon of verberg wachtwoord"></button>
-      </div>
+      <input id="registerPassword" class="field" type="password" required autocomplete="new-password" />
 
       <label class="field-label" for="registerPasswordConfirm">Bevestig wachtwoord</label>
-      <div class="password-field-wrap">
-        <input id="registerPasswordConfirm" class="field password-field-input" type="password" required autocomplete="new-password" />
-        <button class="password-toggle-btn" type="button" data-password-toggle="registerPasswordConfirm" aria-label="Toon of verberg wachtwoord"></button>
-      </div>
+      <input id="registerPasswordConfirm" class="field" type="password" required autocomplete="new-password" />
 
       <label class="field-label" for="registerPhoto">Foto (optioneel)</label>
       <input id="registerPhoto" class="field file-field" type="file" accept="image/*" />
@@ -895,17 +834,14 @@
         <button class="icon-btn" type="button" data-close="passwordDialog">✕</button>
       </div>
 
+      <label class="field-label" for="currentPassword">Huidig wachtwoord</label>
+      <input id="currentPassword" class="field" type="password" required autocomplete="current-password" />
+
       <label class="field-label" for="newPassword">Nieuw wachtwoord</label>
-      <div class="password-field-wrap">
-        <input id="newPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
-        <button class="password-toggle-btn" type="button" data-password-toggle="newPassword" aria-label="Toon of verberg wachtwoord"></button>
-      </div>
+      <input id="newPassword" class="field" type="password" required autocomplete="new-password" />
 
       <label class="field-label" for="confirmPassword">Bevestig wachtwoord</label>
-      <div class="password-field-wrap">
-        <input id="confirmPassword" class="field password-field-input" type="password" required autocomplete="new-password" />
-        <button class="password-toggle-btn" type="button" data-password-toggle="confirmPassword" aria-label="Toon of verberg wachtwoord"></button>
-      </div>
+      <input id="confirmPassword" class="field" type="password" required autocomplete="new-password" />
 
       <div class="modal-actions end-only">
         <button class="btn btn-secondary action-btn" type="button" data-close="passwordDialog">
