@@ -46,6 +46,11 @@ const revenuePickerState = {
 const notificationTimers = new Map();
 let notificationHeartbeatId = null;
 
+const paymentPopoverState = {
+  appointmentId: null,
+  anchorRect: null
+};
+
 
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr + "T00:00:00");
@@ -1231,7 +1236,7 @@ function renderAgendaList() {
   list.querySelectorAll(".price-chip").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      openPaymentDialog(btn.dataset.id);
+      openPaymentDialog(btn.dataset.id, btn);
     });
   });
 }
@@ -2427,21 +2432,98 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentDialog").showModal();
 }
 
-function openPaymentDialog(id) {
+function positionPaymentPopover() {
+  const popover = document.getElementById("paymentPopover");
+  if (!popover || popover.classList.contains("hidden") || !paymentPopoverState.anchorRect) return;
+
+  const card = popover.querySelector(".payment-popover-card");
+  if (!card) return;
+
+  const margin = 12;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const cardRect = card.getBoundingClientRect();
+  const anchor = paymentPopoverState.anchorRect;
+
+  let left = anchor.right - cardRect.width;
+  left = Math.max(margin, Math.min(left, viewportWidth - cardRect.width - margin));
+
+  let top = anchor.top - cardRect.height - 10;
+  const spaceAbove = anchor.top - margin;
+  const spaceBelow = viewportHeight - anchor.bottom - margin;
+
+  if (top < margin) {
+    if (spaceBelow >= cardRect.height || spaceBelow > spaceAbove) {
+      top = Math.min(viewportHeight - cardRect.height - margin, anchor.bottom + 10);
+      popover.dataset.placement = "bottom";
+    } else {
+      top = margin;
+      popover.dataset.placement = "top";
+    }
+  } else {
+    popover.dataset.placement = "top";
+  }
+
+  popover.style.left = `${Math.round(left)}px`;
+  popover.style.top = `${Math.round(top)}px`;
+}
+
+function closePaymentPopover() {
+  const popover = document.getElementById("paymentPopover");
+  if (!popover) return;
+  popover.classList.add("hidden");
+  popover.setAttribute("aria-hidden", "true");
+  popover.style.left = "";
+  popover.style.top = "";
+  popover.removeAttribute("data-placement");
+  paymentPopoverState.appointmentId = null;
+  paymentPopoverState.anchorRect = null;
+}
+
+function renderPaymentPopoverOptions(app, data = getData()) {
+  const list = document.getElementById("paymentMethodListPopup");
+  if (!list) return;
+
+  const methods = getPaymentMethods(data);
+  const selectedName = paymentMethodNameForAppointment(app, data) || "";
+  const items = [{ value: "", label: "Onbetaald", unpaid: true }, ...methods.map(method => ({ value: method.name, label: method.name, unpaid: false }))];
+
+  list.innerHTML = items.map(item => {
+    const isActive = item.unpaid ? !app.paid : (app.paid && item.value === selectedName);
+    return `
+      <button
+        type="button"
+        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""}"
+        data-payment-value="${item.value}"
+        data-unpaid="${item.unpaid ? "true" : "false"}"
+        role="menuitemradio"
+        aria-checked="${isActive ? "true" : "false"}"
+      >
+        <span>${item.label}</span>
+      </button>
+    `;
+  }).join("");
+
+  list.querySelectorAll(".payment-method-popup-item").forEach(button => {
+    button.addEventListener("click", async event => {
+      event.stopPropagation();
+      const methodName = button.dataset.paymentValue || "";
+      if (button.dataset.unpaid === "true") {
+        await markUnpaid();
+        return;
+      }
+      await confirmPaymentSelection(methodName);
+    });
+  });
+}
+
+function openPaymentDialog(id, anchorEl = null) {
   const data = getData();
   const app = data.appointments.find(a => String(a.id) === String(id));
   if (!app) return;
 
-  const methods = getPaymentMethods(data);
-  const paymentMethodSelect = document.getElementById("paymentMethod");
-  const selectedName = paymentMethodNameForAppointment(app, data) || methods[0]?.name || "";
-
-  if (paymentMethodSelect) {
-    paymentMethodSelect.innerHTML = buildPaymentMethodOptions(methods, selectedName);
-    if (!methods.some(method => String(method.name) === String(selectedName))) {
-      paymentMethodSelect.value = methods[0]?.name || "";
-    }
-  }
+  const popover = document.getElementById("paymentPopover");
+  if (!popover) return;
 
   document.getElementById("paymentAppointmentId").value = id;
   document.getElementById("paymentAmount").textContent = euro(app.price);
@@ -2449,7 +2531,17 @@ function openPaymentDialog(id) {
     ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
     : "Nog niet betaald";
 
-  document.getElementById("paymentDialog").showModal();
+  renderPaymentPopoverOptions(app, data);
+
+  const rect = anchorEl?.getBoundingClientRect?.();
+  paymentPopoverState.appointmentId = String(id);
+  paymentPopoverState.anchorRect = rect
+    ? { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width, height: rect.height }
+    : { top: window.innerHeight / 2, right: window.innerWidth / 2 + 120, bottom: window.innerHeight / 2, left: window.innerWidth / 2 - 120, width: 240, height: 0 };
+
+  popover.classList.remove("hidden");
+  popover.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(positionPaymentPopover);
 }
 
 function renderPaymentMethods() {
@@ -2971,15 +3063,13 @@ async function deleteCurrentService() {
   rerenderAll();
 }
 
-async function confirmPayment(event) {
-  event.preventDefault();
-
+async function confirmPaymentSelection(methodName) {
   const id = document.getElementById("paymentAppointmentId").value;
-  const methodName = document.getElementById("paymentMethod").value.trim();
+  const safeMethodName = String(methodName || "").trim();
   const user = await getCurrentUser();
   const data = getData();
 
-  if (!methodName) {
+  if (!safeMethodName) {
     await appAlert("Kies een geldige betaalwijze.", { title: "Betaling", variant: "warning" });
     return;
   }
@@ -2989,11 +3079,11 @@ async function confirmPayment(event) {
     if (!appointment) return;
 
     appointment.paid = true;
-    appointment.paymentMethodName = methodName;
+    appointment.paymentMethodName = safeMethodName;
     if (appointment.status === "gepland") appointment.status = "afgerond";
 
     saveData(data);
-    closeDialog("paymentDialog");
+    closePaymentPopover();
     rerenderAll();
     return;
   }
@@ -3002,7 +3092,7 @@ async function confirmPayment(event) {
     .from("appointments")
     .update({
       paid: true,
-      payment_method_label: methodName,
+      payment_method_label: safeMethodName,
       status: "afgerond"
     })
     .eq("id", Number(id))
@@ -3014,7 +3104,7 @@ async function confirmPayment(event) {
   }
 
   await loadAllDataFromSupabase();
-  closeDialog("paymentDialog");
+  closePaymentPopover();
   rerenderAll();
 }
 
@@ -3031,7 +3121,7 @@ async function markUnpaid() {
     appointment.paymentMethodName = null;
 
     saveData(data);
-    closeDialog("paymentDialog");
+    closePaymentPopover();
     rerenderAll();
     return;
   }
@@ -3051,7 +3141,7 @@ async function markUnpaid() {
   }
 
   await loadAllDataFromSupabase();
-  closeDialog("paymentDialog");
+  closePaymentPopover();
   rerenderAll();
 }
 
@@ -3087,7 +3177,9 @@ function saveMonthPicker(event) {
 }
 
 function closeDialog(id) {
-  document.getElementById(id).close();
+  const dialog = document.getElementById(id);
+  if (!dialog) return;
+  if (typeof dialog.close === "function") dialog.close();
 }
 
 function rerenderAll() {
@@ -3188,8 +3280,23 @@ function registerEvents() {
   document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
   document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
 
-  document.getElementById("paymentForm").addEventListener("submit", confirmPayment);
-  document.getElementById("markUnpaidBtn").addEventListener("click", markUnpaid);
+  document.getElementById("paymentPopoverCloseBtn")?.addEventListener("click", closePaymentPopover);
+
+  document.addEventListener("click", event => {
+    const popover = document.getElementById("paymentPopover");
+    if (!popover || popover.classList.contains("hidden")) return;
+    if (popover.contains(event.target)) return;
+    if (event.target.closest(".price-chip")) return;
+    closePaymentPopover();
+  });
+
+  window.addEventListener("resize", () => {
+    const popover = document.getElementById("paymentPopover");
+    if (popover && !popover.classList.contains("hidden")) positionPaymentPopover();
+  });
+
+  document.getElementById("agendaList")?.addEventListener("scroll", closePaymentPopover, { passive: true });
+  document.querySelector(".calendar-panel")?.addEventListener("scroll", closePaymentPopover, { passive: true });
 
   document.querySelectorAll("[data-close]").forEach(btn => {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));

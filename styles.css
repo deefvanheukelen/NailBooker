@@ -1191,6 +1191,116 @@ button {
   }
 }
 
+.payment-popover {
+  position: fixed;
+  z-index: 1200;
+  width: min(260px, calc(100vw - 24px));
+}
+
+.payment-popover-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.2);
+  overflow: hidden;
+}
+
+.payment-popover-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #f2e7ec;
+}
+
+.payment-popover-title-wrap {
+  min-width: 0;
+}
+
+.payment-popover-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.payment-popover-amount {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.payment-popover-close {
+  flex: 0 0 auto;
+}
+
+.payment-method-popup-list {
+  max-height: min(280px, 48vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0;
+}
+
+.payment-method-popup-item {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--text);
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.payment-method-popup-item:hover,
+.payment-method-popup-item:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.payment-method-popup-item.active {
+  background: #f2d7e1;
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.payment-method-popup-item + .payment-method-popup-item {
+  border-top: 1px solid #f6edf1;
+}
+
+.payment-method-popup-item.is-unpaid {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.payment-popover[data-placement="top"] .payment-popover-card::after,
+.payment-popover[data-placement="bottom"] .payment-popover-card::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.payment-popover[data-placement="top"] .payment-popover-card::after {
+  bottom: -8px;
+  transform: rotate(45deg);
+}
+
+.payment-popover[data-placement="bottom"] .payment-popover-card::after {
+  top: -8px;
+  transform: rotate(225deg);
+}
+
 /* =========================================================
    12. HULP-CLASSES
 ========================================================= */
