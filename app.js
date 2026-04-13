@@ -781,10 +781,49 @@ async function saveProfileFromForm(event) {
   }
 }
 
+
+function setupPasswordToggleButtons() {
+  document.querySelectorAll('[data-password-toggle]').forEach(button => {
+    if (button.dataset.passwordToggleReady === 'true') return;
+    button.dataset.passwordToggleReady = 'true';
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const targetId = button.getAttribute('data-password-toggle');
+      const input = targetId ? document.getElementById(targetId) : null;
+      if (!input) return;
+
+      const isVisible = input.type === 'text';
+      const selectionStart = typeof input.selectionStart === 'number' ? input.selectionStart : null;
+      const selectionEnd = typeof input.selectionEnd === 'number' ? input.selectionEnd : null;
+
+      input.setAttribute('type', isVisible ? 'password' : 'text');
+      button.setAttribute('aria-pressed', isVisible ? 'false' : 'true');
+      button.setAttribute('aria-label', isVisible ? 'Toon wachtwoord' : 'Verberg wachtwoord');
+
+      window.requestAnimationFrame(() => {
+        try {
+          input.focus({ preventScroll: true });
+        } catch (error) {
+          input.focus();
+        }
+        if (selectionStart !== null && selectionEnd !== null) {
+          try {
+            input.setSelectionRange(selectionStart, selectionEnd);
+          } catch (error) {}
+        }
+      });
+    });
+  });
+}
+
 function openPasswordDialog() {
   const form = document.getElementById("passwordForm");
   if (form) form.reset();
   document.getElementById("passwordDialog").showModal();
+  setupPasswordToggleButtons();
 }
 
 async function savePasswordFromForm(event) {
@@ -3245,6 +3284,7 @@ function registerEvents() {
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {
       document.getElementById("registerDialog").showModal();
+      setupPasswordToggleButtons();
     });
   }
 
@@ -3254,6 +3294,8 @@ function registerEvents() {
   if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
   if (editProfileForm) editProfileForm.addEventListener("submit", saveProfileFromForm);
   if (passwordForm) passwordForm.addEventListener("submit", savePasswordFromForm);
+
+  setupPasswordToggleButtons();
 
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {

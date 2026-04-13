@@ -910,14 +910,16 @@ button {
   top: 50%;
   right: 8px;
   transform: translateY(-50%);
-  width: 40px;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
   height: 40px;
   border: none;
   background: transparent;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 0 !important;
   margin: 0;
   color: var(--primary-dark);
   border-radius: 10px;
@@ -925,6 +927,9 @@ button {
   appearance: none;
   -webkit-appearance: none;
   touch-action: manipulation;
+  cursor: pointer;
+  text-align: center !important;
+  flex: 0 0 40px !important;
 }
 
 .password-toggle-btn:hover,
@@ -962,6 +967,11 @@ button {
 
 .password-toggle-btn[aria-pressed="true"] .icon-eye-off {
   display: block;
+}
+
+.detail-card .password-field-wrap .password-toggle-btn,
+.modal-card .password-field-wrap .password-toggle-btn {
+  width: 40px !important;
 }
 
 /* =========================================================
