@@ -372,9 +372,20 @@
 
                   <label class="field-label" for="loginPassword">Wachtwoord</label>
                   <div class="password-field-wrap">
-                    <input id="loginPassword" class="field password-field" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                    <input id="loginPassword" class="field password-field" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
                     <button class="password-toggle-btn" type="button" data-password-toggle="loginPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-                      <span class="password-toggle-icon" aria-hidden="true"></span>
+                      <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
                     </button>
                   </div>
 
@@ -808,17 +819,39 @@
 
       <label class="field-label" for="registerPassword">Wachtwoord</label>
       <div class="password-field-wrap">
-        <input id="registerPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="registerPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
         <button class="password-toggle-btn" type="button" data-password-toggle="registerPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-          <span class="password-toggle-icon" aria-hidden="true"></span>
+          <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
         </button>
       </div>
 
       <label class="field-label" for="registerPasswordConfirm">Bevestig wachtwoord</label>
       <div class="password-field-wrap">
-        <input id="registerPasswordConfirm" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="registerPasswordConfirm" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
         <button class="password-toggle-btn" type="button" data-password-toggle="registerPasswordConfirm" aria-label="Toon wachtwoord" aria-pressed="false">
-          <span class="password-toggle-icon" aria-hidden="true"></span>
+          <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
         </button>
       </div>
 
@@ -874,25 +907,58 @@
 
       <label class="field-label" for="currentPassword">Huidig wachtwoord</label>
       <div class="password-field-wrap">
-        <input id="currentPassword" class="field password-field" type="password" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="currentPassword" class="field password-field" type="password" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
         <button class="password-toggle-btn" type="button" data-password-toggle="currentPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-          <span class="password-toggle-icon" aria-hidden="true"></span>
+          <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
         </button>
       </div>
 
       <label class="field-label" for="newPassword">Nieuw wachtwoord</label>
       <div class="password-field-wrap">
-        <input id="newPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="newPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
         <button class="password-toggle-btn" type="button" data-password-toggle="newPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-          <span class="password-toggle-icon" aria-hidden="true"></span>
+          <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
         </button>
       </div>
 
       <label class="field-label" for="confirmPassword">Bevestig wachtwoord</label>
       <div class="password-field-wrap">
-        <input id="confirmPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
+        <input id="confirmPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
         <button class="password-toggle-btn" type="button" data-password-toggle="confirmPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-          <span class="password-toggle-icon" aria-hidden="true"></span>
+          <span class="password-toggle-icon" aria-hidden="true">
+                      <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg>
+                    </span>
         </button>
       </div>
 

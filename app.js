@@ -711,7 +711,6 @@ function scheduleAuthUiRefresh() {
 }
 
 async function openEditProfileDialog() {
-  initPasswordToggles();
   const { data: userData } = await supabaseClient.auth.getUser();
   const user = userData?.user;
   if (!user) {
@@ -783,7 +782,6 @@ async function saveProfileFromForm(event) {
 }
 
 function openPasswordDialog() {
-  initPasswordToggles();
   const form = document.getElementById("passwordForm");
   if (form) form.reset();
   document.getElementById("passwordDialog").showModal();
@@ -3074,62 +3072,6 @@ function rerenderAll() {
    EVENTS
 ========================= */
 
-function initPasswordToggles() {
-  const toggleButtons = document.querySelectorAll('[data-password-toggle]');
-
-  toggleButtons.forEach(button => {
-    if (button.dataset.passwordToggleBound === 'true') return;
-    button.dataset.passwordToggleBound = 'true';
-
-    const inputId = button.getAttribute('data-password-toggle');
-    const input = document.getElementById(inputId);
-    if (!input) return;
-
-    const syncState = () => {
-      const isVisible = input.type === 'text';
-      button.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
-      button.setAttribute('aria-label', isVisible ? 'Verberg wachtwoord' : 'Toon wachtwoord');
-    };
-
-    const preserveFocus = event => {
-      event.preventDefault();
-    };
-
-    button.addEventListener('pointerdown', preserveFocus);
-    button.addEventListener('mousedown', preserveFocus);
-    button.addEventListener('touchstart', preserveFocus, { passive: false });
-
-    button.addEventListener('click', event => {
-      event.preventDefault();
-
-      const selectionStart = typeof input.selectionStart === 'number' ? input.selectionStart : null;
-      const selectionEnd = typeof input.selectionEnd === 'number' ? input.selectionEnd : null;
-      const nextType = input.type === 'password' ? 'text' : 'password';
-
-      input.type = nextType;
-      syncState();
-
-      const restore = () => {
-        try {
-          input.focus({ preventScroll: true });
-        } catch (error) {
-          input.focus();
-        }
-
-        if (selectionStart !== null && selectionEnd !== null) {
-          try {
-            input.setSelectionRange(selectionStart, selectionEnd);
-          } catch (error) {}
-        }
-      };
-
-      window.requestAnimationFrame(restore);
-    });
-
-    syncState();
-  });
-}
-
 function registerEvents() {
   document.getElementById("prevMonthBtn").addEventListener("click", () => {
     state.currentMonth--;
@@ -3516,7 +3458,6 @@ async function startApp() {
 	await registerServiceWorker();
 	await initAppData();
 	registerEvents();
-	initPasswordToggles();
 	await syncAuthUI();
 	rerenderAll();
 	await syncNotificationState();

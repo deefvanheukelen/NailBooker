@@ -859,82 +859,6 @@ button {
   background: #ffffff;
 }
 
-
-.password-field-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.password-field-wrap .password-field {
-  padding-right: 52px;
-}
-
-.password-toggle-btn {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--primary-dark);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  z-index: 2;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.password-toggle-btn:hover,
-.password-toggle-btn:active {
-  background: rgba(217, 145, 171, 0.12);
-}
-
-.password-toggle-btn:focus-visible {
-  outline: 2px solid rgba(185, 109, 135, 0.24);
-  outline-offset: 1px;
-}
-
-.password-toggle-icon {
-  position: relative;
-  width: 20px;
-  height: 12px;
-  border: 2px solid currentColor;
-  border-radius: 999px / 80%;
-  display: inline-block;
-  opacity: 0.92;
-}
-
-.password-toggle-icon::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
-  transform: translate(-50%, -50%);
-}
-
-.password-toggle-btn[aria-pressed="true"] .password-toggle-icon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -3px;
-  width: 2px;
-  height: 18px;
-  border-radius: 999px;
-  background: currentColor;
-  transform: translateX(-50%) rotate(45deg);
-}
-
 .appointment-customer-select {
   margin-top: 10px;
   max-height: 220px;
@@ -964,6 +888,80 @@ button {
   color: var(--primary-dark);
   font-weight: 700;
   cursor: pointer;
+}
+
+
+.password-field-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.password-field-wrap .password-field {
+  padding-right: 56px;
+}
+
+.password-field::-ms-reveal,
+.password-field::-ms-clear {
+  display: none;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  color: var(--primary-dark);
+  border-radius: 10px;
+  z-index: 2;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn:active {
+  background: rgba(217, 145, 171, 0.12);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid rgba(185, 109, 135, 0.35);
+  outline-offset: 1px;
+}
+
+.password-toggle-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.password-toggle-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.password-toggle-icon .icon-eye-off {
+  display: none;
+}
+
+.password-toggle-btn[aria-pressed="true"] .icon-eye {
+  display: none;
+}
+
+.password-toggle-btn[aria-pressed="true"] .icon-eye-off {
+  display: block;
 }
 
 /* =========================================================
