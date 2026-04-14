@@ -1110,6 +1110,9 @@ function switchScreen(screenId, title) {
   if (screenId === "paymentMethodsScreen") {
     renderPaymentMethods();
   }
+
+  const activeClient = state.selectedClientId ? customerById(getData(), state.selectedClientId) : null;
+  updateClientActionBar(activeClient);
 }
 
 function renderCalendar() {
@@ -2345,6 +2348,49 @@ function normalizePhoneHref(phone) {
   return String(phone || '').replace(/[^+\d]/g, '');
 }
 
+function updateClientActionBar(client = null) {
+  const bar = document.getElementById('clientActionBar');
+  const callBtn = document.getElementById('clientActionCall');
+  const smsBtn = document.getElementById('clientActionSms');
+  const emailBtn = document.getElementById('clientActionEmail');
+
+  if (!bar || !callBtn || !smsBtn || !emailBtn) return;
+
+  const phoneValue = normalizePhoneHref(client?.phone || '');
+  const emailValue = String(client?.email || '').trim();
+
+  const hasPhone = Boolean(phoneValue);
+  const hasEmail = Boolean(emailValue);
+  const shouldShowBar = state.currentScreen === 'clientDetailScreen' && (hasPhone || hasEmail);
+
+  callBtn.classList.toggle('hidden', !hasPhone);
+  smsBtn.classList.toggle('hidden', !hasPhone);
+  emailBtn.classList.toggle('hidden', !hasEmail);
+
+  if (hasPhone) {
+    callBtn.href = `tel:${phoneValue}`;
+    callBtn.setAttribute('aria-label', `Bel ${client.phone || phoneValue}`);
+    callBtn.title = `Bel ${client.phone || phoneValue}`;
+
+    smsBtn.href = `sms:${phoneValue}`;
+    smsBtn.setAttribute('aria-label', `Stuur sms naar ${client.phone || phoneValue}`);
+    smsBtn.title = `Stuur sms naar ${client.phone || phoneValue}`;
+  } else {
+    callBtn.removeAttribute('href');
+    smsBtn.removeAttribute('href');
+  }
+
+  if (hasEmail) {
+    emailBtn.href = `mailto:${emailValue}`;
+    emailBtn.setAttribute('aria-label', `Mail naar ${emailValue}`);
+    emailBtn.title = `Mail naar ${emailValue}`;
+  } else {
+    emailBtn.removeAttribute('href');
+  }
+
+  bar.classList.toggle('hidden', !shouldShowBar);
+}
+
 function renderClientContactValue(type, value) {
   const safeValue = String(value || '').trim();
   if (!safeValue) return `<div class="client-detail-value">-</div>`;
@@ -2515,6 +2561,7 @@ function openClientDetail(clientId) {
   });
 
   switchScreen("clientDetailScreen", "Klant");
+  updateClientActionBar(client);
 }
 
 // =============================

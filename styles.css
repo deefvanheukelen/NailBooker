@@ -2924,3 +2924,94 @@ button {
     min-width: 38px;
   }
 }
+
+
+.client-action-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.client-action-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+}
+
+.client-action-btn:hover,
+.client-action-btn:active {
+  transform: translateY(-1px);
+}
+
+.client-action-btn-call {
+  background: #0a9f13;
+}
+
+.client-action-btn-sms {
+  background: #4a86f0;
+}
+
+.client-action-btn-email {
+  background: #9446f0;
+}
+
+.client-action-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-action-svg {
+  width: 32px;
+  height: 32px;
+  display: block;
+  color: #ffffff;
+}
+
+.client-action-svg-email {
+  width: 33px;
+  height: 33px;
+}
+
+@media (max-width: 420px) {
+  .client-action-bar {
+    gap: 10px;
+  }
+
+  .client-action-btn {
+    width: 58px;
+    height: 58px;
+    border-radius: 11px;
+  }
+
+  .client-action-icon,
+  .client-action-svg {
+    width: 29px;
+    height: 29px;
+  }
+
+  .client-action-svg-email {
+    width: 30px;
+    height: 30px;
+  }
+}
