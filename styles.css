@@ -2947,7 +2947,7 @@ button {
 .client-action-btn {
   width: 64px;
   height: 64px;
-  border-radius: 12px;
+  border-radius: 900px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3001,7 +3001,6 @@ button {
   .client-action-btn {
     width: 58px;
     height: 58px;
-    border-radius: 11px;
   }
 
   .client-action-icon,
