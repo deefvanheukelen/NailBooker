@@ -177,15 +177,6 @@
       <section id="statisticsScreen" class="screen">
         <section class="statistics-screen-shell">
           <div id="statisticsOverview" class="statistics-grid"></div>
-          <section class="statistics-card statistics-top-customers-card">
-            <div class="statistics-card-head statistics-top-customers-head">
-              <h2>Top klanten</h2>
-            </div>
-            <div id="statisticsTopCustomersList" class="statistics-top-customers-list"></div>
-            <div class="statistics-top-customers-actions">
-              <button id="statisticsTopCustomersMoreBtn" class="btn btn-secondary action-btn full-btn hidden" type="button">Meer...</button>
-            </div>
-          </section>
         </section>
       </section>
 
@@ -241,8 +232,8 @@
 
             <div class="revenue-hidden-inputs" aria-hidden="true">
               <select id="revenuePeriodType" class="field compact-field">
-                <option value="day">Dag</option>
-                <option value="month" selected>Maand</option>
+                <option value="day" selected>Dag</option>
+                <option value="month">Maand</option>
                 <option value="year">Jaar</option>
               </select>
               <input id="revenueDate" class="field compact-field" type="date" />

@@ -15,7 +15,8 @@ const state = {
   selectedClientId: null,
   previousMainScreen: "clientsScreen",
   clientLetter: "",
-  settingsSavePending: false
+  settingsSavePending: false,
+  statsTopCustomersVisible: 10
 };
 
 const monthNames = [
@@ -41,10 +42,6 @@ const revenuePickerState = {
   mode: "year",
   columns: [],
   selected: {}
-};
-
-const statisticsState = {
-  topCustomersVisibleCount: 10
 };
 
 const notificationTimers = new Map();
@@ -1092,12 +1089,13 @@ function switchScreen(screenId, title) {
   updateTopbar(screenId, title);
 
   if (screenId === "revenueScreen") {
-    syncRevenueWithAgendaSelection();
-    renderRevenue();
+    setRevenuePeriod("day", state.selectedDate || todayStr);
   }
 
   if (screenId === "statisticsScreen") {
-    statisticsState.topCustomersVisibleCount = 10;
+    if (!Number.isFinite(Number(state.statsTopCustomersVisible)) || Number(state.statsTopCustomersVisible) < 10) {
+      state.statsTopCustomersVisible = 10;
+    }
     renderStatistics();
   }
 
@@ -1449,62 +1447,6 @@ function revenueFilteredAppointments() {
   return filtered;
 }
 
-function syncRevenueWithAgendaSelection() {
-  const periodType = document.getElementById("revenuePeriodType");
-  const dateInput = document.getElementById("revenueDate");
-  if (!periodType || !dateInput) return;
-
-  periodType.value = "day";
-  dateInput.value = state.selectedDate || todayStr;
-}
-
-function getTopCustomers(data = getData(), limit = 10, offset = 0) {
-  const customerTotals = new Map();
-
-  (data.appointments || []).forEach(appointment => {
-    if ((appointment.status || "").toLowerCase() === "no-show") return;
-
-    const customer = customerById(data, appointment.customerId);
-    const name = customer ? fullName(customer) : "Onbekend";
-    const current = customerTotals.get(name) || { name, amount: 0, count: 0 };
-    current.amount += Number(appointment.price || 0);
-    current.count += 1;
-    customerTotals.set(name, current);
-  });
-
-  return Array.from(customerTotals.values())
-    .sort((a, b) => b.amount - a.amount || b.count - a.count || a.name.localeCompare(b.name, "nl-BE"))
-    .slice(offset, offset + limit);
-}
-
-function renderStatisticsTopCustomers() {
-  const list = document.getElementById("statisticsTopCustomersList");
-  const moreBtn = document.getElementById("statisticsTopCustomersMoreBtn");
-  if (!list || !moreBtn) return;
-
-  const data = getData();
-  const allCustomers = getTopCustomers(data, Number.MAX_SAFE_INTEGER, 0);
-  const visibleCustomers = allCustomers.slice(0, statisticsState.topCustomersVisibleCount);
-
-  if (!visibleCustomers.length) {
-    list.innerHTML = `<div class="empty-state">Nog geen klantgegevens beschikbaar.</div>`;
-    moreBtn.classList.add("hidden");
-    return;
-  }
-
-  list.innerHTML = visibleCustomers.map((customer, index) => `
-    <div class="statistics-top-customer-row">
-      <div class="statistics-top-customer-main">
-        <span class="statistics-top-customer-rank">${index + 1}</span>
-        <span class="statistics-top-customer-name">${customer.name}</span>
-      </div>
-      <strong>${euro(customer.amount)}</strong>
-    </div>
-  `).join("");
-
-  moreBtn.classList.toggle("hidden", visibleCustomers.length >= allCustomers.length);
-}
-
 function renderRevenueFilters() {
   const data = getData();
   const paymentSel = document.getElementById("revenuePaymentFilter");
@@ -1801,6 +1743,16 @@ function renderRevenueChart(filtered, type, anchor) {
       <span><i class="unpaid"></i> Onbetaald</span>
     </div>
   `;
+
+  const bars = chartWrap.querySelector('.revenue-bars');
+  if (bars) {
+    bars.addEventListener('wheel', event => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (bars.scrollWidth <= bars.clientWidth) return;
+      event.preventDefault();
+      bars.scrollLeft += event.deltaY;
+    }, { passive: false });
+  }
 }
 
 function renderRevenue() {
@@ -1850,6 +1802,7 @@ function renderRevenue() {
       : `<div class="empty-state">Nog geen betaalgegevens.</div>`;
   }
 
+
   renderRevenueChart(filtered, type, anchor);
 }
 
@@ -1873,6 +1826,13 @@ function getStatisticsSummary(data = getData()) {
   });
   const paymentUsage = Object.entries(paymentUsageMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
+  const statusMap = {};
+  appointments.forEach(app => {
+    const label = String(app.status || 'Onbekend').trim() || 'Onbekend';
+    statusMap[label] = (statusMap[label] || 0) + 1;
+  });
+  const statusUsage = Object.entries(statusMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
+
   const revenueByServiceMap = {};
   paidAppointments.forEach(app => {
     const service = services.find(item => String(item.id) === String(app.serviceId));
@@ -1882,13 +1842,14 @@ function getStatisticsSummary(data = getData()) {
   const revenueByService = Object.entries(revenueByServiceMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
   return {
-    customerCount: customers.length,
     appointmentCount: appointments.length,
+    customerCount: customers.length,
     paidAppointmentCount: paidAppointments.length,
     paidRevenue,
     serviceUsage,
-    revenueByService,
-    paymentUsage
+    paymentUsage,
+    statusUsage,
+    revenueByService
   };
 }
 
@@ -1902,34 +1863,102 @@ function buildStatisticsDonut(items, valueFormatter = value => String(value)) {
     `;
   }
 
-  const palette = ['#d991ab', '#b86d87', '#f1bfd0', '#8c838d', '#df9db3', '#f8e8ee'];
-  let offset = 0;
-  const segments = safeItems.map((item, index) => {
-    const percentage = (Number(item.value || 0) / total) * 100;
-    const color = palette[index % palette.length];
-    const start = offset;
-    const end = offset + percentage;
-    offset = end;
-    return `${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
-  }).join(', ');
+  const palette = ['#d991ab', '#b86d87', '#f1bfd0', '#8c838d', '#df9db3', '#f8e8ee', '#c97b97', '#b3a1ac'];
+  const center = 100;
+  const radius = 90;
+  const innerRadius = 42;
+
+  const polarToCartesian = (cx, cy, r, angleDeg) => {
+    const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+    return {
+      x: cx + (r * Math.cos(angleRad)),
+      y: cy + (r * Math.sin(angleRad))
+    };
+  };
+
+  const describeArcSlice = (cx, cy, outerR, innerR, startAngle, endAngle) => {
+    const outerStart = polarToCartesian(cx, cy, outerR, endAngle);
+    const outerEnd = polarToCartesian(cx, cy, outerR, startAngle);
+    const innerStart = polarToCartesian(cx, cy, innerR, startAngle);
+    const innerEnd = polarToCartesian(cx, cy, innerR, endAngle);
+    const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+    return [
+      `M ${outerStart.x} ${outerStart.y}`,
+      `A ${outerR} ${outerR} 0 ${largeArcFlag} 0 ${outerEnd.x} ${outerEnd.y}`,
+      `L ${innerStart.x} ${innerStart.y}`,
+      `A ${innerR} ${innerR} 0 ${largeArcFlag} 1 ${innerEnd.x} ${innerEnd.y}`,
+      'Z'
+    ].join(' ');
+  };
+
+  let currentAngle = 0;
+  const slices = safeItems.map((item, index) => {
+    const value = Number(item.value || 0);
+    const percentage = (value / total) * 100;
+    const angle = (percentage / 100) * 360;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + angle;
+    currentAngle = endAngle;
+
+    const midAngle = startAngle + (angle / 2);
+    const labelRadius = innerRadius + ((radius - innerRadius) * 0.58);
+    const labelPoint = polarToCartesian(center, center, labelRadius, midAngle);
+
+    return {
+      ...item,
+      color: palette[index % palette.length],
+      percentage,
+      path: describeArcSlice(center, center, radius, innerRadius, startAngle, endAngle),
+      labelX: labelPoint.x,
+      labelY: labelPoint.y
+    };
+  });
 
   return `
     <div class="statistics-chart-layout">
-      <div class="statistics-donut" style="background: conic-gradient(${segments});">
+      <div class="statistics-donut-wrap">
+        <svg class="statistics-donut-svg" viewBox="0 0 200 200" aria-hidden="true">
+          ${slices.map(slice => `<path d="${slice.path}" fill="${slice.color}"></path>`).join('')}
+          ${slices.filter(slice => slice.percentage >= 6).map(slice => `
+            <text x="${slice.labelX.toFixed(1)}" y="${slice.labelY.toFixed(1)}" class="statistics-slice-label">${Math.round(slice.percentage)}%</text>
+          `).join('')}
+        </svg>
         <div class="statistics-donut-hole">${total}</div>
       </div>
       <div class="statistics-legend">
-        ${safeItems.slice(0, 6).map((item, index) => `
-          <div class="statistics-legend-row">
-            <span class="statistics-legend-label">
-              <i style="background:${palette[index % palette.length]}"></i>${item.label}
-            </span>
-            <strong>${valueFormatter(item.value)}</strong>
-          </div>
-        `).join('')}
+        ${safeItems.map((item, index) => {
+          const percentage = total > 0 ? (Number(item.value || 0) / total) * 100 : 0;
+          return `
+            <div class="statistics-legend-row">
+              <span class="statistics-legend-label">
+                <i style="background:${palette[index % palette.length]}"></i>${item.label}
+              </span>
+              <strong>${valueFormatter(item.value)} · ${Math.round(percentage)}%</strong>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
   `;
+}
+
+function getTopCustomers(data = getData()) {
+  const totals = new Map();
+  (data.appointments || []).forEach(appointment => {
+    if ((appointment.status || '').toLowerCase() === 'no-show') return;
+    const customer = customerById(data, appointment.customerId);
+    const name = customer ? fullName(customer) : 'Onbekend';
+    const current = totals.get(name) || { name, revenue: 0, appointments: 0, paidAppointments: 0 };
+    current.appointments += 1;
+    if (appointment.paid) {
+      current.paidAppointments += 1;
+      current.revenue += Number(appointment.price || 0);
+    }
+    totals.set(name, current);
+  });
+
+  return Array.from(totals.values()).sort((a, b) => (b.revenue - a.revenue) || (b.paidAppointments - a.paidAppointments) || (b.appointments - a.appointments) || a.name.localeCompare(b.name, 'nl-BE'));
 }
 
 function renderStatistics() {
@@ -1938,6 +1967,10 @@ function renderStatistics() {
 
   const data = getData();
   const summary = getStatisticsSummary(data);
+  const topCustomers = getTopCustomers(data);
+  const visibleCount = Math.max(10, Number(state.statsTopCustomersVisible) || 10);
+  const visibleCustomers = topCustomers.slice(0, visibleCount);
+  const hasMoreCustomers = visibleCustomers.length < topCustomers.length;
 
   wrap.innerHTML = `
     <section class="statistics-card statistics-kpi-grid">
@@ -1979,9 +2012,32 @@ function renderStatistics() {
       </div>
       ${buildStatisticsDonut(summary.paymentUsage)}
     </section>
+
+    <section class="statistics-card">
+      <div class="statistics-card-head">
+        <h2>Top klanten</h2>
+      </div>
+      <div class="statistics-top-customers">
+        ${visibleCustomers.length ? visibleCustomers.map((customer, index) => `
+          <div class="statistics-top-customer-row">
+            <span class="statistics-top-customer-rank">${index + 1}</span>
+            <span class="statistics-top-customer-name">${customer.name}</span>
+            <span class="statistics-top-customer-meta">${customer.appointments} afspraken</span>
+            <strong>${euro(customer.revenue)}</strong>
+          </div>
+        `).join('') : `<div class="statistics-empty">Nog geen klantgegevens beschikbaar.</div>`}
+      </div>
+      ${hasMoreCustomers ? `<div class="statistics-more-wrap"><button id="statisticsMoreCustomersBtn" class="ghost-btn" type="button">Meer...</button></div>` : ''}
+    </section>
   `;
 
-  renderStatisticsTopCustomers();
+  const moreBtn = document.getElementById('statisticsMoreCustomersBtn');
+  if (moreBtn) {
+    moreBtn.addEventListener('click', () => {
+      state.statsTopCustomersVisible = visibleCount + 10;
+      renderStatistics();
+    });
+  }
 }
 
 function notificationsSupported() {
@@ -3331,8 +3387,7 @@ function registerEvents() {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));
   });
 
-  document.getElementById("revenueDate").value = state.selectedDate || todayStr;
-  document.getElementById("revenuePeriodType").value = "day";
+  document.getElementById("revenueDate").value = todayStr;
 
   ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter", "revenueCustomerFilter"].forEach(id => {
     const el = document.getElementById(id);
@@ -3382,14 +3437,6 @@ function registerEvents() {
   if (revenueDayToggle) {
     revenueDayToggle.addEventListener("click", () => {
       openRevenueDayPicker();
-    });
-  }
-
-  const statisticsTopCustomersMoreBtn = document.getElementById("statisticsTopCustomersMoreBtn");
-  if (statisticsTopCustomersMoreBtn) {
-    statisticsTopCustomersMoreBtn.addEventListener("click", () => {
-      statisticsState.topCustomersVisibleCount += 10;
-      renderStatisticsTopCustomers();
     });
   }
 

@@ -2172,7 +2172,15 @@ button {
 
 .revenue-chart-wrap {
   min-height: 280px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
+
+.revenue-chart-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
 
 .revenue-bars {
   height: 260px;
@@ -2182,6 +2190,8 @@ button {
   overflow-x: auto;
   padding: 8px 4px 0;
   scrollbar-width: none;
+  width: max-content;
+  min-width: 100%;
 }
 
 .revenue-bars::-webkit-scrollbar {
@@ -2212,11 +2222,11 @@ button {
 }
 
 .revenue-bar-segment.paid {
-  background: var(--success-text);
+  background: #2d8b4e;
 }
 
 .revenue-bar-segment.unpaid {
-  background: var(--danger);
+  background: #d46a6a;
 }
 
 .revenue-bar-label {
@@ -2244,11 +2254,11 @@ button {
 }
 
 .revenue-chart-legend i.paid {
-  background: var(--success-text);
+  background: #2d8b4e;
 }
 
 .revenue-chart-legend i.unpaid {
-  background: var(--danger);
+  background: #d46a6a;
 }
 
 .revenue-list-head {
@@ -2697,16 +2707,16 @@ button {
   color: var(--text);
 }
 
- .statistics-chart-layout {
+.statistics-chart-layout {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
   align-items: center;
 }
 
 .statistics-donut {
-  width: 180px;
-  height: 180px;
+  width: 150px;
+  height: 150px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -2714,8 +2724,8 @@ button {
 }
 
 .statistics-donut-hole {
-  width: 96px;
-  height: 96px;
+  width: 84px;
+  height: 84px;
   border-radius: 999px;
   background: #fff;
   display: grid;
@@ -2767,70 +2777,4 @@ button {
   .statistics-chart-layout {
     grid-template-columns: 1fr;
   }
-
-  .statistics-donut {
-    width: min(80vw, 300px);
-    height: min(80vw, 300px);
-  }
-
-  .statistics-donut-hole {
-    width: min(42vw, 140px);
-    height: min(42vw, 140px);
-  }
-}
-
-
-.statistics-top-customers-card {
-  padding-top: 16px;
-}
-
-.statistics-top-customers-head h2 {
-  margin-bottom: 10px;
-}
-
-.statistics-top-customers-list {
-  display: grid;
-}
-
-.statistics-top-customer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0;
-  border-top: 1px solid #f1e5eb;
-}
-
-.statistics-top-customer-row:first-child {
-  border-top: none;
-}
-
-.statistics-top-customer-main {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.statistics-top-customer-rank {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-dark);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex: 0 0 auto;
-}
-
-.statistics-top-customer-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.statistics-top-customers-actions {
-  margin-top: 12px;
 }
