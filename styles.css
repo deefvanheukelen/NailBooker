@@ -2107,8 +2107,7 @@ button {
 
 .revenue-filter-card,
 .revenue-summary-card,
-.revenue-chart-card,
-.revenue-list-panel {
+.revenue-chart-card {
   background: #fff;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-card);
@@ -2124,6 +2123,10 @@ button {
   gap: 10px;
 }
 
+.revenue-filter-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .revenue-hidden-inputs {
   display: none;
 }
@@ -2132,36 +2135,30 @@ button {
   padding: 16px;
 }
 
-.revenue-summary-top {
+.revenue-summary-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.revenue-main-line {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
+.revenue-summary-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px 12px;
+  border: 1px solid #f0e3e9;
+  background: #fcfafb;
 }
 
-.revenue-main-line strong,
-.revenue-open-line strong {
-  font-size: 18px;
-  line-height: 1.2;
-}
-
-.revenue-main-line-secondary strong {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.revenue-main-label,
-.revenue-open-label {
+.revenue-summary-label {
   font-size: 14px;
   color: #59525a;
+}
+
+.revenue-summary-item strong {
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .revenue-method-breakdown {
@@ -2181,12 +2178,6 @@ button {
   font-weight: 500;
 }
 
-.revenue-open-line {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-top: 8px;
-}
 
 .revenue-chart-card {
   padding: 16px 12px 14px;
@@ -2302,29 +2293,10 @@ button {
   background: #d46a6a;
 }
 
-.revenue-list-head {
-  padding-bottom: 10px;
-}
-
-.revenue-customer-list {
-  padding-top: 0;
-}
-
-.revenue-customer-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-top: 1px solid #f1e5eb;
-  font-size: 14px;
-}
-
-.revenue-customer-row:first-child {
-  border-top: none;
-}
 
 @media (max-width: 420px) {
-  .revenue-summary-top {
+  .revenue-summary-grid,
+  .revenue-filter-grid-two {
     grid-template-columns: 1fr;
   }
 

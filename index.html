@@ -213,14 +213,40 @@
             </div>
           </section>
 
-          <section class="revenue-filter-card">
-            <div class="revenue-filter-grid">
-              <select id="revenuePaymentFilter" class="field compact-field">
-                <option value="">Alle betaalmethodes</option>
-              </select>
+          <section class="revenue-summary-card">
+            <div class="revenue-summary-grid">
+              <div class="revenue-summary-item">
+                <span class="revenue-summary-label">Totaal</span>
+                <strong id="plannedRevenue">€ 0,00</strong>
+              </div>
 
-              <select id="revenueCustomerFilter" class="field compact-field">
-                <option value="">Alle klanten</option>
+              <div class="revenue-summary-item">
+                <span class="revenue-summary-label">Betaald</span>
+                <strong id="paidRevenue">€ 0,00</strong>
+              </div>
+
+              <div class="revenue-summary-item">
+                <span class="revenue-summary-label">Onbetaald</span>
+                <strong id="openRevenue">€ 0,00</strong>
+              </div>
+            </div>
+
+            <div id="paymentMethodList" class="revenue-method-breakdown"></div>
+          </section>
+
+          <section class="revenue-chart-card">
+            <div class="revenue-chart-head">
+              <h2 id="revenueTitle">Omzet</h2>
+              <div id="revenueChartSubtitle" class="revenue-chart-subtitle">Per dag</div>
+            </div>
+
+            <div id="revenueChart" class="revenue-chart-wrap"></div>
+          </section>
+
+          <section class="revenue-filter-card">
+            <div class="revenue-filter-grid revenue-filter-grid-two">
+              <select id="revenuePaymentFilter" class="field compact-field">
+                <option value="">Alle betaalwijzen</option>
               </select>
 
               <select id="revenuePaymentStatusFilter" class="field compact-field">
@@ -239,45 +265,6 @@
               <input id="revenueDate" class="field compact-field" type="date" />
               <input id="revenueNativeDatePicker" class="field compact-field" type="date" />
             </div>
-          </section>
-
-          <section class="revenue-summary-card">
-            <div class="revenue-summary-top">
-              <div class="revenue-main-totals">
-                <div class="revenue-main-line">
-                  <span class="revenue-main-label">Totaal:</span>
-                  <strong id="plannedRevenue">€ 0,00</strong>
-                </div>
-
-                <div class="revenue-main-line revenue-main-line-secondary">
-                  <span class="revenue-main-label">Betaald:</span>
-                  <strong id="paidRevenue">€ 0,00</strong>
-                </div>
-              </div>
-
-              <div id="paymentMethodList" class="revenue-method-breakdown"></div>
-            </div>
-
-            <div class="revenue-open-line">
-              <span class="revenue-open-label">Onbetaald:</span>
-              <strong id="openRevenue">€ 0,00</strong>
-            </div>
-          </section>
-
-          <section class="revenue-chart-card">
-            <div class="revenue-chart-head">
-              <h2 id="revenueTitle">Omzet</h2>
-              <div id="revenueChartSubtitle" class="revenue-chart-subtitle">Per dag</div>
-            </div>
-
-            <div id="revenueChart" class="revenue-chart-wrap"></div>
-          </section>
-
-          <section class="revenue-list-panel">
-            <div class="section-head revenue-list-head">
-              <h2>Top klanten</h2>
-            </div>
-            <div id="revenueCustomerList" class="scroll-list revenue-customer-list"></div>
           </section>
         </section>
       </section>

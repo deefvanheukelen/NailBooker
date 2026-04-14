@@ -1428,7 +1428,6 @@ function revenueFilteredAppointments() {
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const paymentStatusFilter = document.getElementById("revenuePaymentStatusFilter").value;
   const paymentFilter = document.getElementById("revenuePaymentFilter").value;
-  const customerFilter = document.getElementById("revenueCustomerFilter").value;
 
   let filtered = data.appointments.filter(a => a.status !== "no-show");
 
@@ -1445,7 +1444,6 @@ function revenueFilteredAppointments() {
   if (paymentStatusFilter === "paid") filtered = filtered.filter(a => a.paid);
   if (paymentStatusFilter === "unpaid") filtered = filtered.filter(a => !a.paid);
   if (paymentFilter) filtered = filtered.filter(a => paymentMethodNameForAppointment(a, data) === paymentFilter);
-  if (customerFilter) filtered = filtered.filter(a => String(a.customerId) === String(customerFilter));
 
   return filtered;
 }
@@ -1453,9 +1451,7 @@ function revenueFilteredAppointments() {
 function renderRevenueFilters() {
   const data = getData();
   const paymentSel = document.getElementById("revenuePaymentFilter");
-  const customerSel = document.getElementById("revenueCustomerFilter");
   const existingPayment = paymentSel ? paymentSel.value : "";
-  const existingCustomer = customerSel ? customerSel.value : "";
 
   if (paymentSel) {
     paymentSel.innerHTML =
@@ -1464,16 +1460,6 @@ function renderRevenueFilters() {
     paymentSel.value = existingPayment;
   }
 
-  if (customerSel) {
-    customerSel.innerHTML =
-      `<option value="">Alle klanten</option>` +
-      data.customers
-        .slice()
-        .sort((a, b) => fullName(a).localeCompare(fullName(b)))
-        .map(c => `<option value="${c.id}">${fullName(c)}</option>`)
-        .join("");
-    customerSel.value = existingCustomer;
-  }
 }
 
 
