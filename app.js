@@ -43,6 +43,10 @@ const revenuePickerState = {
   selected: {}
 };
 
+const statisticsState = {
+  topCustomersVisibleCount: 10
+};
+
 const notificationTimers = new Map();
 let notificationHeartbeatId = null;
 
@@ -1088,10 +1092,12 @@ function switchScreen(screenId, title) {
   updateTopbar(screenId, title);
 
   if (screenId === "revenueScreen") {
+    syncRevenueWithAgendaSelection();
     renderRevenue();
   }
 
   if (screenId === "statisticsScreen") {
+    statisticsState.topCustomersVisibleCount = 10;
     renderStatistics();
   }
 
@@ -1443,6 +1449,62 @@ function revenueFilteredAppointments() {
   return filtered;
 }
 
+function syncRevenueWithAgendaSelection() {
+  const periodType = document.getElementById("revenuePeriodType");
+  const dateInput = document.getElementById("revenueDate");
+  if (!periodType || !dateInput) return;
+
+  periodType.value = "day";
+  dateInput.value = state.selectedDate || todayStr;
+}
+
+function getTopCustomers(data = getData(), limit = 10, offset = 0) {
+  const customerTotals = new Map();
+
+  (data.appointments || []).forEach(appointment => {
+    if ((appointment.status || "").toLowerCase() === "no-show") return;
+
+    const customer = customerById(data, appointment.customerId);
+    const name = customer ? fullName(customer) : "Onbekend";
+    const current = customerTotals.get(name) || { name, amount: 0, count: 0 };
+    current.amount += Number(appointment.price || 0);
+    current.count += 1;
+    customerTotals.set(name, current);
+  });
+
+  return Array.from(customerTotals.values())
+    .sort((a, b) => b.amount - a.amount || b.count - a.count || a.name.localeCompare(b.name, "nl-BE"))
+    .slice(offset, offset + limit);
+}
+
+function renderStatisticsTopCustomers() {
+  const list = document.getElementById("statisticsTopCustomersList");
+  const moreBtn = document.getElementById("statisticsTopCustomersMoreBtn");
+  if (!list || !moreBtn) return;
+
+  const data = getData();
+  const allCustomers = getTopCustomers(data, Number.MAX_SAFE_INTEGER, 0);
+  const visibleCustomers = allCustomers.slice(0, statisticsState.topCustomersVisibleCount);
+
+  if (!visibleCustomers.length) {
+    list.innerHTML = `<div class="empty-state">Nog geen klantgegevens beschikbaar.</div>`;
+    moreBtn.classList.add("hidden");
+    return;
+  }
+
+  list.innerHTML = visibleCustomers.map((customer, index) => `
+    <div class="statistics-top-customer-row">
+      <div class="statistics-top-customer-main">
+        <span class="statistics-top-customer-rank">${index + 1}</span>
+        <span class="statistics-top-customer-name">${customer.name}</span>
+      </div>
+      <strong>${euro(customer.amount)}</strong>
+    </div>
+  `).join("");
+
+  moreBtn.classList.toggle("hidden", visibleCustomers.length >= allCustomers.length);
+}
+
 function renderRevenueFilters() {
   const data = getData();
   const paymentSel = document.getElementById("revenuePaymentFilter");
@@ -1747,7 +1809,6 @@ function renderRevenue() {
 
   const data = getData();
   const methodList = document.getElementById("paymentMethodList");
-  const customerList = document.getElementById("revenueCustomerList");
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const filtered = revenueFilteredAppointments();
@@ -1789,25 +1850,6 @@ function renderRevenue() {
       : `<div class="empty-state">Nog geen betaalgegevens.</div>`;
   }
 
-  const customerTotals = {};
-  filtered.forEach(a => {
-    const customer = customerById(data, a.customerId);
-    const key = customer ? fullName(customer) : "Onbekend";
-    customerTotals[key] = (customerTotals[key] || 0) + Number(a.price || 0);
-  });
-
-  if (customerList) {
-    const entries = Object.entries(customerTotals).sort((a, b) => b[1] - a[1]);
-    customerList.innerHTML = entries.length
-      ? entries.map(([name, amount]) => `
-          <div class="revenue-customer-row">
-            <span>${name}</span>
-            <strong>${euro(amount)}</strong>
-          </div>
-        `).join("")
-      : `<div class="empty-state">Geen klantgegevens voor deze selectie.</div>`;
-  }
-
   renderRevenueChart(filtered, type, anchor);
 }
 
@@ -1831,13 +1873,6 @@ function getStatisticsSummary(data = getData()) {
   });
   const paymentUsage = Object.entries(paymentUsageMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
-  const statusMap = {};
-  appointments.forEach(app => {
-    const label = String(app.status || 'Onbekend').trim() || 'Onbekend';
-    statusMap[label] = (statusMap[label] || 0) + 1;
-  });
-  const statusUsage = Object.entries(statusMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
-
   const revenueByServiceMap = {};
   paidAppointments.forEach(app => {
     const service = services.find(item => String(item.id) === String(app.serviceId));
@@ -1847,14 +1882,13 @@ function getStatisticsSummary(data = getData()) {
   const revenueByService = Object.entries(revenueByServiceMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
   return {
-    appointmentCount: appointments.length,
     customerCount: customers.length,
+    appointmentCount: appointments.length,
     paidAppointmentCount: paidAppointments.length,
     paidRevenue,
     serviceUsage,
-    paymentUsage,
-    statusUsage,
-    revenueByService
+    revenueByService,
+    paymentUsage
   };
 }
 
@@ -1908,12 +1942,12 @@ function renderStatistics() {
   wrap.innerHTML = `
     <section class="statistics-card statistics-kpi-grid">
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">Afspraken</span>
-        <strong>${summary.appointmentCount}</strong>
-      </div>
-      <div class="statistics-kpi">
         <span class="statistics-kpi-label">Aantal klanten</span>
         <strong>${summary.customerCount}</strong>
+      </div>
+      <div class="statistics-kpi">
+        <span class="statistics-kpi-label">Aantal afspraken</span>
+        <strong>${summary.appointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
         <span class="statistics-kpi-label">Betaalde afspraken</span>
@@ -1927,23 +1961,9 @@ function renderStatistics() {
 
     <section class="statistics-card">
       <div class="statistics-card-head">
-        <h2>Meest gekozen behandelingen</h2>
+        <h2>Gekozen behandelingen</h2>
       </div>
       ${buildStatisticsDonut(summary.serviceUsage)}
-    </section>
-
-    <section class="statistics-card">
-      <div class="statistics-card-head">
-        <h2>Meest gekozen betaalwijze</h2>
-      </div>
-      ${buildStatisticsDonut(summary.paymentUsage)}
-    </section>
-
-    <section class="statistics-card">
-      <div class="statistics-card-head">
-        <h2>Afspraakstatussen</h2>
-      </div>
-      ${buildStatisticsDonut(summary.statusUsage)}
     </section>
 
     <section class="statistics-card">
@@ -1952,7 +1972,16 @@ function renderStatistics() {
       </div>
       ${buildStatisticsDonut(summary.revenueByService, value => euro(value))}
     </section>
+
+    <section class="statistics-card">
+      <div class="statistics-card-head">
+        <h2>Gekozen betaalwijze</h2>
+      </div>
+      ${buildStatisticsDonut(summary.paymentUsage)}
+    </section>
   `;
+
+  renderStatisticsTopCustomers();
 }
 
 function notificationsSupported() {
@@ -3302,7 +3331,8 @@ function registerEvents() {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));
   });
 
-  document.getElementById("revenueDate").value = todayStr;
+  document.getElementById("revenueDate").value = state.selectedDate || todayStr;
+  document.getElementById("revenuePeriodType").value = "day";
 
   ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter", "revenueCustomerFilter"].forEach(id => {
     const el = document.getElementById(id);
@@ -3352,6 +3382,14 @@ function registerEvents() {
   if (revenueDayToggle) {
     revenueDayToggle.addEventListener("click", () => {
       openRevenueDayPicker();
+    });
+  }
+
+  const statisticsTopCustomersMoreBtn = document.getElementById("statisticsTopCustomersMoreBtn");
+  if (statisticsTopCustomersMoreBtn) {
+    statisticsTopCustomersMoreBtn.addEventListener("click", () => {
+      statisticsState.topCustomersVisibleCount += 10;
+      renderStatisticsTopCustomers();
     });
   }
 
