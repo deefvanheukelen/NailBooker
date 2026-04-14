@@ -1937,20 +1937,34 @@ function buildStatisticsDonut(items, valueFormatter = value => String(value)) {
 
 function getTopCustomers(data = getData()) {
   const totals = new Map();
+
+  (data.customers || []).forEach(customer => {
+    const name = fullName(customer) || 'Onbekend';
+    totals.set(String(customer.id), {
+      id: customer.id,
+      name,
+      revenue: 0,
+      appointments: 0,
+      paidAppointments: 0
+    });
+  });
+
   (data.appointments || []).forEach(appointment => {
     if ((appointment.status || '').toLowerCase() === 'no-show') return;
     const customer = customerById(data, appointment.customerId);
+    const key = customer ? String(customer.id) : `unknown-${appointment.customerId || appointment.id}`;
     const name = customer ? fullName(customer) : 'Onbekend';
-    const current = totals.get(name) || { name, revenue: 0, appointments: 0, paidAppointments: 0 };
+    const current = totals.get(key) || { id: appointment.customerId || null, name, revenue: 0, appointments: 0, paidAppointments: 0 };
     current.appointments += 1;
     if (appointment.paid) {
       current.paidAppointments += 1;
       current.revenue += Number(appointment.price || 0);
     }
-    totals.set(name, current);
+    totals.set(key, current);
   });
 
-  return Array.from(totals.values()).sort((a, b) => (b.revenue - a.revenue) || (b.paidAppointments - a.paidAppointments) || (b.appointments - a.appointments) || a.name.localeCompare(b.name, 'nl-BE'));
+  return Array.from(totals.values())
+    .sort((a, b) => (b.revenue - a.revenue) || (b.paidAppointments - a.paidAppointments) || (b.appointments - a.appointments) || a.name.localeCompare(b.name, 'nl-BE'));
 }
 
 function renderStatistics() {
@@ -1963,6 +1977,7 @@ function renderStatistics() {
   const visibleCount = Math.max(10, Number(state.statsTopCustomersVisible) || 10);
   const visibleCustomers = topCustomers.slice(0, visibleCount);
   const hasMoreCustomers = visibleCustomers.length < topCustomers.length;
+  const canShowLessCustomers = visibleCount > 10 && topCustomers.length > 10;
 
   wrap.innerHTML = `
     <section class="statistics-card statistics-kpi-grid">
@@ -2018,14 +2033,27 @@ function renderStatistics() {
           </div>
         `).join('') : `<div class="statistics-empty">Nog geen klantgegevens beschikbaar.</div>`}
       </div>
-      ${hasMoreCustomers ? `<div class="statistics-more-wrap"><button id="statisticsMoreCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Meer...</button></div>` : ''}
+      ${(hasMoreCustomers || canShowLessCustomers) ? `
+        <div class="statistics-more-wrap">
+          ${hasMoreCustomers ? `<button id="statisticsMoreCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Meer...</button>` : ''}
+          ${canShowLessCustomers ? `<button id="statisticsLessCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Minder</button>` : ''}
+        </div>
+      ` : ''}
     </section>
   `;
 
   const moreBtn = document.getElementById('statisticsMoreCustomersBtn');
   if (moreBtn) {
     moreBtn.addEventListener('click', () => {
-      state.statsTopCustomersVisible = visibleCount + 10;
+      state.statsTopCustomersVisible = Math.min(topCustomers.length, visibleCount + 10);
+      renderStatistics();
+    });
+  }
+
+  const lessBtn = document.getElementById('statisticsLessCustomersBtn');
+  if (lessBtn) {
+    lessBtn.addEventListener('click', () => {
+      state.statsTopCustomersVisible = Math.max(10, visibleCount - 10);
       renderStatistics();
     });
   }
@@ -2369,34 +2397,36 @@ function openClientDetail(clientId) {
     .filter(a => String(a.customerId) === String(clientId))
     .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
+  const safeNote = escapeHtml(client.note || '-').replace(/\n/g, '<br>');
+
   content.innerHTML = `
     <div class="client-detail-page">
 
       <div class="client-detail-card">
         <div class="client-detail-table">
-          <div class="client-detail-row">
-            <div class="client-detail-label">Voornaam:</div>
-            <div class="client-detail-value">${client.firstName || "-"}</div>
+          <div class="client-detail-row client-detail-row-stacked">
+            <div class="client-detail-label">Voornaam</div>
+            ${renderClientContactValue('text', client.firstName || '-')}
           </div>
 
-          <div class="client-detail-row">
-            <div class="client-detail-label">Naam:</div>
-            <div class="client-detail-value">${client.lastName || "-"}</div>
+          <div class="client-detail-row client-detail-row-stacked">
+            <div class="client-detail-label">Naam</div>
+            ${renderClientContactValue('text', client.lastName || '-')}
           </div>
 
-          <div class="client-detail-row">
-            <div class="client-detail-label">Telefoon:</div>
-            <div class="client-detail-value">${client.phone || "-"}</div>
+          <div class="client-detail-row client-detail-row-stacked">
+            <div class="client-detail-label">Telefoon</div>
+            ${renderClientContactValue('phone', client.phone || '')}
           </div>
 
-          <div class="client-detail-row">
-            <div class="client-detail-label">E-mail:</div>
-            <div class="client-detail-value">${client.email || "-"}</div>
+          <div class="client-detail-row client-detail-row-stacked">
+            <div class="client-detail-label">E-mail</div>
+            ${renderClientContactValue('email', client.email || '')}
           </div>
 
           <div class="client-detail-note-block">
-            <div class="client-detail-label">Notitie:</div>
-            <div class="client-detail-note">${(client.note || "-").replace(/\n/g, "<br>")}</div>
+            <div class="client-detail-label">Notitie</div>
+            <div class="client-detail-note">${safeNote}</div>
           </div>
         </div>
 
@@ -2412,8 +2442,8 @@ function openClientDetail(clientId) {
           <div class="client-appointments-title">AFSPRAKEN</div>
           <div class="client-appointments-count">${appts.length} totaal</div>
         </div>
-		
-		<div class="client-new-appointment-bar">
+
+        <div class="client-new-appointment-bar">
           <button
             class="btn btn-primary client-new-appointment-btn"
             id="newClientAppointmentBtn"

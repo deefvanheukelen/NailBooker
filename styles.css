@@ -2889,7 +2889,9 @@ button {
 .statistics-more-wrap {
   display: flex;
   justify-content: center;
+  gap: 10px;
   padding-top: 14px;
+  flex-wrap: wrap;
 }
 
 .statistics-more-btn {
