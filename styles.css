@@ -1838,39 +1838,6 @@ button {
   padding: 10px 0 0;
 }
 
-.client-detail-contact-value {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.client-detail-contact-text {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.client-detail-contact-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-}
-
-.client-contact-action {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  background: var(--primary-soft);
-  border: 1px solid var(--line);
-  font-size: 16px;
-}
-
 .client-detail-note {
   margin-top: 6px;
   color: var(--text);
@@ -2107,7 +2074,8 @@ button {
 
 .revenue-filter-card,
 .revenue-summary-card,
-.revenue-chart-card {
+.revenue-chart-card,
+.revenue-list-panel {
   background: #fff;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-card);
@@ -2123,36 +2091,31 @@ button {
   gap: 10px;
 }
 
-.revenue-filter-grid-two {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .revenue-hidden-inputs {
   display: none;
+}
+
+.revenue-filter-grid-two {
+  grid-template-columns: 1fr 1fr;
 }
 
 .revenue-summary-card {
   padding: 16px;
 }
 
-.revenue-summary-grid {
+.revenue-summary-top {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
+  align-items: stretch;
 }
 
 .revenue-summary-item {
   display: grid;
   gap: 6px;
   padding: 14px 12px;
-  border: 1px solid #f0e3e9;
-  background: #fcfafb;
-}
-
-.revenue-summary-label {
-  font-size: 14px;
-  color: #59525a;
+  border: 1px solid #f0e4ea;
+  background: #fbf7f9;
 }
 
 .revenue-summary-item strong {
@@ -2161,9 +2124,16 @@ button {
   font-weight: 700;
 }
 
+.revenue-main-label {
+  font-size: 14px;
+  color: #59525a;
+  font-weight: 600;
+}
+
 .revenue-method-breakdown {
   display: grid;
   gap: 4px;
+  margin-top: 14px;
 }
 
 .revenue-method-row {
@@ -2177,7 +2147,6 @@ button {
 .revenue-method-row strong {
   font-weight: 500;
 }
-
 
 .revenue-chart-card {
   padding: 16px 12px 14px;
@@ -2293,9 +2262,11 @@ button {
   background: #d46a6a;
 }
 
-
 @media (max-width: 420px) {
-  .revenue-summary-grid,
+  .revenue-summary-top {
+    grid-template-columns: 1fr;
+  }
+
   .revenue-filter-grid-two {
     grid-template-columns: 1fr;
   }

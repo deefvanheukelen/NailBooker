@@ -2380,39 +2380,6 @@ function updateClientActionBar(client = null) {
 function renderClientContactValue(type, value) {
   const safeValue = String(value || '').trim();
   if (!safeValue) return `<div class="client-detail-value">-</div>`;
-
-  if (type === 'phone') {
-    const hrefValue = normalizePhoneHref(safeValue);
-    const telHref = hrefValue ? `tel:${hrefValue}` : '';
-    const smsHref = hrefValue ? `sms:${hrefValue}` : '';
-    return `
-      <div class="client-detail-value client-detail-contact-value">
-        <span class="client-detail-contact-text">${escapeHtml(safeValue)}</span>
-        <span class="client-detail-contact-actions">
-          ${telHref ? `<a class="client-contact-action" href="${telHref}" aria-label="Bel ${escapeHtml(safeValue)}" title="Bellen">
-            <span aria-hidden="true">📞</span>
-          </a>` : ''}
-          ${smsHref ? `<a class="client-contact-action" href="${smsHref}" aria-label="Stuur sms naar ${escapeHtml(safeValue)}" title="Sms sturen">
-            <span aria-hidden="true">💬</span>
-          </a>` : ''}
-        </span>
-      </div>
-    `;
-  }
-
-  if (type === 'email') {
-    return `
-      <div class="client-detail-value client-detail-contact-value">
-        <span class="client-detail-contact-text">${escapeHtml(safeValue)}</span>
-        <span class="client-detail-contact-actions">
-          <a class="client-contact-action" href="mailto:${escapeHtml(safeValue)}" aria-label="Mail naar ${escapeHtml(safeValue)}" title="E-mail sturen">
-            <span aria-hidden="true">✉️</span>
-          </a>
-        </span>
-      </div>
-    `;
-  }
-
   return `<div class="client-detail-value">${escapeHtml(safeValue)}</div>`;
 }
 
@@ -3496,7 +3463,7 @@ function registerEvents() {
 
   document.getElementById("revenueDate").value = todayStr;
 
-  ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter", "revenueCustomerFilter"].forEach(id => {
+  ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
