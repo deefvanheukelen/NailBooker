@@ -2011,16 +2011,14 @@ function renderStatistics() {
       </div>
       <div class="statistics-top-customers">
         ${visibleCustomers.length ? visibleCustomers.map((customer, index) => `
-          <div class="statistics-top-customer-row revenue-customer-row">
-            <div class="statistics-top-customer-main">
-              <div class="statistics-top-customer-name">${index + 1}. ${customer.name}</div>
-              <div class="statistics-top-customer-meta">${customer.appointments} afspraken</div>
-            </div>
+          <div class="statistics-top-customer-row">
+            <div class="statistics-top-customer-rank">${index + 1}</div>
+            <div class="statistics-top-customer-name">${customer.name}</div>
             <strong class="statistics-top-customer-amount">${euro(customer.revenue)}</strong>
           </div>
         `).join('') : `<div class="statistics-empty">Nog geen klantgegevens beschikbaar.</div>`}
       </div>
-      ${hasMoreCustomers ? `<div class="statistics-more-wrap"><button id="statisticsMoreCustomersBtn" class="ghost-btn" type="button">Meer...</button></div>` : ''}
+      ${hasMoreCustomers ? `<div class="statistics-more-wrap"><button id="statisticsMoreCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Meer...</button></div>` : ''}
     </section>
   `;
 
@@ -2304,6 +2302,59 @@ async function saveSettingsFromForm(event) {
 // =============================
 // CLIENT DETAIL SCREEN UPDATE
 // =============================
+
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizePhoneHref(phone) {
+  return String(phone || '').replace(/[^+\d]/g, '');
+}
+
+function renderClientContactValue(type, value) {
+  const safeValue = String(value || '').trim();
+  if (!safeValue) return `<div class="client-detail-value">-</div>`;
+
+  if (type === 'phone') {
+    const hrefValue = normalizePhoneHref(safeValue);
+    const telHref = hrefValue ? `tel:${hrefValue}` : '';
+    const smsHref = hrefValue ? `sms:${hrefValue}` : '';
+    return `
+      <div class="client-detail-value client-detail-contact-value">
+        <span class="client-detail-contact-text">${escapeHtml(safeValue)}</span>
+        <span class="client-detail-contact-actions">
+          ${telHref ? `<a class="client-contact-action" href="${telHref}" aria-label="Bel ${escapeHtml(safeValue)}" title="Bellen">
+            <span aria-hidden="true">📞</span>
+          </a>` : ''}
+          ${smsHref ? `<a class="client-contact-action" href="${smsHref}" aria-label="Stuur sms naar ${escapeHtml(safeValue)}" title="Sms sturen">
+            <span aria-hidden="true">💬</span>
+          </a>` : ''}
+        </span>
+      </div>
+    `;
+  }
+
+  if (type === 'email') {
+    return `
+      <div class="client-detail-value client-detail-contact-value">
+        <span class="client-detail-contact-text">${escapeHtml(safeValue)}</span>
+        <span class="client-detail-contact-actions">
+          <a class="client-contact-action" href="mailto:${escapeHtml(safeValue)}" aria-label="Mail naar ${escapeHtml(safeValue)}" title="E-mail sturen">
+            <span aria-hidden="true">✉️</span>
+          </a>
+        </span>
+      </div>
+    `;
+  }
+
+  return `<div class="client-detail-value">${escapeHtml(safeValue)}</div>`;
+}
 
 function openClientDetail(clientId) {
   state.selectedClientId = clientId;
