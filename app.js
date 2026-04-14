@@ -1113,6 +1113,7 @@ function switchScreen(screenId, title) {
 
   const activeClient = state.selectedClientId ? customerById(getData(), state.selectedClientId) : null;
   updateClientActionBar(activeClient);
+  updateRevenueActionBar();
 }
 
 function renderCalendar() {
@@ -1742,6 +1743,80 @@ function renderRevenueChart(filtered, type, anchor) {
       bars.scrollLeft += event.deltaY;
     }, { passive: false });
   }
+}
+
+function updateRevenueActionBar() {
+  const bar = document.getElementById('revenueActionBar');
+  const button = document.getElementById('revenueExportCsvBtn');
+  if (!bar || !button) return;
+
+  const shouldShow = state.currentScreen === 'revenueScreen';
+  bar.classList.toggle('hidden', !shouldShow);
+  button.disabled = !shouldShow;
+}
+
+function getRevenueExportTitle() {
+  const type = document.getElementById("revenuePeriodType")?.value || 'day';
+  const anchor = document.getElementById("revenueDate")?.value || todayStr;
+
+  if (type === 'year') return `omzet_${anchor.slice(0, 4)}`;
+  if (type === 'month') return `omzet_${anchor.slice(0, 7)}`;
+  return `omzet_${anchor}`;
+}
+
+function csvEscape(value) {
+  const safe = String(value ?? '').replace(/"/g, '""');
+  return `"${safe}"`;
+}
+
+function downloadRevenueCsv() {
+  const data = getData();
+  const filtered = revenueFilteredAppointments()
+    .slice()
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+  const paymentStatusFilter = document.getElementById('revenuePaymentStatusFilter')?.value || '';
+  const paymentFilter = document.getElementById('revenuePaymentFilter')?.value || '';
+  const periodType = document.getElementById('revenuePeriodType')?.value || 'day';
+  const periodDate = document.getElementById('revenueDate')?.value || todayStr;
+
+  const rows = [
+    ['Periode type', periodType],
+    ['Periode datum', periodDate],
+    ['Filter betaalstatus', paymentStatusFilter || 'alle'],
+    ['Filter betaalwijze', paymentFilter || 'alle'],
+    [],
+    ['Datum', 'Tijd', 'Klant', 'Dienst', 'Prijs', 'Betaald', 'Betaalwijze', 'Status']
+  ];
+
+  filtered.forEach(app => {
+    const customer = customerById(data, app.customerId);
+    const service = serviceById(data, app.serviceId);
+    rows.push([
+      app.date || '',
+      app.time || '',
+      customer ? fullName(customer) : 'Onbekend',
+      service?.name || '',
+      Number(app.price || 0).toFixed(2).replace('.', ','),
+      app.paid ? 'Ja' : 'Nee',
+      paymentMethodNameForAppointment(app, data) || '',
+      app.status || ''
+    ]);
+  });
+
+  const csv = rows
+    .map(row => row.map(value => csvEscape(value)).join(';'))
+    .join('\r\n');
+
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${getRevenueExportTitle()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 function renderRevenue() {
@@ -3530,6 +3605,11 @@ function registerEvents() {
       if (!pickedDate) return;
       setRevenuePeriod("day", pickedDate);
     });
+  }
+
+  const revenueExportCsvBtn = document.getElementById("revenueExportCsvBtn");
+  if (revenueExportCsvBtn) {
+    revenueExportCsvBtn.addEventListener("click", downloadRevenueCsv);
   }
 
   const registerBtn = document.getElementById("registerBtn");

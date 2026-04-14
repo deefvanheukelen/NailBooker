@@ -2957,3 +2957,42 @@ button {
     height: 30px;
   }
 }
+
+
+.revenue-action-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.revenue-action-btn-csv {
+  background: #0a9f13;
+}
+
+.revenue-action-svg-csv {
+  width: 31px;
+  height: 31px;
+}
+
+@media (max-width: 420px) {
+  .revenue-action-bar {
+    gap: 10px;
+  }
+
+  .revenue-action-svg-csv {
+    width: 28px;
+    height: 28px;
+  }
+}
