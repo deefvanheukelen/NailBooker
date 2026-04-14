@@ -1901,17 +1901,11 @@ function buildStatisticsDonut(items, valueFormatter = value => String(value)) {
     const endAngle = currentAngle + angle;
     currentAngle = endAngle;
 
-    const midAngle = startAngle + (angle / 2);
-    const labelRadius = innerRadius + ((radius - innerRadius) * 0.58);
-    const labelPoint = polarToCartesian(center, center, labelRadius, midAngle);
-
     return {
       ...item,
       color: palette[index % palette.length],
       percentage,
-      path: describeArcSlice(center, center, radius, innerRadius, startAngle, endAngle),
-      labelX: labelPoint.x,
-      labelY: labelPoint.y
+      path: describeArcSlice(center, center, radius, innerRadius, startAngle, endAngle)
     };
   });
 
@@ -1920,21 +1914,19 @@ function buildStatisticsDonut(items, valueFormatter = value => String(value)) {
       <div class="statistics-donut-wrap">
         <svg class="statistics-donut-svg" viewBox="0 0 200 200" aria-hidden="true">
           ${slices.map(slice => `<path d="${slice.path}" fill="${slice.color}"></path>`).join('')}
-          ${slices.filter(slice => slice.percentage >= 6).map(slice => `
-            <text x="${slice.labelX.toFixed(1)}" y="${slice.labelY.toFixed(1)}" class="statistics-slice-label">${Math.round(slice.percentage)}%</text>
-          `).join('')}
         </svg>
-        <div class="statistics-donut-hole">${total}</div>
+        <div class="statistics-donut-hole">${valueFormatter(total)}</div>
       </div>
-      <div class="statistics-legend">
+      <div class="statistics-legend statistics-legend-table" role="table" aria-label="Overzicht diagramgegevens">
         ${safeItems.map((item, index) => {
           const percentage = total > 0 ? (Number(item.value || 0) / total) * 100 : 0;
           return `
-            <div class="statistics-legend-row">
-              <span class="statistics-legend-label">
+            <div class="statistics-legend-row" role="row">
+              <span class="statistics-legend-label" role="cell">
                 <i style="background:${palette[index % palette.length]}"></i>${item.label}
               </span>
-              <strong>${valueFormatter(item.value)} · ${Math.round(percentage)}%</strong>
+              <strong class="statistics-legend-value" role="cell">${valueFormatter(item.value)}</strong>
+              <span class="statistics-legend-percentage" role="cell">${Math.round(percentage)}%</span>
             </div>
           `;
         }).join('')}
@@ -2019,11 +2011,12 @@ function renderStatistics() {
       </div>
       <div class="statistics-top-customers">
         ${visibleCustomers.length ? visibleCustomers.map((customer, index) => `
-          <div class="statistics-top-customer-row">
-            <span class="statistics-top-customer-rank">${index + 1}</span>
-            <span class="statistics-top-customer-name">${customer.name}</span>
-            <span class="statistics-top-customer-meta">${customer.appointments} afspraken</span>
-            <strong>${euro(customer.revenue)}</strong>
+          <div class="statistics-top-customer-row revenue-customer-row">
+            <div class="statistics-top-customer-main">
+              <div class="statistics-top-customer-name">${index + 1}. ${customer.name}</div>
+              <div class="statistics-top-customer-meta">${customer.appointments} afspraken</div>
+            </div>
+            <strong class="statistics-top-customer-amount">${euro(customer.revenue)}</strong>
           </div>
         `).join('') : `<div class="statistics-empty">Nog geen klantgegevens beschikbaar.</div>`}
       </div>
