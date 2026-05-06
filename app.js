@@ -1747,12 +1747,14 @@ function renderRevenueChart(filtered, type, anchor) {
 
 function updateRevenueActionBar() {
   const bar = document.getElementById('revenueActionBar');
-  const button = document.getElementById('revenueExportCsvBtn');
-  if (!bar || !button) return;
+  const csvButton = document.getElementById('revenueExportCsvBtn');
+  const reportButton = document.getElementById('revenueExportReportBtn');
+  if (!bar) return;
 
   const shouldShow = state.currentScreen === 'revenueScreen';
   bar.classList.toggle('hidden', !shouldShow);
-  button.disabled = !shouldShow;
+  if (csvButton) csvButton.disabled = !shouldShow;
+  if (reportButton) reportButton.disabled = !shouldShow;
 }
 
 function getRevenueExportTitle() {
@@ -1780,14 +1782,115 @@ function downloadRevenueCsv() {
   const periodType = document.getElementById('revenuePeriodType')?.value || 'day';
   const periodDate = document.getElementById('revenueDate')?.value || todayStr;
 
+  const amountForCsv = (value) => Number(value || 0).toFixed(2).replace('.', ',');
+  const sumAmount = (items, predicate = () => true) => items
+    .filter(predicate)
+    .reduce((sum, app) => sum + Number(app.price || 0), 0);
+
+  const totalRevenue = sumAmount(filtered);
+  const paidRevenue = sumAmount(filtered, app => app.paid);
+  const unpaidRevenue = sumAmount(filtered, app => !app.paid);
+
   const rows = [
     ['Periode type', periodType],
     ['Periode datum', periodDate],
     ['Filter betaalstatus', paymentStatusFilter || 'alle'],
     ['Filter betaalwijze', paymentFilter || 'alle'],
     [],
-    ['Datum', 'Tijd', 'Klant', 'Dienst', 'Prijs', 'Betaald', 'Betaalwijze', 'Status']
+    ['OVERZICHT'],
+    ['Aantal afspraken', filtered.length],
+    ['Som totaal', amountForCsv(totalRevenue)],
+    ['Som betaald', amountForCsv(paidRevenue)],
+    ['Som onbetaald', amountForCsv(unpaidRevenue)],
+    []
   ];
+
+  const paymentTotals = new Map();
+  filtered.forEach(app => {
+    const method = app.paid ? (paymentMethodNameForAppointment(app, data) || 'Onbekend') : 'Onbetaald';
+    const current = paymentTotals.get(method) || { count: 0, total: 0, paid: 0, unpaid: 0 };
+    current.count += 1;
+    current.total += Number(app.price || 0);
+    if (app.paid) current.paid += Number(app.price || 0);
+    if (!app.paid) current.unpaid += Number(app.price || 0);
+    paymentTotals.set(method, current);
+  });
+
+  rows.push(['TOTALEN PER BETAALWIJZE']);
+  rows.push(['Betaalwijze', 'Aantal afspraken', 'Totaal', 'Betaald', 'Onbetaald']);
+  if (paymentTotals.size) {
+    Array.from(paymentTotals.entries())
+      .sort(([a], [b]) => a.localeCompare(b, 'nl-BE'))
+      .forEach(([method, values]) => {
+        rows.push([
+          method,
+          values.count,
+          amountForCsv(values.total),
+          amountForCsv(values.paid),
+          amountForCsv(values.unpaid)
+        ]);
+      });
+  } else {
+    rows.push(['Geen gegevens', 0, amountForCsv(0), amountForCsv(0), amountForCsv(0)]);
+  }
+  rows.push([]);
+
+  const periodTotals = new Map();
+  filtered.forEach(app => {
+    let key = app.date || '';
+    let label = app.date || '';
+
+    if (periodType === 'year') {
+      key = String(app.date || '').slice(0, 7);
+      const monthNumber = Number(key.slice(5, 7));
+      label = monthNumber ? `${longMonthNames[monthNumber - 1]} ${key.slice(0, 4)}` : key;
+    } else if (periodType === 'month') {
+      label = app.date ? formatLongDate(app.date) : '';
+    } else {
+      label = app.time || app.date || '';
+    }
+
+    const current = periodTotals.get(key) || { label, count: 0, total: 0, paid: 0, unpaid: 0 };
+    current.count += 1;
+    current.total += Number(app.price || 0);
+    if (app.paid) current.paid += Number(app.price || 0);
+    if (!app.paid) current.unpaid += Number(app.price || 0);
+    periodTotals.set(key, current);
+  });
+
+  const periodOverviewTitle =
+    periodType === 'year' ? 'TOTALEN PER MAAND' :
+    periodType === 'month' ? 'TOTALEN PER DAG' :
+    'TOTALEN PER AFSPRAAKMOMENT';
+
+  rows.push([periodOverviewTitle]);
+  rows.push([
+    periodType === 'year' ? 'Maand' : periodType === 'month' ? 'Datum' : 'Tijd',
+    'Aantal afspraken',
+    'Totaal',
+    'Betaald',
+    'Onbetaald'
+  ]);
+
+  if (periodTotals.size) {
+    Array.from(periodTotals.entries())
+      .sort(([a], [b]) => a.localeCompare(b, 'nl-BE'))
+      .forEach(([, values]) => {
+        rows.push([
+          values.label,
+          values.count,
+          amountForCsv(values.total),
+          amountForCsv(values.paid),
+          amountForCsv(values.unpaid)
+        ]);
+      });
+  } else {
+    rows.push(['Geen gegevens', 0, amountForCsv(0), amountForCsv(0), amountForCsv(0)]);
+  }
+
+  rows.push([]);
+  rows.push(['DETAIL AFSPRAKEN']);
+  rows.push(['Datum', 'Tijd', 'Klant', 'Dienst', 'Prijs', 'Betaald', 'Betaalwijze', 'Status']);
 
   filtered.forEach(app => {
     const customer = customerById(data, app.customerId);
@@ -1797,7 +1900,7 @@ function downloadRevenueCsv() {
       app.time || '',
       customer ? fullName(customer) : 'Onbekend',
       service?.name || '',
-      Number(app.price || 0).toFixed(2).replace('.', ','),
+      amountForCsv(app.price),
       app.paid ? 'Ja' : 'Nee',
       paymentMethodNameForAppointment(app, data) || '',
       app.status || ''
@@ -1813,6 +1916,560 @@ function downloadRevenueCsv() {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${getRevenueExportTitle()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+
+function htmlEscape(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getRevenueReportData() {
+  const data = getData();
+  const filtered = revenueFilteredAppointments()
+    .slice()
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+  const paymentStatusFilter = document.getElementById('revenuePaymentStatusFilter')?.value || '';
+  const paymentFilter = document.getElementById('revenuePaymentFilter')?.value || '';
+  const periodType = document.getElementById('revenuePeriodType')?.value || 'day';
+  const periodDate = document.getElementById('revenueDate')?.value || todayStr;
+
+  const sumAmount = (items, predicate = () => true) => items
+    .filter(predicate)
+    .reduce((sum, app) => sum + Number(app.price || 0), 0);
+
+  const paymentTotals = new Map();
+  filtered.forEach(app => {
+    const method = app.paid ? (paymentMethodNameForAppointment(app, data) || 'Onbekend') : 'Onbetaald';
+    const current = paymentTotals.get(method) || { label: method, count: 0, total: 0, paid: 0, unpaid: 0 };
+    current.count += 1;
+    current.total += Number(app.price || 0);
+    if (app.paid) current.paid += Number(app.price || 0);
+    if (!app.paid) current.unpaid += Number(app.price || 0);
+    paymentTotals.set(method, current);
+  });
+
+  const periodTotals = new Map();
+  filtered.forEach(app => {
+    let key = app.date || '';
+    let label = app.date || '';
+
+    if (periodType === 'year') {
+      key = String(app.date || '').slice(0, 7);
+      const monthNumber = Number(key.slice(5, 7));
+      label = monthNumber ? `${longMonthNames[monthNumber - 1]} ${key.slice(0, 4)}` : key;
+    } else if (periodType === 'month') {
+      label = app.date ? formatLongDate(app.date) : '';
+    } else {
+      label = app.time || app.date || '';
+    }
+
+    const current = periodTotals.get(key) || { label, count: 0, total: 0, paid: 0, unpaid: 0 };
+    current.count += 1;
+    current.total += Number(app.price || 0);
+    if (app.paid) current.paid += Number(app.price || 0);
+    if (!app.paid) current.unpaid += Number(app.price || 0);
+    periodTotals.set(key, current);
+  });
+
+  const periodTitle =
+    periodType === 'year' ? 'Totalen per maand' :
+    periodType === 'month' ? 'Totalen per dag' :
+    'Totalen per afspraakmoment';
+
+  const periodColumnTitle =
+    periodType === 'year' ? 'Maand' :
+    periodType === 'month' ? 'Datum' :
+    'Tijd';
+
+  let reportTitle = 'Omzetrapport';
+  if (periodType === 'day') reportTitle = `Omzetrapport · ${formatLongDate(periodDate)}`;
+  if (periodType === 'month') {
+    const d = new Date(periodDate + 'T00:00:00');
+    reportTitle = `Omzetrapport · ${longMonthNames[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  if (periodType === 'year') reportTitle = `Omzetrapport · ${periodDate.slice(0, 4)}`;
+
+  return {
+    data,
+    filtered,
+    paymentStatusFilter,
+    paymentFilter,
+    periodType,
+    periodDate,
+    reportTitle,
+    totalRevenue: sumAmount(filtered),
+    paidRevenue: sumAmount(filtered, app => app.paid),
+    unpaidRevenue: sumAmount(filtered, app => !app.paid),
+    paymentTotals: Array.from(paymentTotals.values()).sort((a, b) => a.label.localeCompare(b.label, 'nl-BE')),
+    periodTotals: Array.from(periodTotals.entries()).sort(([a], [b]) => a.localeCompare(b, 'nl-BE')).map(([, values]) => values),
+    periodTitle,
+    periodColumnTitle
+  };
+}
+
+function downloadRevenueStyledReport() {
+  const report = getRevenueReportData();
+  const createdAt = new Date().toLocaleString('nl-BE');
+  const filterStatusLabel = report.paymentStatusFilter === 'paid' ? 'Betaald' : report.paymentStatusFilter === 'unpaid' ? 'Onbetaald' : 'Alle statussen';
+  const filterPaymentLabel = report.paymentFilter || 'Alle betaalwijzen';
+
+  const metricCard = (label, value) => `
+    <article class="metric-card">
+      <span>${htmlEscape(label)}</span>
+      <strong>${htmlEscape(value)}</strong>
+    </article>
+  `;
+
+  const moneyCells = item => `
+    <td>${htmlEscape(item.count)}</td>
+    <td class="money">${htmlEscape(euro(item.total))}</td>
+    <td class="money paid">${htmlEscape(euro(item.paid))}</td>
+    <td class="money unpaid">${htmlEscape(euro(item.unpaid))}</td>
+  `;
+
+  const paymentRows = report.paymentTotals.length
+    ? report.paymentTotals.map(item => `<tr><td>${htmlEscape(item.label)}</td>${moneyCells(item)}</tr>`).join('')
+    : `<tr><td>Geen gegevens</td><td>0</td><td class="money">${htmlEscape(euro(0))}</td><td class="money paid">${htmlEscape(euro(0))}</td><td class="money unpaid">${htmlEscape(euro(0))}</td></tr>`;
+
+  const periodRows = report.periodTotals.length
+    ? report.periodTotals.map(item => `<tr><td>${htmlEscape(item.label)}</td>${moneyCells(item)}</tr>`).join('')
+    : `<tr><td>Geen gegevens</td><td>0</td><td class="money">${htmlEscape(euro(0))}</td><td class="money paid">${htmlEscape(euro(0))}</td><td class="money unpaid">${htmlEscape(euro(0))}</td></tr>`;
+
+  const appointmentRows = report.filtered.length
+    ? report.filtered.map(app => {
+        const customer = customerById(report.data, app.customerId);
+        const service = serviceById(report.data, app.serviceId);
+        return `
+          <tr>
+            <td>${htmlEscape(app.date || '')}</td>
+            <td>${htmlEscape(app.time || '')}</td>
+            <td>${htmlEscape(customer ? fullName(customer) : 'Onbekend')}</td>
+            <td>${htmlEscape(service?.name || '')}</td>
+            <td class="money">${htmlEscape(euro(app.price))}</td>
+            <td><span class="badge ${app.paid ? 'badge-paid' : 'badge-unpaid'}">${app.paid ? 'Betaald' : 'Onbetaald'}</span></td>
+            <td>${htmlEscape(paymentMethodNameForAppointment(app, report.data) || '')}</td>
+            <td>${htmlEscape(app.status || '')}</td>
+          </tr>
+        `;
+      }).join('')
+    : `<tr><td colspan="8" class="empty-row">Geen afspraken voor deze selectie.</td></tr>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${htmlEscape(report.reportTitle)}</title>
+  <style>
+    :root {
+      --bg: #fbf7f9;
+      --card: #ffffff;
+      --line: #eddfe6;
+      --primary: #d991ab;
+      --primary-dark: #b86d87;
+      --primary-soft: #f8e8ee;
+      --text: #4e4650;
+      --muted: #8c838d;
+      --success-bg: #e7f6ea;
+      --success-text: #2d8b4e;
+      --danger-soft: #fff1f5;
+      --danger: #d46a8a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.45;
+    }
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+    .report-header {
+      background: linear-gradient(135deg, var(--primary-soft), #fff);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 26px;
+      margin-bottom: 18px;
+      box-shadow: 0 12px 30px rgba(170, 120, 145, 0.10);
+    }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 46px);
+      line-height: 1.05;
+      color: var(--primary-dark);
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .meta span {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .metric-card,
+    .report-section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 24px rgba(170, 120, 145, 0.09);
+    }
+    .metric-card {
+      border-radius: 22px;
+      padding: 18px;
+    }
+    .metric-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .metric-card strong {
+      font-size: 24px;
+      color: var(--text);
+    }
+    .report-section {
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--primary-soft);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 18px;
+    }
+    .section-title h2 {
+      margin: 0;
+      color: var(--primary-dark);
+      font-size: 18px;
+    }
+    .section-title span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+    th,
+    td {
+      padding: 13px 16px;
+      border-bottom: 1px solid #f2e8ed;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #fffafd;
+    }
+    tbody tr:nth-child(even) td { background: #fffbfd; }
+    tbody tr:last-child td { border-bottom: none; }
+    .money {
+      text-align: right;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+    .paid { color: var(--success-text); }
+    .unpaid { color: var(--danger); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-paid { background: var(--success-bg); color: var(--success-text); }
+    .badge-unpaid { background: var(--danger-soft); color: var(--danger); }
+    .empty-row {
+      text-align: center;
+      color: var(--muted);
+      padding: 26px;
+    }
+    .print-actions {
+      position: sticky;
+      bottom: 18px;
+      display: flex;
+      justify-content: flex-end;
+      pointer-events: none;
+      margin-top: 20px;
+    }
+    .print-actions button {
+      pointer-events: auto;
+      border: none;
+      border-radius: 999px;
+      background: var(--primary-dark);
+      color: #fff;
+      min-height: 48px;
+      padding: 0 18px;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(184, 109, 135, 0.22);
+      cursor: pointer;
+    }
+    @media (max-width: 780px) {
+      .page { width: min(100% - 18px, 1180px); padding-top: 12px; }
+      .report-header { border-radius: 22px; padding: 20px; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .metric-card strong { font-size: 20px; }
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm;
+      }
+
+      html,
+      body {
+        width: 210mm;
+        min-height: 297mm;
+        background: #fff !important;
+        color: #2f2a31;
+        font-size: 10.5px;
+        line-height: 1.28;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .page {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .report-header {
+        border-radius: 0;
+        padding: 0 0 8mm;
+        margin: 0 0 7mm;
+        background: #fff !important;
+        border: 0;
+        border-bottom: 2px solid var(--primary);
+      }
+
+      .eyebrow {
+        font-size: 9px;
+        margin-bottom: 3px;
+      }
+
+      h1 {
+        font-size: 22px;
+        line-height: 1.12;
+      }
+
+      .meta {
+        gap: 5px;
+        margin-top: 6mm;
+        font-size: 9.5px;
+      }
+
+      .meta span {
+        padding: 4px 7px;
+        border-radius: 999px;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4mm;
+        margin-bottom: 6mm;
+      }
+
+      .metric-card,
+      .report-section {
+        box-shadow: none;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .metric-card {
+        border-radius: 8px;
+        padding: 4mm;
+      }
+
+      .metric-card span {
+        font-size: 8px;
+        margin-bottom: 3px;
+      }
+
+      .metric-card strong {
+        font-size: 14px;
+      }
+
+      .report-section {
+        border-radius: 8px;
+        margin-bottom: 6mm;
+        overflow: visible;
+      }
+
+      .section-title {
+        padding: 4mm;
+      }
+
+      .section-title h2 {
+        font-size: 13px;
+      }
+
+      .section-title span {
+        font-size: 9px;
+      }
+
+      .table-wrap {
+        overflow: visible;
+      }
+
+      table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+        page-break-inside: auto;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      th,
+      td {
+        padding: 5px 6px;
+        font-size: 8.7px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        word-break: normal;
+      }
+
+      th {
+        font-size: 7.8px;
+      }
+
+      .money {
+        white-space: nowrap;
+      }
+
+      .badge {
+        min-height: 0;
+        padding: 2px 5px;
+        font-size: 8px;
+      }
+
+      .print-actions {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="report-header">
+      <p class="eyebrow">NailBooker</p>
+      <h1>${htmlEscape(report.reportTitle)}</h1>
+      <div class="meta">
+        <span>Gemaakt op ${htmlEscape(createdAt)}</span>
+        <span>${htmlEscape(filterStatusLabel)}</span>
+        <span>${htmlEscape(filterPaymentLabel)}</span>
+      </div>
+    </header>
+
+    <section class="metric-grid">
+      ${metricCard('Aantal afspraken', report.filtered.length)}
+      ${metricCard('Som totaal', euro(report.totalRevenue))}
+      ${metricCard('Betaald', euro(report.paidRevenue))}
+      ${metricCard('Onbetaald', euro(report.unpaidRevenue))}
+    </section>
+
+    <section class="report-section">
+      <div class="section-title"><h2>${htmlEscape(report.periodTitle)}</h2><span>${htmlEscape(report.periodColumnTitle)}</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>${htmlEscape(report.periodColumnTitle)}</th><th>Aantal</th><th class="money">Totaal</th><th class="money">Betaald</th><th class="money">Onbetaald</th></tr></thead>
+          <tbody>${periodRows}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <div class="section-title"><h2>Totalen per betaalwijze</h2><span>Betaaloverzicht</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Betaalwijze</th><th>Aantal</th><th class="money">Totaal</th><th class="money">Betaald</th><th class="money">Onbetaald</th></tr></thead>
+          <tbody>${paymentRows}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="report-section">
+      <div class="section-title"><h2>Detail afspraken</h2><span>${report.filtered.length} afspraken</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Datum</th><th>Tijd</th><th>Klant</th><th>Dienst</th><th class="money">Prijs</th><th>Status</th><th>Betaalwijze</th><th>Afspraakstatus</th></tr></thead>
+          <tbody>${appointmentRows}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="print-actions">
+      <button type="button" onclick="window.print()">Printen / bewaren als PDF</button>
+    </div>
+  </main>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${getRevenueExportTitle()}_rapport.html`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -3726,6 +4383,11 @@ function registerEvents() {
   const revenueExportCsvBtn = document.getElementById("revenueExportCsvBtn");
   if (revenueExportCsvBtn) {
     revenueExportCsvBtn.addEventListener("click", downloadRevenueCsv);
+  }
+
+  const revenueExportReportBtn = document.getElementById("revenueExportReportBtn");
+  if (revenueExportReportBtn) {
+    revenueExportReportBtn.addEventListener("click", downloadRevenueStyledReport);
   }
 
   const registerBtn = document.getElementById("registerBtn");
