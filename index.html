@@ -184,32 +184,41 @@
       <section id="revenueScreen" class="screen">
         <section class="revenue-screen-shell">
 
-          <section class="revenue-period-strip">
-            <div id="revenueYearChip" class="revenue-period-chip active" role="group" aria-label="Jaar kiezen">
-              <button id="revenueYearMain" class="revenue-period-main" type="button">
-                <span id="revenueYearLabel">2026</span>
-              </button>
-              <button id="revenueYearToggle" class="revenue-period-toggle" type="button" aria-label="Jaarkeuze openen">
-                <span class="revenue-period-caret" aria-hidden="true"></span>
-              </button>
+          <section class="revenue-period-strip app-control-card" aria-label="Omzetperiode kiezen">
+            <div class="revenue-period-row">
+              <span class="revenue-period-row-label">Dagomzet</span>
+              <div id="revenueDayChip" class="revenue-period-chip revenue-period-chip-wide" role="group" aria-label="Dag kiezen">
+                <button id="revenueDayMain" class="revenue-period-main" type="button">
+                  <span id="revenueDayLabel">Wo 25-03</span>
+                </button>
+                <button id="revenueDayToggle" class="revenue-period-toggle" type="button" aria-label="Dagkeuze openen">
+                  <span class="revenue-period-caret" aria-hidden="true"></span>
+                </button>
+              </div>
             </div>
 
-            <div id="revenueMonthChip" class="revenue-period-chip" role="group" aria-label="Maand kiezen">
-              <button id="revenueMonthMain" class="revenue-period-main" type="button">
-                <span id="revenueMonthLabel">Maart</span>
-              </button>
-              <button id="revenueMonthToggle" class="revenue-period-toggle" type="button" aria-label="Maandkeuze openen">
-                <span class="revenue-period-caret" aria-hidden="true"></span>
-              </button>
+            <div class="revenue-period-row">
+              <span class="revenue-period-row-label">Maandomzet</span>
+              <div id="revenueMonthChip" class="revenue-period-chip" role="group" aria-label="Maand kiezen">
+                <button id="revenueMonthMain" class="revenue-period-main" type="button">
+                  <span id="revenueMonthLabel">Maart</span>
+                </button>
+                <button id="revenueMonthToggle" class="revenue-period-toggle" type="button" aria-label="Maandkeuze openen">
+                  <span class="revenue-period-caret" aria-hidden="true"></span>
+                </button>
+              </div>
             </div>
 
-            <div id="revenueDayChip" class="revenue-period-chip revenue-period-chip-wide" role="group" aria-label="Dag kiezen">
-              <button id="revenueDayMain" class="revenue-period-main" type="button">
-                <span id="revenueDayLabel">Wo 25-03</span>
-              </button>
-              <button id="revenueDayToggle" class="revenue-period-toggle" type="button" aria-label="Dagkeuze openen">
-                <span class="revenue-period-caret" aria-hidden="true"></span>
-              </button>
+            <div class="revenue-period-row">
+              <span class="revenue-period-row-label">Jaaromzet</span>
+              <div id="revenueYearChip" class="revenue-period-chip active" role="group" aria-label="Jaar kiezen">
+                <button id="revenueYearMain" class="revenue-period-main" type="button">
+                  <span id="revenueYearLabel">2026</span>
+                </button>
+                <button id="revenueYearToggle" class="revenue-period-toggle" type="button" aria-label="Jaarkeuze openen">
+                  <span class="revenue-period-caret" aria-hidden="true"></span>
+                </button>
+              </div>
             </div>
           </section>
 
@@ -576,8 +585,20 @@
 
       <input type="hidden" id="appointmentId" />
 
-      <label class="field-label" for="appointmentCustomer">Klant</label>
-      <select id="appointmentCustomer" class="field" required></select>
+      <label class="field-label" for="appointmentCustomerSearch">Klant</label>
+      <div class="appointment-customer-picker">
+        <input
+          id="appointmentCustomerSearch"
+          class="field appointment-customer-search"
+          type="search"
+          placeholder="Zoek op naam, telefoon of e-mail..."
+          autocomplete="off"
+          aria-controls="appointmentCustomerResults"
+          aria-expanded="false"
+        />
+        <div id="appointmentCustomerResults" class="appointment-customer-results hidden" role="listbox"></div>
+        <select id="appointmentCustomer" class="field appointment-customer-select-fallback" required aria-label="Klant kiezen"></select>
+      </div>
 
       <div class="field-row">
         <div>

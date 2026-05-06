@@ -2601,16 +2601,124 @@ function createAppointmentForClient(clientId) {
 }
 
 
+function customerSearchText(customer) {
+  return [fullName(customer), customer.phone || "", customer.email || ""]
+    .join(" ")
+    .toLowerCase();
+}
+
+function setAppointmentCustomer(customerId, { updateSearch = true } = {}) {
+  const data = getData();
+  const customerSelect = document.getElementById("appointmentCustomer");
+  const searchInput = document.getElementById("appointmentCustomerSearch");
+  const customer = customerById(data, customerId);
+
+  if (customerSelect) {
+    customerSelect.value = customer ? String(customer.id) : "";
+  }
+
+  if (searchInput && updateSearch) {
+    searchInput.value = customer ? fullName(customer) : "";
+  }
+
+  renderAppointmentCustomerResults(searchInput?.value || "", false);
+}
+
+function renderAppointmentCustomerResults(query = "", showAllWhenEmpty = false) {
+  const data = getData();
+  const resultsWrap = document.getElementById("appointmentCustomerResults");
+  const searchInput = document.getElementById("appointmentCustomerSearch");
+  if (!resultsWrap) return;
+
+  const safeQuery = String(query || "").trim().toLowerCase();
+  const selectedId = document.getElementById("appointmentCustomer")?.value || "";
+
+  let customers = data.customers.slice().sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
+  if (safeQuery) {
+    customers = customers.filter(customer => customerSearchText(customer).includes(safeQuery));
+  } else if (!showAllWhenEmpty) {
+    customers = [];
+  }
+
+  customers = customers.slice(0, 30);
+
+  if (!customers.length) {
+    resultsWrap.innerHTML = safeQuery
+      ? `<div class="appointment-customer-empty">Geen klanten gevonden.</div>`
+      : "";
+    resultsWrap.classList.toggle("hidden", !safeQuery);
+    if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
+    return;
+  }
+
+  resultsWrap.innerHTML = customers.map(customer => {
+    const name = fullName(customer) || "Naamloos";
+    const meta = [customer.phone, customer.email].filter(Boolean).join(" · ");
+    const activeClass = String(customer.id) === String(selectedId) ? " active" : "";
+    return `
+      <button class="appointment-customer-result${activeClass}" type="button" role="option" data-customer-id="${customer.id}" aria-selected="${activeClass ? "true" : "false"}">
+        <span class="appointment-customer-result-name">${name}</span>
+        ${meta ? `<span class="appointment-customer-result-meta">${meta}</span>` : ""}
+      </button>
+    `;
+  }).join("");
+
+  resultsWrap.classList.remove("hidden");
+  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
+}
+
+function setupAppointmentCustomerSearch() {
+  const searchInput = document.getElementById("appointmentCustomerSearch");
+  const resultsWrap = document.getElementById("appointmentCustomerResults");
+  const customerSelect = document.getElementById("appointmentCustomer");
+  if (!searchInput || !resultsWrap || !customerSelect || searchInput.dataset.ready === "true") return;
+
+  searchInput.dataset.ready = "true";
+
+  searchInput.addEventListener("input", () => {
+    customerSelect.value = "";
+    renderAppointmentCustomerResults(searchInput.value, false);
+  });
+
+  searchInput.addEventListener("focus", () => {
+    renderAppointmentCustomerResults(searchInput.value, true);
+  });
+
+  resultsWrap.addEventListener("click", event => {
+    const btn = event.target.closest("[data-customer-id]");
+    if (!btn) return;
+    setAppointmentCustomer(btn.dataset.customerId);
+  });
+
+  customerSelect.addEventListener("change", () => {
+    setAppointmentCustomer(customerSelect.value);
+  });
+
+  document.addEventListener("click", event => {
+    const picker = event.target.closest(".appointment-customer-picker");
+    if (picker) return;
+    resultsWrap.classList.add("hidden");
+    searchInput.setAttribute("aria-expanded", "false");
+  });
+}
+
 function populateAppointmentForm(customerId = null) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
   const serviceSelect = document.getElementById("appointmentService");
 
-  customerSelect.innerHTML = data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
+  customerSelect.innerHTML = `<option value="">Kies een klant...</option>` +
+    data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
   serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 
+  setupAppointmentCustomerSearch();
+
   if (customerId) {
-    customerSelect.value = String(customerId);
+    setAppointmentCustomer(customerId);
+  } else {
+    setAppointmentCustomer("");
+    const searchInput = document.getElementById("appointmentCustomerSearch");
+    if (searchInput) searchInput.value = "";
   }
 }
 
@@ -2653,7 +2761,7 @@ function openEditAppointmentDialog(id) {
 
   document.getElementById("appointmentModalTitle").textContent = "Afspraak bewerken";
   document.getElementById("appointmentId").value = app.id;
-  document.getElementById("appointmentCustomer").value = app.customerId;
+  setAppointmentCustomer(app.customerId);
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
   document.getElementById("appointmentService").value = app.serviceId;
@@ -3130,8 +3238,16 @@ async function saveAppointmentFromForm(event) {
   const id = rawId ? Number(rawId) : null;
   const settings = getSettings();
 
+  const selectedCustomerId = document.getElementById("appointmentCustomer").value;
+
+  if (!selectedCustomerId) {
+    await appAlert("Kies eerst een klant uit de zoekresultaten.", { title: "Klant kiezen", variant: "warning" });
+    document.getElementById("appointmentCustomerSearch")?.focus();
+    return;
+  }
+
   const localPayload = {
-    customerId: Number(document.getElementById("appointmentCustomer").value),
+    customerId: Number(selectedCustomerId),
     date: document.getElementById("appointmentDate").value,
     time: document.getElementById("appointmentTime").value,
     serviceId: Number(document.getElementById("appointmentService").value),
