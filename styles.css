@@ -3002,28 +3002,35 @@ button {
 
 .revenue-action-btn-csv {
   background: #0a9f13;
-  border: 1px solid rgba(45, 139, 78, 0.42);
 }
 
 .revenue-action-btn-report {
   background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
 }
 
-.revenue-action-export-label,
 .revenue-action-report-label {
   width: auto;
   height: auto;
   color: #fff;
   font-family: 'Montserrat', sans-serif;
   font-size: 13px;
-  line-height: 1;
   font-weight: 800;
   letter-spacing: 0.03em;
+}
+
+.revenue-action-svg-csv {
+  width: 31px;
+  height: 31px;
 }
 
 @media (max-width: 420px) {
   .revenue-action-bar {
     gap: 10px;
+  }
+
+  .revenue-action-svg-csv {
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -3835,68 +3842,5 @@ button {
   .calendar-panel.is-swipe-animating > :not(.calendar-swipe-preview),
   .calendar-panel.is-swipe-animating .calendar-swipe-preview {
     transition: none;
-  }
-}
-
-
-/* ===== Compact mobile header + slightly smaller typography ===== */
-@media (max-width: 520px){
-  body{
-    font-size:14px;
-  }
-
-  .topbar{
-    padding: 8px 12px 6px;
-    gap: 8px;
-  }
-
-  .topbar-logo{
-    height: 34px;
-    margin-top:-6px;
-    margin-right:12px;
-  }
-
-  .topbar-title-wrap h1,
-  #screenTitle{
-    font-size:17px;
-  }
-
-  .header-account-icon{
-    width:22px;
-    height:22px;
-  }
-
-  .header-account-icon svg{
-    width:22px;
-    height:22px;
-  }
-
-  .header-account-name{
-    font-size:11px;
-  }
-
-  .nav-btn{
-    font-size:13px;
-  }
-
-  .main-name,
-  .client-name,
-  .client-appointment-service{
-    font-size:15px;
-  }
-
-  .meta,
-  .client-appointment-status{
-    font-size:12px;
-  }
-
-  .price-chip{
-    font-size:13px;
-  }
-
-  .field,
-  .search-input,
-  .btn{
-    font-size:14px;
   }
 }

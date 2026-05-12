@@ -4358,9 +4358,6 @@ function isSwipeIgnoredTarget(target, mode = "screen") {
         ".bottom-nav"
       ].join(",")
     : [
-        "input",
-        "select",
-        "textarea",
         "dialog",
         ".modal",
         ".payment-popover",
@@ -4621,7 +4618,7 @@ function renderCalendarMarkupFor(year, monthIndex) {
 
 function getCalendarPreviewDate(direction) {
   const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
+  d.setMonth(d.getMonth() + (direction === "left" ? -1 : 1));
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
@@ -4666,7 +4663,7 @@ function animateCalendarSwipe(direction, shouldSwitch) {
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
 
     window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? 1 : -1);
+      shiftCalendarMonth(direction === "left" ? -1 : 1);
       resetCalendarSwipeVisuals();
     }, 230);
     return;
