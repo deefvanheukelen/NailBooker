@@ -4320,6 +4320,8 @@ function closeDialog(id) {
 }
 
 function shiftCalendarMonth(step) {
+  // Enkel de zichtbare kalendermaand wijzigen.
+  // De geselecteerde afspraakdag blijft bewust actief totdat de gebruiker een dag aanklikt.
   state.currentMonth += step;
 
   if (state.currentMonth < 0) {
@@ -4332,10 +4334,7 @@ function shiftCalendarMonth(step) {
     state.currentYear++;
   }
 
-  state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
   renderCalendar();
-  renderAgendaList();
-  renderRevenue();
 }
 
 function getSwipeMainScreens() {
