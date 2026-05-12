@@ -4568,52 +4568,135 @@ function animateScreenSwipeEnd(direction, shouldSwitch) {
   }, 220);
 }
 
+
+function renderCalendarMarkupFor(year, monthIndex) {
+  const data = getData();
+  const first = new Date(year, monthIndex, 1);
+  const last = new Date(year, monthIndex + 1, 0);
+  let weekday = first.getDay();
+  weekday = weekday === 0 ? 7 : weekday;
+
+  const cells = [];
+  for (let i = 1; i < weekday; i++) {
+    cells.push(`<div class="empty-cell"></div>`);
+  }
+
+  for (let day = 1; day <= last.getDate(); day++) {
+    const dateStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const appts = data.appointments.filter(a => a.date === dateStr);
+    const isSelected = dateStr === state.selectedDate;
+    const isToday = dateStr === todayStr;
+
+    let dotsHtml = "";
+    if (appts.length) {
+      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
+      const visibleDots = Math.min(appts.length, maxVisibleDots);
+      dotsHtml = `
+        <div class="day-dots">
+          ${Array.from({ length: visibleDots }).map(() => `<i></i>`).join("")}
+          ${appts.length > visibleDots ? `<span class="day-dots-more">+</span>` : ""}
+        </div>
+      `;
+    }
+
+    cells.push(`
+      <div class="day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}">
+        <span class="day-number">${day}</span>
+        ${dotsHtml}
+      </div>
+    `);
+  }
+
+  return `
+    <div class="month-header">
+      <button class="icon-btn" type="button" aria-label="Vorige maand">‹</button>
+      <button class="month-title month-select-btn" type="button">${monthNames[monthIndex]} ${year}</button>
+      <button class="icon-btn" type="button" aria-label="Volgende maand">›</button>
+    </div>
+    <div class="weekday-row">
+      <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
+    </div>
+    <div class="calendar-grid">${cells.join("")}</div>
+  `;
+}
+
+function getCalendarPreviewDate(direction) {
+  const d = new Date(state.currentYear, state.currentMonth, 1);
+  d.setMonth(d.getMonth() + (direction === "left" ? -1 : 1));
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function prepareCalendarSwipePreview(direction) {
+  const calendar = document.querySelector(".calendar-panel");
+  if (!calendar) return null;
+
+  const existing = calendar.querySelector(".calendar-swipe-preview");
+  if (existing && existing.dataset.direction === direction) return existing;
+  if (existing) existing.remove();
+
+  const previewDate = getCalendarPreviewDate(direction);
+  const preview = document.createElement("div");
+  preview.className = "calendar-swipe-preview";
+  preview.dataset.direction = direction;
+  preview.innerHTML = renderCalendarMarkupFor(previewDate.year, previewDate.month);
+  calendar.appendChild(preview);
+  return preview;
+}
+
+function resetCalendarSwipeVisuals() {
+  const calendar = document.querySelector(".calendar-panel");
+  if (!calendar) return;
+  calendar.classList.remove("is-swiping", "is-swipe-animating");
+  calendar.style.removeProperty("--calendar-current-x");
+  calendar.style.removeProperty("--calendar-preview-x");
+  calendar.style.removeProperty("--calendar-swipe-opacity");
+  calendar.querySelectorAll(".calendar-swipe-preview").forEach(el => el.remove());
+}
+
 function animateCalendarSwipe(direction, shouldSwitch) {
   const calendar = document.querySelector(".calendar-panel");
   if (!calendar) return;
 
-  calendar.classList.add("is-swipe-animating");
+  const width = Math.max(calendar.clientWidth, window.innerWidth);
+  calendar.classList.add("is-swiping", "is-swipe-animating");
+  prepareCalendarSwipePreview(direction);
 
   if (shouldSwitch) {
-    calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "-34px" : "34px");
-    calendar.style.setProperty("--calendar-swipe-opacity", "0");
+    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
+    calendar.style.setProperty("--calendar-preview-x", "0px");
+    calendar.style.setProperty("--calendar-swipe-opacity", "1");
+
     window.setTimeout(() => {
       shiftCalendarMonth(direction === "left" ? -1 : 1);
-      calendar.classList.remove("is-swiping");
-      calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "34px" : "-34px");
-      window.requestAnimationFrame(() => {
-        calendar.style.setProperty("--calendar-swipe-x", "0px");
-        calendar.style.setProperty("--calendar-swipe-opacity", "1");
-      });
-      window.setTimeout(() => {
-        calendar.classList.remove("is-swipe-animating");
-        calendar.style.removeProperty("--calendar-swipe-x");
-        calendar.style.removeProperty("--calendar-swipe-opacity");
-      }, 210);
-    }, 110);
+      resetCalendarSwipeVisuals();
+    }, 230);
     return;
   }
 
-  calendar.style.setProperty("--calendar-swipe-x", "0px");
-  calendar.style.setProperty("--calendar-swipe-opacity", "1");
-  window.setTimeout(() => {
-    calendar.classList.remove("is-swiping", "is-swipe-animating");
-    calendar.style.removeProperty("--calendar-swipe-x");
-    calendar.style.removeProperty("--calendar-swipe-opacity");
-  }, 210);
+  calendar.style.setProperty("--calendar-current-x", "0px");
+  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? width : -width}px`);
+  calendar.style.setProperty("--calendar-swipe-opacity", "0");
+  window.setTimeout(resetCalendarSwipeVisuals, 230);
 }
 function setupSwipeNavigation() {
   attachHorizontalSwipe(document.querySelector(".calendar-panel"), {
     onMove: (dx, direction) => {
       const calendar = document.querySelector(".calendar-panel");
       if (!calendar) return;
+      const width = Math.max(calendar.clientWidth, window.innerWidth);
+      prepareCalendarSwipePreview(direction);
       calendar.classList.add("is-swiping");
-      calendar.style.setProperty("--calendar-swipe-x", `${dx * 0.35}px`);
-      calendar.style.setProperty("--calendar-swipe-opacity", String(Math.max(0.78, 1 - Math.abs(dx) / 520)));
+      calendar.style.setProperty("--calendar-current-x", `${dx}px`);
+      calendar.style.setProperty("--calendar-preview-x", `${(direction === "left" ? width : -width) + dx}px`);
+      calendar.style.setProperty("--calendar-swipe-opacity", String(Math.min(1, 0.35 + Math.abs(dx) / Math.max(width, 1))));
     },
     onSwipe: direction => animateCalendarSwipe(direction, true),
-    onCancel: () => animateCalendarSwipe("left", false)
-  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 68, minHorizontalRatio: 1.18, stopPropagation: true });
+    onCancel: () => {
+      const calendar = document.querySelector(".calendar-panel");
+      const currentX = Number(String(calendar?.style.getPropertyValue("--calendar-current-x") || "0").replace("px", ""));
+      animateCalendarSwipe(currentX < 0 ? "left" : "right", false);
+    }
+  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 90, minHorizontalRatio: 1.08, stopPropagation: true });
 
   attachHorizontalSwipe(document.querySelector(".main-layout"), {
     onMove: (dx, direction, progress) => {

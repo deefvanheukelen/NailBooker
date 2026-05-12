@@ -3802,23 +3802,45 @@ button {
     opacity 220ms ease;
 }
 
-.calendar-panel.is-swiping,
-.calendar-panel.is-swipe-animating {
-  transform: translate3d(var(--calendar-swipe-x, 0px), 0, 0);
-  opacity: var(--calendar-swipe-opacity, 1);
-  will-change: transform, opacity;
+.calendar-panel {
+  position: relative;
+  overflow: hidden;
 }
 
-.calendar-panel.is-swipe-animating {
+.calendar-panel.is-swiping > :not(.calendar-swipe-preview),
+.calendar-panel.is-swipe-animating > :not(.calendar-swipe-preview) {
+  transform: translate3d(var(--calendar-current-x, 0px), 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.calendar-swipe-preview {
+  position: absolute;
+  inset: 8px 14px 10px;
+  transform: translate3d(var(--calendar-preview-x, 100%), 0, 0);
+  opacity: var(--calendar-swipe-opacity, 0.35);
+  will-change: transform, opacity;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.calendar-swipe-preview .icon-btn,
+.calendar-swipe-preview .month-select-btn {
+  pointer-events: none;
+}
+
+.calendar-panel.is-swipe-animating > :not(.calendar-swipe-preview),
+.calendar-panel.is-swipe-animating .calendar-swipe-preview {
   transition:
-    transform 210ms cubic-bezier(0.22, 0.72, 0.18, 1),
-    opacity 160ms ease;
+    transform 230ms cubic-bezier(0.22, 0.72, 0.18, 1),
+    opacity 190ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .main-layout.is-swipe-animating > .screen.active,
   .main-layout.is-swipe-animating > .screen.swipe-preview,
-  .calendar-panel.is-swipe-animating {
+  .calendar-panel.is-swipe-animating > :not(.calendar-swipe-preview),
+  .calendar-panel.is-swipe-animating .calendar-swipe-preview {
     transition: none;
   }
 }
