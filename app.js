@@ -147,6 +147,18 @@ function paymentMethodNameForAppointment(appointment, data = getData()) {
   return appointment.paymentMethodName || "";
 }
 
+function isNoShowAppointment(appointment) {
+  return String(appointment?.status || "").toLowerCase() === "no-show";
+}
+
+function appointmentRevenueAmount(appointment) {
+  return isNoShowAppointment(appointment) ? 0 : Number(appointment?.price || 0);
+}
+
+function appointmentStatusLabel(appointment) {
+  return isNoShowAppointment(appointment) ? "No show" : (appointment?.status || "-");
+}
+
 function buildPaymentMethodOptions(methods, selectedValue = "") {
   return methods.map(method => {
     const selected = String(method.name) === String(selectedValue) ? ' selected' : '';
@@ -1206,15 +1218,15 @@ function renderAgendaList() {
     const service = serviceById(data, app.serviceId);
 
     const row = document.createElement("div");
-    row.className = "appointment-row";
+    row.className = `appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}`;
     const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
 
     const appointmentMetaParts = [];
     if (service?.name) {
       appointmentMetaParts.push(service.name);
     }
-    if ((app.status || "").toLowerCase() === "no-show") {
-      appointmentMetaParts.push("no show");
+    if (isNoShowAppointment(app)) {
+      appointmentMetaParts.push("No show");
     } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
       appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
     }
@@ -1228,7 +1240,7 @@ function renderAgendaList() {
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
         <div class="meta">${appointmentMetaParts.join(" · ")}</div>
       </div>
-      <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
+      <button class="price-chip ${app.paid ? "paid" : ""} ${isNoShowAppointment(app) ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
     `;
 
     row.addEventListener("click", (e) => {
@@ -1430,7 +1442,7 @@ function revenueFilteredAppointments() {
   const paymentStatusFilter = document.getElementById("revenuePaymentStatusFilter").value;
   const paymentFilter = document.getElementById("revenuePaymentFilter").value;
 
-  let filtered = data.appointments.filter(a => a.status !== "no-show");
+  let filtered = data.appointments.filter(a => !isNoShowAppointment(a));
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
@@ -1655,8 +1667,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date.startsWith(prefix));
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
       };
     });
   }
@@ -1672,8 +1684,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date === key);
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
       };
     });
   }
@@ -2497,9 +2509,9 @@ function renderRevenue() {
   const titleEl = document.getElementById("revenueTitle");
   if (titleEl) titleEl.textContent = title;
 
-  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const total = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
+  const total = filtered.reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
+  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
 
   document.getElementById("plannedRevenue").textContent = euro(total);
   document.getElementById("paidRevenue").textContent = euro(paid);
@@ -2532,8 +2544,10 @@ function getStatisticsSummary(data = getData()) {
   const services = Array.isArray(data.services) ? data.services : [];
   const appointments = Array.isArray(data.appointments) ? data.appointments : [];
 
-  const paidAppointments = appointments.filter(app => app.paid);
-  const paidRevenue = paidAppointments.reduce((sum, app) => sum + Number(app.price || 0), 0);
+  const noShowAppointments = appointments.filter(app => isNoShowAppointment(app));
+  const revenueAppointments = appointments.filter(app => !isNoShowAppointment(app));
+  const paidAppointments = revenueAppointments.filter(app => app.paid);
+  const paidRevenue = paidAppointments.reduce((sum, app) => sum + appointmentRevenueAmount(app), 0);
 
   const serviceUsage = services.map(service => ({
     label: service.name,
@@ -2549,7 +2563,7 @@ function getStatisticsSummary(data = getData()) {
 
   const statusMap = {};
   appointments.forEach(app => {
-    const label = String(app.status || 'Onbekend').trim() || 'Onbekend';
+    const label = isNoShowAppointment(app) ? 'No show' : (String(app.status || 'Onbekend').trim() || 'Onbekend');
     statusMap[label] = (statusMap[label] || 0) + 1;
   });
   const statusUsage = Object.entries(statusMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
@@ -2558,7 +2572,7 @@ function getStatisticsSummary(data = getData()) {
   paidAppointments.forEach(app => {
     const service = services.find(item => String(item.id) === String(app.serviceId));
     const label = service?.name || 'Onbekende dienst';
-    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + Number(app.price || 0);
+    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + appointmentRevenueAmount(app);
   });
   const revenueByService = Object.entries(revenueByServiceMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
@@ -2566,6 +2580,7 @@ function getStatisticsSummary(data = getData()) {
     appointmentCount: appointments.length,
     customerCount: customers.length,
     paidAppointmentCount: paidAppointments.length,
+    noShowCount: noShowAppointments.length,
     paidRevenue,
     serviceUsage,
     paymentUsage,
@@ -2715,6 +2730,10 @@ function renderStatistics() {
         <strong>${summary.paidAppointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
+        <span class="statistics-kpi-label">No shows</span>
+        <strong class="statistics-no-show-value">${summary.noShowCount}</strong>
+      </div>
+      <div class="statistics-kpi">
         <span class="statistics-kpi-label">Omzet tot op heden</span>
         <strong>${euro(summary.paidRevenue)}</strong>
       </div>
@@ -2739,6 +2758,13 @@ function renderStatistics() {
         <h2>Gekozen betaalwijze</h2>
       </div>
       ${buildStatisticsDonut(summary.paymentUsage)}
+    </section>
+
+    <section class="statistics-card">
+      <div class="statistics-card-head">
+        <h2>Afspraakstatussen</h2>
+      </div>
+      ${buildStatisticsDonut(summary.statusUsage)}
     </section>
 
     <section class="statistics-card">
@@ -3191,7 +3217,7 @@ function openClientDetail(clientId) {
                   const service = serviceById(data, app.serviceId);
 
                   return `
-                    <div class="client-appointment-row">
+                    <div class="client-appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}">
                       <div class="client-appointment-datecol">
                         <div class="client-appointment-date">${formatShortDate(app.date)}</div>
                         <div class="client-appointment-time">${app.time || ""}</div>
@@ -3200,7 +3226,7 @@ function openClientDetail(clientId) {
                       <div class="client-appointment-main">
                         <div class="client-appointment-service">${service ? service.name : "-"}</div>
                         <div class="client-appointment-status">
-                          ${app.status || "-"}${app.paid ? " · betaald" : ""}
+                          ${appointmentStatusLabel(app)}${isNoShowAppointment(app) ? ` · <span class="no-show-amount">${euro(app.price)}</span>` : (app.paid ? " · betaald" : "")}
                         </div>
                       </div>
 
@@ -3485,16 +3511,26 @@ function renderPaymentPopoverOptions(app, data = getData()) {
 
   const methods = getPaymentMethods(data);
   const selectedName = paymentMethodNameForAppointment(app, data) || "";
-  const items = [{ value: "", label: "Onbetaald", unpaid: true }, ...methods.map(method => ({ value: method.name, label: method.name, unpaid: false }))];
+  const appIsNoShow = isNoShowAppointment(app);
+  const items = [
+    { value: "no-show", label: "No show", noShow: true, unpaid: false },
+    { value: "", label: "Onbetaald", noShow: false, unpaid: true },
+    ...methods.map(method => ({ value: method.name, label: method.name, noShow: false, unpaid: false }))
+  ];
 
   list.innerHTML = items.map(item => {
-    const isActive = item.unpaid ? !app.paid : (app.paid && item.value === selectedName);
+    const isActive = item.noShow
+      ? appIsNoShow
+      : item.unpaid
+        ? (!app.paid && !appIsNoShow)
+        : (app.paid && !appIsNoShow && item.value === selectedName);
     return `
       <button
         type="button"
-        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""}"
+        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""} ${item.noShow ? "is-no-show" : ""}"
         data-payment-value="${item.value}"
         data-unpaid="${item.unpaid ? "true" : "false"}"
+        data-no-show="${item.noShow ? "true" : "false"}"
         role="menuitemradio"
         aria-checked="${isActive ? "true" : "false"}"
       >
@@ -3507,6 +3543,10 @@ function renderPaymentPopoverOptions(app, data = getData()) {
     button.addEventListener("click", async event => {
       event.stopPropagation();
       const methodName = button.dataset.paymentValue || "";
+      if (button.dataset.noShow === "true") {
+        await markNoShow();
+        return;
+      }
       if (button.dataset.unpaid === "true") {
         await markUnpaid();
         return;
@@ -3525,10 +3565,16 @@ function openPaymentDialog(id, anchorEl = null) {
   if (!popover) return;
 
   document.getElementById("paymentAppointmentId").value = id;
-  document.getElementById("paymentAmount").textContent = euro(app.price);
-  document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
-    ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
-    : "Nog niet betaald";
+  const paymentAmount = document.getElementById("paymentAmount");
+  if (paymentAmount) {
+    paymentAmount.textContent = euro(app.price);
+    paymentAmount.classList.toggle("no-show", isNoShowAppointment(app));
+  }
+  document.getElementById("paymentDialogCurrentMethod").textContent = isNoShowAppointment(app)
+    ? "No show"
+    : app.paid
+      ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
+      : "Nog niet betaald";
 
   renderPaymentPopoverOptions(app, data);
 
@@ -3940,6 +3986,10 @@ async function saveAppointmentFromForm(event) {
     if (id) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
       Object.assign(existingApp, localPayload);
+      if (localPayload.status === "no-show") {
+        existingApp.paid = false;
+        existingApp.paymentMethodName = null;
+      }
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
@@ -3962,8 +4012,9 @@ async function saveAppointmentFromForm(event) {
   }
 
   const existingApp = data.appointments.find(a => String(a.id) === String(id));
-  const isPaid = existingApp ? Boolean(existingApp.paid) : false;
-  const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
+  const localIsNoShow = localPayload.status === "no-show";
+  const isPaid = localIsNoShow ? false : (existingApp ? Boolean(existingApp.paid) : false);
+  const existingPaymentMethodName = localIsNoShow ? null : (paymentMethodNameForAppointment(existingApp, data) || null);
 
   const payload = {
     user_id: user.id,
@@ -4087,7 +4138,7 @@ async function confirmPaymentSelection(methodName) {
 
     appointment.paid = true;
     appointment.paymentMethodName = safeMethodName;
-    if (appointment.status === "gepland") appointment.status = "afgerond";
+    appointment.status = "afgerond";
 
     saveData(data);
     closePaymentPopover();
@@ -4115,7 +4166,7 @@ async function confirmPaymentSelection(methodName) {
   rerenderAll();
 }
 
-async function markUnpaid() {
+async function markNoShow() {
   const id = document.getElementById("paymentAppointmentId").value;
   const user = await getCurrentUser();
 
@@ -4126,6 +4177,7 @@ async function markUnpaid() {
 
     appointment.paid = false;
     appointment.paymentMethodName = null;
+    appointment.status = "no-show";
 
     saveData(data);
     closePaymentPopover();
@@ -4137,7 +4189,51 @@ async function markUnpaid() {
     .from("appointments")
     .update({
       paid: false,
-      payment_method_label: null
+      payment_method_label: null,
+      status: "no-show"
+    })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("No show opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closePaymentPopover();
+  rerenderAll();
+}
+
+async function markUnpaid() {
+  const id = document.getElementById("paymentAppointmentId").value;
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    const appointment = data.appointments.find(a => String(a.id) === String(id));
+    if (!appointment) return;
+
+    appointment.paid = false;
+    appointment.paymentMethodName = null;
+    if (isNoShowAppointment(appointment)) appointment.status = "gepland";
+
+    saveData(data);
+    closePaymentPopover();
+    rerenderAll();
+    return;
+  }
+
+  const data = getData();
+  const appointment = data.appointments.find(a => String(a.id) === String(id));
+  const nextStatus = isNoShowAppointment(appointment) ? "gepland" : (appointment?.status || "gepland");
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .update({
+      paid: false,
+      payment_method_label: null,
+      status: nextStatus
     })
     .eq("id", Number(id))
     .eq("user_id", user.id);
@@ -4189,6 +4285,113 @@ function closeDialog(id) {
   if (typeof dialog.close === "function") dialog.close();
 }
 
+function shiftCalendarMonth(step) {
+  state.currentMonth += step;
+
+  if (state.currentMonth < 0) {
+    state.currentMonth = 11;
+    state.currentYear--;
+  }
+
+  if (state.currentMonth > 11) {
+    state.currentMonth = 0;
+    state.currentYear++;
+  }
+
+  state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+  renderCalendar();
+  renderAgendaList();
+  renderRevenue();
+}
+
+function getSwipeMainScreens() {
+  return Array.from(document.querySelectorAll(".bottom-nav .nav-btn"))
+    .map(btn => ({
+      screen: btn.dataset.screen,
+      title: btn.dataset.title
+    }))
+    .filter(item => item.screen && item.title);
+}
+
+function isSwipeIgnoredTarget(target) {
+  return Boolean(target?.closest?.([
+    "button",
+    "input",
+    "select",
+    "textarea",
+    "dialog",
+    ".modal",
+    ".payment-popover",
+    ".revenue-bars",
+    ".revenue-period-strip",
+    ".bottom-nav",
+    ".alphabet-filter"
+  ].join(",")));
+}
+
+function attachHorizontalSwipe(element, onSwipe, options = {}) {
+  if (!element || element.dataset.swipeReady === "true") return;
+  element.dataset.swipeReady = "true";
+
+  const minDistance = Number(options.minDistance || 70);
+  const maxVerticalDistance = Number(options.maxVerticalDistance || 70);
+  const minHorizontalRatio = Number(options.minHorizontalRatio || 1.45);
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let tracking = false;
+
+  element.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target)) return;
+
+    const touch = event.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startTime = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  element.addEventListener("touchend", event => {
+    if (!tracking) return;
+    tracking = false;
+
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    const elapsed = Date.now() - startTime;
+
+    if (elapsed > 900) return;
+    if (Math.abs(dx) < minDistance) return;
+    if (Math.abs(dy) > maxVerticalDistance) return;
+    if (Math.abs(dx) < Math.abs(dy) * minHorizontalRatio) return;
+
+    onSwipe(dx > 0 ? "right" : "left", event);
+  }, { passive: true });
+}
+
+function setupSwipeNavigation() {
+  attachHorizontalSwipe(document.querySelector(".calendar-panel"), direction => {
+    shiftCalendarMonth(direction === "left" ? 1 : -1);
+  }, { ignoreInteractive: false, minDistance: 55, maxVerticalDistance: 60 });
+
+  attachHorizontalSwipe(document.querySelector(".main-layout"), direction => {
+    if (state.currentScreen === "clientDetailScreen") return;
+
+    const screens = getSwipeMainScreens();
+    const currentIndex = screens.findIndex(item => item.screen === state.currentScreen);
+    if (currentIndex < 0) return;
+
+    const nextIndex = direction === "left" ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0 || nextIndex >= screens.length) return;
+
+    const next = screens[nextIndex];
+    switchScreen(next.screen, next.title);
+  }, { minDistance: 75, maxVerticalDistance: 70 });
+}
+
 function rerenderAll() {
   renderAlphabetFilter();
   renderCalendar();
@@ -4211,31 +4414,9 @@ function rerenderAll() {
 ========================= */
 
 function registerEvents() {
-  document.getElementById("prevMonthBtn").addEventListener("click", () => {
-    state.currentMonth--;
-    if (state.currentMonth < 0) {
-      state.currentMonth = 11;
-      state.currentYear--;
-    }
+  document.getElementById("prevMonthBtn").addEventListener("click", () => shiftCalendarMonth(-1));
 
-    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
-    renderCalendar();
-    renderAgendaList();
-    renderRevenue();
-  });
-
-  document.getElementById("nextMonthBtn").addEventListener("click", () => {
-    state.currentMonth++;
-    if (state.currentMonth > 11) {
-      state.currentMonth = 0;
-      state.currentYear++;
-    }
-
-    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
-    renderCalendar();
-    renderAgendaList();
-    renderRevenue();
-  });
+  document.getElementById("nextMonthBtn").addEventListener("click", () => shiftCalendarMonth(1));
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
@@ -4244,6 +4425,8 @@ function registerEvents() {
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => switchScreen(btn.dataset.screen, btn.dataset.title));
   });
+
+  setupSwipeNavigation();
 
   document.getElementById("backBtn").addEventListener("click", () => {
     const map = {

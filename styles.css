@@ -3691,3 +3691,64 @@ button {
     max-width: 52%;
   }
 }
+
+/* =========================================================
+   BETAALD / NO-SHOW WEERGAVE
+========================================================= */
+.paid-appointment {
+  background: #f4fbf6;
+  border-left: 4px solid #2d8b4e;
+}
+
+.no-show-appointment {
+  background: #fff7f7;
+  border-left: 4px solid #8f1f2d;
+}
+
+.price-chip.paid {
+  background: #dff3e5;
+  color: #2d8b4e;
+}
+
+.price-chip.no-show {
+  background: #f7d7dc;
+  color: #8f1f2d;
+  border: none;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+}
+
+.payment-popover-amount.no-show,
+.no-show-amount {
+  color: #8f1f2d;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+}
+
+.payment-method-popup-item.is-no-show {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff7f7;
+  color: #8f1f2d;
+  font-weight: 800;
+}
+
+.payment-method-popup-item.is-no-show.active {
+  background: #f7d7dc;
+  color: #8f1f2d;
+}
+
+.statistics-no-show-value {
+  color: #8f1f2d;
+}
+
+/* =========================================================
+   SWIPE NAVIGATIE MOBIEL
+========================================================= */
+.calendar-panel,
+.main-layout {
+  touch-action: pan-y;
+}
