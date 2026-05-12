@@ -279,6 +279,34 @@
       </section>
 
 
+      <!-- ===================== TO DO ======================= -->
+      <section id="todoScreen" class="screen">
+        <section class="todo-screen-shell">
+          <section class="todo-filter-card app-control-card" aria-label="Taken filteren">
+            <input
+              id="todoSearch"
+              class="search-input"
+              type="search"
+              placeholder="Zoek taak of herinnering..."
+            />
+
+            <div class="todo-filter-tabs" role="group" aria-label="Takenstatus kiezen">
+              <button class="todo-filter-btn active" type="button" data-todo-filter="open">Open</button>
+              <button class="todo-filter-btn" type="button" data-todo-filter="all">Alles</button>
+              <button class="todo-filter-btn" type="button" data-todo-filter="done">Afgewerkt</button>
+            </div>
+          </section>
+
+          <section class="todo-list-panel">
+            <div class="section-head sticky-inside inline-header">
+              <h2 id="todoListTitle">Taken</h2>
+              <span id="todoCountBadge" class="todo-count-badge">0 open</span>
+            </div>
+            <div id="todoList" class="scroll-list"></div>
+          </section>
+        </section>
+      </section>
+
       <!-- ===================== INSTELLINGEN ================ -->
       <section id="settingsScreen" class="screen">
         <section class="detail-panel">
@@ -482,6 +510,11 @@
 		<span>Omzet</span>
 	  </button>
 
+	  <button class="nav-btn" data-screen="todoScreen" data-title="To Do" type="button">
+		<span class="nav-ico nav-ico-text">✓</span>
+		<span>To Do</span>
+	  </button>
+
 	  <button class="nav-btn" data-screen="clientsScreen" data-title="Klanten" type="button">
 		<span class="nav-ico">
 		  <svg viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-klanten">
@@ -647,6 +680,59 @@
 
         <div class="right-actions">
           <button class="btn btn-secondary action-btn" type="button" data-close="appointmentDialog">
+            Annuleren
+          </button>
+          <button class="btn btn-primary action-btn" type="submit">
+            Opslaan
+          </button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===================== TO DO ========================= -->
+  <dialog id="todoDialog" class="modal">
+    <form method="dialog" id="todoForm" class="modal-card">
+      <div class="modal-head">
+        <h3 id="todoModalTitle">Nieuwe taak</h3>
+        <button class="icon-btn" type="button" data-close="todoDialog">✕</button>
+      </div>
+
+      <input type="hidden" id="todoId" />
+
+      <label class="field-label" for="todoTitle">Taak / herinnering</label>
+      <input id="todoTitle" class="field" type="text" required />
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="todoDueDate">Datum</label>
+          <input id="todoDueDate" class="field" type="date" />
+        </div>
+
+        <div>
+          <label class="field-label" for="todoDueTime">Tijd</label>
+          <input id="todoDueTime" class="field" type="time" />
+        </div>
+      </div>
+
+      <label class="field-label" for="todoNote">Notitie</label>
+      <textarea id="todoNote" class="field textarea"></textarea>
+
+      <label class="settings-switch-row todo-completed-row" for="todoCompleted">
+        <span>
+          <strong>Afgewerkt</strong>
+          <small>Markeer deze taak als voltooid.</small>
+        </span>
+        <input id="todoCompleted" type="checkbox" />
+      </label>
+
+      <div class="modal-actions triple-actions">
+        <button id="deleteTodoBtn" class="btn btn-danger action-btn" type="button">
+          Verwijderen
+        </button>
+
+        <div class="right-actions">
+          <button class="btn btn-secondary action-btn" type="button" data-close="todoDialog">
             Annuleren
           </button>
           <button class="btn btn-primary action-btn" type="submit">

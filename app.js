@@ -16,7 +16,8 @@ const state = {
   previousMainScreen: "clientsScreen",
   clientLetter: "",
   settingsSavePending: false,
-  statsTopCustomersVisible: 10
+  statsTopCustomersVisible: 10,
+  todoFilter: "open"
 };
 
 const monthNames = [
@@ -90,11 +91,36 @@ function normalizeData(data) {
     services: Array.isArray(safe.services) ? safe.services : [],
     appointments,
     paymentMethods,
+    tasks: normalizeTasks(safe.tasks),
     settings: {
       ...defaults,
       ...(safe.settings || {})
     }
   };
+}
+
+function normalizeTasks(items) {
+  return Array.isArray(items) ? items.map((item, index) => {
+    const title = String(item?.title || item?.name || "").trim();
+    if (!title) return null;
+
+    const id = Number(item?.id);
+    const dueDate = item?.dueDate ?? item?.due_date ?? null;
+    const dueTime = item?.dueTime ?? item?.due_time ?? null;
+    const completedAt = item?.completedAt ?? item?.completed_at ?? null;
+
+    return {
+      id: Number.isFinite(id) ? id : index + 1,
+      title,
+      note: String(item?.note || "").trim(),
+      dueDate: dueDate ? String(dueDate).slice(0, 10) : "",
+      dueTime: dueTime ? String(dueTime).slice(0, 5) : "",
+      completed: Boolean(item?.completed ?? item?.is_completed ?? completedAt),
+      completedAt: completedAt || null,
+      createdAt: item?.createdAt || item?.created_at || null,
+      updatedAt: item?.updatedAt || item?.updated_at || null
+    };
+  }).filter(Boolean) : [];
 }
 
 function seedData() {
@@ -1109,15 +1135,35 @@ function updateTopbar(screenId, title) {
   } else if (screenId === "paymentMethodsScreen") {
     fab.onclick = openNewPaymentMethodDialog;
     fab.style.display = "block";
+  } else if (screenId === "todoScreen") {
+    fab.onclick = openNewTodoDialog;
+    fab.style.display = "block";
   } else {
     fab.style.display = "none";
   }
 }
 
+function screenTitleById(screenId) {
+  const map = {
+    agendaScreen: "Agenda",
+    revenueScreen: "Omzet",
+    todoScreen: "To Do",
+    clientsScreen: "Klanten",
+    servicesScreen: "Diensten",
+    paymentMethodsScreen: "Betaalwijze",
+    statisticsScreen: "Statistieken",
+    settingsScreen: "Instellingen",
+    accountScreen: "Account",
+    clientDetailScreen: "Klant"
+  };
+
+  return map[screenId] || "Agenda";
+}
+
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -1136,6 +1182,10 @@ function switchScreen(screenId, title) {
 
   if (screenId === "revenueScreen") {
     setRevenuePeriod("day", state.selectedDate || todayStr);
+  }
+
+  if (screenId === "todoScreen") {
+    renderTodoList();
   }
 
   if (screenId === "statisticsScreen") {
@@ -3650,6 +3700,132 @@ function renderPaymentMethods() {
   });
 }
 
+function formatTodoDueLabel(task) {
+  const date = task?.dueDate || "";
+  const time = task?.dueTime || "";
+  if (!date && !time) return "Geen herinnering ingesteld";
+  const dateLabel = date ? formatLongDate(date) : "Geen datum";
+  return time ? `${dateLabel} om ${time}` : dateLabel;
+}
+
+function todoDueTimestamp(task) {
+  if (!task?.dueDate) return null;
+  const time = task.dueTime || "23:59";
+  const ts = new Date(`${task.dueDate}T${time}:00`).getTime();
+  return Number.isFinite(ts) ? ts : null;
+}
+
+function isTodoOverdue(task) {
+  const ts = todoDueTimestamp(task);
+  return !task?.completed && ts !== null && ts < Date.now();
+}
+
+function sortedTasks(tasks) {
+  return tasks.slice().sort((a, b) => {
+    if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
+    const aDue = todoDueTimestamp(a);
+    const bDue = todoDueTimestamp(b);
+    if (aDue !== null && bDue !== null && aDue !== bDue) return aDue - bDue;
+    if (aDue !== null && bDue === null) return -1;
+    if (aDue === null && bDue !== null) return 1;
+    return String(b.createdAt || b.updatedAt || b.id).localeCompare(String(a.createdAt || a.updatedAt || a.id), "nl-BE");
+  });
+}
+
+function renderTodoList() {
+  const data = getData();
+  const list = document.getElementById("todoList");
+  const title = document.getElementById("todoListTitle");
+  const badge = document.getElementById("todoCountBadge");
+  const search = document.getElementById("todoSearch");
+  if (!list) return;
+
+  const tasks = normalizeTasks(data.tasks || []);
+  const q = String(search?.value || "").trim().toLowerCase();
+  const filter = state.todoFilter || "open";
+
+  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.todoFilter === filter);
+  });
+
+  const openCount = tasks.filter(task => !task.completed).length;
+  if (badge) badge.textContent = `${openCount} open`;
+  if (title) {
+    title.textContent = filter === "done" ? "Afgewerkte taken" : filter === "all" ? "Alle taken" : "Open taken";
+  }
+
+  let filtered = tasks.filter(task => {
+    if (filter === "open") return !task.completed;
+    if (filter === "done") return task.completed;
+    return true;
+  });
+
+  if (q) {
+    filtered = filtered.filter(task => [task.title, task.note, formatTodoDueLabel(task)].join(" ").toLowerCase().includes(q));
+  }
+
+  filtered = sortedTasks(filtered);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">Geen taken gevonden.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  filtered.forEach(task => {
+    const card = document.createElement("div");
+    card.className = `todo-card${task.completed ? " is-completed" : ""}${isTodoOverdue(task) ? " is-overdue" : ""}`;
+    card.innerHTML = `
+      <button class="todo-check-btn" type="button" data-id="${task.id}" aria-label="${task.completed ? "Markeer als open" : "Markeer als afgewerkt"}">
+        <span aria-hidden="true">${task.completed ? "✓" : ""}</span>
+      </button>
+      <button class="todo-main-btn" type="button" data-id="${task.id}">
+        <div class="todo-title-row">
+          <div class="client-name todo-title">${escapeHtml(task.title)}</div>
+          ${isTodoOverdue(task) ? `<span class="todo-status-pill overdue">Te laat</span>` : task.completed ? `<span class="todo-status-pill done">Afgewerkt</span>` : ""}
+        </div>
+        <div class="meta">${escapeHtml(formatTodoDueLabel(task))}</div>
+        ${task.note ? `<div class="todo-note">${escapeHtml(task.note)}</div>` : ""}
+      </button>
+    `;
+
+    card.querySelector(".todo-main-btn")?.addEventListener("click", () => openEditTodoDialog(task.id));
+    card.querySelector(".todo-check-btn")?.addEventListener("click", event => {
+      event.stopPropagation();
+      toggleTodoCompleted(task.id);
+    });
+    list.appendChild(card);
+  });
+}
+
+function openNewTodoDialog() {
+  document.getElementById("todoModalTitle").textContent = "Nieuwe taak";
+  document.getElementById("todoId").value = "";
+  document.getElementById("todoTitle").value = "";
+  document.getElementById("todoDueDate").value = "";
+  document.getElementById("todoDueTime").value = "";
+  document.getElementById("todoNote").value = "";
+  document.getElementById("todoCompleted").checked = false;
+  document.getElementById("deleteTodoBtn").style.visibility = "hidden";
+  document.getElementById("todoDialog").showModal();
+}
+
+function openEditTodoDialog(id) {
+  const data = getData();
+  const task = (data.tasks || []).find(item => String(item.id) === String(id));
+  if (!task) return;
+
+  document.getElementById("todoModalTitle").textContent = "Taak bewerken";
+  document.getElementById("todoId").value = task.id;
+  document.getElementById("todoTitle").value = task.title || "";
+  document.getElementById("todoDueDate").value = task.dueDate || "";
+  document.getElementById("todoDueTime").value = task.dueTime || "";
+  document.getElementById("todoNote").value = task.note || "";
+  document.getElementById("todoCompleted").checked = Boolean(task.completed);
+  document.getElementById("deleteTodoBtn").style.visibility = "visible";
+  document.getElementById("todoDialog").showModal();
+}
+
 function openNewPaymentMethodDialog() {
   document.getElementById("paymentMethodModalTitle").textContent = "Nieuwe betaalwijze";
   document.getElementById("paymentMethodId").value = "";
@@ -3727,6 +3903,172 @@ function openEditServiceDialog(id) {
 /* =========================
    SAVE / DELETE
 ========================= */
+
+async function saveTodoFromForm(event) {
+  event.preventDefault();
+
+  const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("todoId")?.value || "";
+  const id = rawId ? Number(rawId) : null;
+  const title = document.getElementById("todoTitle")?.value.trim() || "";
+  const dueDate = document.getElementById("todoDueDate")?.value || "";
+  const dueTime = document.getElementById("todoDueTime")?.value || "";
+  const note = document.getElementById("todoNote")?.value.trim() || "";
+  const completed = Boolean(document.getElementById("todoCompleted")?.checked);
+
+  if (!title) {
+    await appAlert("Geef een taak of herinnering in.", { title: "To Do", variant: "warning" });
+    return;
+  }
+
+  if (!user) {
+    const tasks = normalizeTasks(data.tasks || []);
+    const now = new Date().toISOString();
+    if (id) {
+      const existing = tasks.find(task => Number(task.id) === id);
+      if (existing) {
+        Object.assign(existing, {
+          title,
+          dueDate,
+          dueTime,
+          note,
+          completed,
+          completedAt: completed ? (existing.completedAt || now) : null,
+          updatedAt: now
+        });
+      }
+    } else {
+      tasks.push({
+        id: nextId(tasks),
+        title,
+        dueDate,
+        dueTime,
+        note,
+        completed,
+        completedAt: completed ? now : null,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+    data.tasks = tasks;
+    saveData(data);
+    closeDialog("todoDialog");
+    renderTodoList();
+    return;
+  }
+
+  const payload = {
+    user_id: user.id,
+    title,
+    due_date: dueDate || null,
+    due_time: dueTime || null,
+    note: note || null,
+    is_completed: completed,
+    completed_at: completed ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString()
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await supabaseClient
+      .from("tasks")
+      .update(payload)
+      .eq("id", Number(id))
+      .eq("user_id", user.id));
+  } else {
+    ({ error } = await supabaseClient
+      .from("tasks")
+      .insert(payload));
+  }
+
+  if (error) {
+    await appAlert("Opslaan taak mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("todoDialog");
+  renderTodoList();
+}
+
+async function toggleTodoCompleted(id) {
+  const user = await getCurrentUser();
+  const data = getData();
+  const tasks = normalizeTasks(data.tasks || []);
+  const task = tasks.find(item => String(item.id) === String(id));
+  if (!task) return;
+
+  const nextCompleted = !task.completed;
+  const completedAt = nextCompleted ? new Date().toISOString() : null;
+
+  if (!user) {
+    task.completed = nextCompleted;
+    task.completedAt = completedAt;
+    task.updatedAt = new Date().toISOString();
+    data.tasks = tasks;
+    saveData(data);
+    renderTodoList();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("tasks")
+    .update({
+      is_completed: nextCompleted,
+      completed_at: completedAt,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("Taak aanpassen mislukt: " + error.message, { title: "Aanpassen mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  renderTodoList();
+}
+
+async function deleteCurrentTodo() {
+  const id = document.getElementById("todoId")?.value;
+  if (!id) return;
+
+  const confirmed = await appConfirm("Deze taak wordt definitief verwijderd.", {
+    title: "Taak verwijderen",
+    confirmText: "Verwijderen",
+    cancelText: "Annuleren",
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
+  const user = await getCurrentUser();
+  const data = getData();
+
+  if (!user) {
+    data.tasks = normalizeTasks(data.tasks || []).filter(task => String(task.id) !== String(id));
+    saveData(data);
+    closeDialog("todoDialog");
+    renderTodoList();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("tasks")
+    .delete()
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("Verwijderen taak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("todoDialog");
+  renderTodoList();
+}
 
 async function savePaymentMethodFromForm(event) {
   event.preventDefault();
@@ -4618,7 +4960,7 @@ function renderCalendarMarkupFor(year, monthIndex) {
 
 function getCalendarPreviewDate(direction) {
   const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
+  d.setMonth(d.getMonth() + (direction === "left" ? -1 : 1));
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
@@ -4658,19 +5000,19 @@ function animateCalendarSwipe(direction, shouldSwitch) {
   prepareCalendarSwipePreview(direction);
 
   if (shouldSwitch) {
-    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
+    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? width : -width}px`);
     calendar.style.setProperty("--calendar-preview-x", "0px");
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
 
     window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? 1 : -1);
+      shiftCalendarMonth(direction === "left" ? -1 : 1);
       resetCalendarSwipeVisuals();
     }, 230);
     return;
   }
 
   calendar.style.setProperty("--calendar-current-x", "0px");
-  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? width : -width}px`);
+  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? -width : width}px`);
   calendar.style.setProperty("--calendar-swipe-opacity", "0");
   window.setTimeout(resetCalendarSwipeVisuals, 230);
 }
@@ -4682,9 +5024,9 @@ function setupSwipeNavigation() {
       const width = Math.max(calendar.clientWidth, window.innerWidth);
       prepareCalendarSwipePreview(direction);
       calendar.classList.add("is-swiping");
-      const visualDx = dx;
+      const visualDx = -dx;
       calendar.style.setProperty("--calendar-current-x", `${visualDx}px`);
-      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (width + visualDx) : (-width + visualDx)}px`);
+      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (-width + visualDx) : (width + visualDx)}px`);
       calendar.style.setProperty("--calendar-swipe-opacity", String(Math.min(1, 0.35 + Math.abs(dx) / Math.max(width, 1))));
     },
     onSwipe: direction => animateCalendarSwipe(direction, true),
@@ -4721,6 +5063,7 @@ function rerenderAll() {
   renderClients();
   renderServices();
   renderPaymentMethods();
+  renderTodoList();
   renderStatistics();
   renderRevenue();
 
@@ -4758,6 +5101,7 @@ function registerEvents() {
       paymentMethodsScreen: "Betaalwijze",
       statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
+      todoScreen: "To Do",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
     };
@@ -4791,6 +5135,16 @@ function registerEvents() {
 
   document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
   document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
+
+  document.getElementById("todoForm")?.addEventListener("submit", saveTodoFromForm);
+  document.getElementById("deleteTodoBtn")?.addEventListener("click", deleteCurrentTodo);
+  document.getElementById("todoSearch")?.addEventListener("input", renderTodoList);
+  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.todoFilter = btn.dataset.todoFilter || "open";
+      renderTodoList();
+    });
+  });
 
   document.getElementById("paymentPopoverCloseBtn")?.addEventListener("click", closePaymentPopover);
 
@@ -4951,7 +5305,7 @@ function registerEvents() {
           state.currentYear = picked.getFullYear();
           state.currentMonth = picked.getMonth();
         }
-        switchScreen(event.data.screen || 'agendaScreen', event.data.screen === 'statisticsScreen' ? 'Statistieken' : 'Agenda');
+        switchScreen(event.data.screen || 'agendaScreen', screenTitleById(event.data.screen || 'agendaScreen'));
         rerenderAll();
       }
     });
@@ -5094,11 +5448,43 @@ async function loadAppointmentsFromSupabase() {
   }));
 }
 
+async function loadTasksFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("is_completed", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("due_time", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Fout bij laden taken:", error.message);
+    return [];
+  }
+
+  return (data || []).map(item => ({
+    id: item.id,
+    title: item.title,
+    note: item.note || "",
+    dueDate: item.due_date || "",
+    dueTime: item.due_time ? String(item.due_time).slice(0, 5) : "",
+    completed: Boolean(item.is_completed),
+    completedAt: item.completed_at || null,
+    createdAt: item.created_at || null,
+    updatedAt: item.updated_at || null
+  }));
+}
+
 async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
   const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
+  const tasks = await loadTasksFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
@@ -5106,6 +5492,7 @@ async function loadAllDataFromSupabase() {
     services,
     paymentMethods,
     appointments,
+    tasks,
     settings
   });
 
