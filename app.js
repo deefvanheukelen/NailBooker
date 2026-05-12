@@ -1057,6 +1057,38 @@ async function logoutAccount() {
    UI
 ========================= */
 
+function scrollActiveBottomNavButton(behavior = "smooth") {
+  const nav = document.querySelector(".bottom-nav");
+  const activeBtn = nav?.querySelector(".nav-btn.active");
+  if (!nav || !activeBtn) return;
+
+  const targetLeft = activeBtn.offsetLeft - (nav.clientWidth / 2) + (activeBtn.offsetWidth / 2);
+  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+  const left = Math.max(0, Math.min(maxLeft, targetLeft));
+
+  try {
+    nav.scrollTo({ left, behavior });
+  } catch (error) {
+    nav.scrollLeft = left;
+  }
+}
+
+function scrollBottomNavButtonForScreen(screenId, behavior = "smooth") {
+  const nav = document.querySelector(".bottom-nav");
+  const targetBtn = nav?.querySelector(`.nav-btn[data-screen="${screenId}"]`);
+  if (!nav || !targetBtn) return;
+
+  const targetLeft = targetBtn.offsetLeft - (nav.clientWidth / 2) + (targetBtn.offsetWidth / 2);
+  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+  const left = Math.max(0, Math.min(maxLeft, targetLeft));
+
+  try {
+    nav.scrollTo({ left, behavior });
+  } catch (error) {
+    nav.scrollLeft = left;
+  }
+}
+
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = title;
 
@@ -1097,6 +1129,8 @@ function switchScreen(screenId, title) {
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.screen === screenId);
   });
+
+  scrollActiveBottomNavButton("smooth");
 
   updateTopbar(screenId, title);
 
@@ -4331,6 +4365,7 @@ function isSwipeIgnoredTarget(target, mode = "screen") {
         "dialog",
         ".modal",
         ".payment-popover",
+        ".calendar-panel",
         ".revenue-bars",
         ".revenue-period-strip",
         ".bottom-nav",
@@ -4366,6 +4401,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
   const maxVerticalDistance = Number(options.maxVerticalDistance || 80);
   const minHorizontalRatio = Number(options.minHorizontalRatio || 1.25);
   const mode = options.mode || "screen";
+  const stopPropagation = Boolean(options.stopPropagation);
   const onSwipe = typeof callbacks === "function" ? callbacks : callbacks?.onSwipe;
   const onMove = typeof callbacks === "function" ? null : callbacks?.onMove;
   const onStart = typeof callbacks === "function" ? null : callbacks?.onStart;
@@ -4387,6 +4423,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
   };
 
   element.addEventListener("touchstart", event => {
+    if (stopPropagation) event.stopPropagation();
     if (event.touches.length !== 1) return;
     if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target, mode)) return;
 
@@ -4402,6 +4439,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
   }, { passive: true });
 
   element.addEventListener("touchmove", event => {
+    if (stopPropagation) event.stopPropagation();
     if (!tracking || event.touches.length !== 1) return;
 
     const touch = event.touches[0];
@@ -4431,6 +4469,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
   }, { passive: false });
 
   element.addEventListener("touchend", event => {
+    if (stopPropagation) event.stopPropagation();
     if (!tracking) return;
 
     const touch = event.changedTouches[0];
@@ -4462,6 +4501,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
   }, { passive: true });
 
   element.addEventListener("touchcancel", event => {
+    if (stopPropagation) event.stopPropagation();
     if (tracking && onCancel) onCancel(event);
     finish();
   }, { passive: true });
@@ -4493,6 +4533,7 @@ function prepareScreenSwipePreview(direction) {
 
   const nextEl = document.getElementById(next.screen);
   if (nextEl) nextEl.classList.add("swipe-preview");
+  scrollBottomNavButtonForScreen(next.screen, "smooth");
   main.classList.add("is-swiping");
   return next;
 }
@@ -4521,7 +4562,10 @@ function animateScreenSwipeEnd(direction, shouldSwitch) {
   main.style.setProperty("--swipe-x", "0px");
   main.style.setProperty("--swipe-preview-x", direction === "left" ? "100%" : "-100%");
   main.style.setProperty("--swipe-opacity", "0");
-  window.setTimeout(() => resetSwipeVisuals(main), 220);
+  window.setTimeout(() => {
+    resetSwipeVisuals(main);
+    scrollActiveBottomNavButton("smooth");
+  }, 220);
 }
 
 function animateCalendarSwipe(direction, shouldSwitch) {
@@ -4534,7 +4578,7 @@ function animateCalendarSwipe(direction, shouldSwitch) {
     calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "-34px" : "34px");
     calendar.style.setProperty("--calendar-swipe-opacity", "0");
     window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? 1 : -1);
+      shiftCalendarMonth(direction === "left" ? -1 : 1);
       calendar.classList.remove("is-swiping");
       calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "34px" : "-34px");
       window.requestAnimationFrame(() => {
@@ -4569,7 +4613,7 @@ function setupSwipeNavigation() {
     },
     onSwipe: direction => animateCalendarSwipe(direction, true),
     onCancel: () => animateCalendarSwipe("left", false)
-  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 68, minHorizontalRatio: 1.18 });
+  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 68, minHorizontalRatio: 1.18, stopPropagation: true });
 
   attachHorizontalSwipe(document.querySelector(".main-layout"), {
     onMove: (dx, direction, progress) => {
