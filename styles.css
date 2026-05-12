@@ -3001,11 +3001,26 @@ button {
 }
 
 .revenue-action-btn-csv {
-  background: #0a9f13;
+  background: #e7f6ea;
+  color: #2d8b4e;
+  border: 1px solid rgba(45, 139, 78, 0.34);
+  box-shadow: 0 6px 16px rgba(45, 139, 78, 0.14);
+}
+
+.revenue-action-csv-label {
+  width: auto;
+  height: auto;
+  color: #2d8b4e;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
 }
 
 .revenue-action-btn-report {
   background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  border: 1px solid #d5819d;
 }
 
 .revenue-action-report-label {
@@ -3018,19 +3033,9 @@ button {
   letter-spacing: 0.03em;
 }
 
-.revenue-action-svg-csv {
-  width: 31px;
-  height: 31px;
-}
-
 @media (max-width: 420px) {
   .revenue-action-bar {
     gap: 10px;
-  }
-
-  .revenue-action-svg-csv {
-    width: 28px;
-    height: 28px;
   }
 }
 

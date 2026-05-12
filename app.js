@@ -4347,6 +4347,15 @@ function getSwipeMainScreens() {
 }
 
 function isSwipeIgnoredTarget(target, mode = "screen") {
+  // Op de omzetpagina mag een horizontale swipe ook starten boven de filter-keuzelijsten.
+  // Een gewone tik blijft de select openen; pas bij duidelijke horizontale beweging neemt de swipe over.
+  if (
+    mode === "screen" &&
+    target?.closest?.("#revenueScreen .revenue-filter-card select")
+  ) {
+    return false;
+  }
+
   const selector = mode === "calendar"
     ? [
         "input",
