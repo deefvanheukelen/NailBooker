@@ -3847,3 +3847,155 @@ button {
     transition: none;
   }
 }
+
+/* =========================================================
+   MOBIELE COMPACTE UI OVERRIDES
+   - subtiel kleinere globale tekst
+   - compactere boven- en ondernavigatie
+========================================================= */
+@media (max-width: 767px) {
+  :root {
+    --bottom-nav-height: 66px;
+  }
+
+  html,
+  body {
+    font-size: 14px;
+  }
+
+  .topbar {
+    padding: 7px 12px 5px;
+    gap: 8px;
+  }
+
+  .topbar-left,
+  .topbar-title-wrap {
+    gap: 7px;
+  }
+
+  .topbar-logo {
+    height: 32px;
+    margin-top: -5px;
+    margin-right: 8px;
+  }
+
+  .topbar-title-wrap h1,
+  #screenTitle {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+
+  .header-account-btn {
+    min-width: 46px;
+    max-width: 56px;
+    padding: 2px 4px;
+    gap: 1px;
+  }
+
+  .header-account-icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  .header-account-icon svg,
+  .header-account-icon img {
+    width: 23px;
+    height: 23px;
+  }
+
+  .header-account-name {
+    font-size: 10px;
+    max-width: 52px;
+  }
+
+  .bottom-nav {
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .nav-btn {
+    min-width: calc((100% - 12px) / 4);
+    border-radius: 13px;
+    padding: 6px 7px;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .nav-ico {
+    width: 22px;
+    height: 22px;
+    font-size: 18px;
+  }
+
+  .nav-ico svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+
+  .fab {
+    width: 52px;
+    height: 52px;
+    font-size: 30px;
+  }
+
+  .client-action-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .client-action-icon,
+  .client-action-svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .revenue-action-export-label,
+  .revenue-action-report-label {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  .main-name,
+  .client-name,
+  .client-appointment-service {
+    font-size: 15px;
+  }
+
+  .meta,
+  .client-appointment-status,
+  .revenue-chart-subtitle {
+    font-size: 12px;
+  }
+
+  .field,
+  .search-input,
+  .compact-field {
+    min-height: 43px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+
+  .appointment-row {
+    padding: 12px;
+  }
+
+  .time {
+    font-size: 17px;
+  }
+
+  .section-head {
+    padding: 10px 14px 7px;
+  }
+
+  .scroll-list {
+    padding: 10px 14px 86px;
+  }
+}
