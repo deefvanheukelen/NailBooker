@@ -4347,15 +4347,6 @@ function getSwipeMainScreens() {
 }
 
 function isSwipeIgnoredTarget(target, mode = "screen") {
-  // Op de omzetpagina mag een horizontale swipe ook starten boven de filter-keuzelijsten.
-  // Een gewone tik blijft de select openen; pas bij duidelijke horizontale beweging neemt de swipe over.
-  if (
-    mode === "screen" &&
-    target?.closest?.("#revenueScreen .revenue-filter-card select")
-  ) {
-    return false;
-  }
-
   const selector = mode === "calendar"
     ? [
         "input",
@@ -4630,7 +4621,7 @@ function renderCalendarMarkupFor(year, monthIndex) {
 
 function getCalendarPreviewDate(direction) {
   const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? -1 : 1));
+  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
@@ -4675,7 +4666,7 @@ function animateCalendarSwipe(direction, shouldSwitch) {
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
 
     window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? -1 : 1);
+      shiftCalendarMonth(direction === "left" ? 1 : -1);
       resetCalendarSwipeVisuals();
     }, 230);
     return;
