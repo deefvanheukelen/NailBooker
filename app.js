@@ -4658,7 +4658,7 @@ function animateCalendarSwipe(direction, shouldSwitch) {
   prepareCalendarSwipePreview(direction);
 
   if (shouldSwitch) {
-    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? width : -width}px`);
+    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
     calendar.style.setProperty("--calendar-preview-x", "0px");
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
 
@@ -4670,7 +4670,7 @@ function animateCalendarSwipe(direction, shouldSwitch) {
   }
 
   calendar.style.setProperty("--calendar-current-x", "0px");
-  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? -width : width}px`);
+  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? width : -width}px`);
   calendar.style.setProperty("--calendar-swipe-opacity", "0");
   window.setTimeout(resetCalendarSwipeVisuals, 230);
 }
@@ -4682,9 +4682,9 @@ function setupSwipeNavigation() {
       const width = Math.max(calendar.clientWidth, window.innerWidth);
       prepareCalendarSwipePreview(direction);
       calendar.classList.add("is-swiping");
-      const visualDx = -dx;
+      const visualDx = dx;
       calendar.style.setProperty("--calendar-current-x", `${visualDx}px`);
-      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (-width + visualDx) : (width + visualDx)}px`);
+      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (width + visualDx) : (-width + visualDx)}px`);
       calendar.style.setProperty("--calendar-swipe-opacity", String(Math.min(1, 0.35 + Math.abs(dx) / Math.max(width, 1))));
     },
     onSwipe: direction => animateCalendarSwipe(direction, true),
