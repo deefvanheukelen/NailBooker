@@ -4313,85 +4313,283 @@ function getSwipeMainScreens() {
     .filter(item => item.screen && item.title);
 }
 
-function isSwipeIgnoredTarget(target) {
-  return Boolean(target?.closest?.([
-    "button",
-    "input",
-    "select",
-    "textarea",
-    "dialog",
-    ".modal",
-    ".payment-popover",
-    ".revenue-bars",
-    ".revenue-period-strip",
-    ".bottom-nav",
-    ".alphabet-filter"
-  ].join(",")));
+function isSwipeIgnoredTarget(target, mode = "screen") {
+  const selector = mode === "calendar"
+    ? [
+        "input",
+        "select",
+        "textarea",
+        "dialog",
+        ".modal",
+        ".payment-popover",
+        ".bottom-nav"
+      ].join(",")
+    : [
+        "input",
+        "select",
+        "textarea",
+        "dialog",
+        ".modal",
+        ".payment-popover",
+        ".revenue-bars",
+        ".revenue-period-strip",
+        ".bottom-nav",
+        ".alphabet-filter"
+      ].join(",");
+
+  return Boolean(target?.closest?.(selector));
 }
 
-function attachHorizontalSwipe(element, onSwipe, options = {}) {
+function resetSwipeVisuals(container) {
+  if (!container) return;
+  container.classList.remove("is-swiping", "is-swipe-animating");
+  container.style.removeProperty("--swipe-x");
+  container.style.removeProperty("--swipe-preview-x");
+  container.style.removeProperty("--swipe-opacity");
+  container.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
+}
+
+function setSwipeVisuals(container, dx, direction, progress) {
+  if (!container) return;
+  const previewX = direction === "left" ? 100 + (dx / window.innerWidth) * 100 : -100 + (dx / window.innerWidth) * 100;
+  container.style.setProperty("--swipe-x", `${dx}px`);
+  container.style.setProperty("--swipe-preview-x", `${previewX}%`);
+  container.style.setProperty("--swipe-opacity", String(Math.min(1, 0.28 + progress * 0.72)));
+}
+
+function attachHorizontalSwipe(element, callbacks, options = {}) {
   if (!element || element.dataset.swipeReady === "true") return;
   element.dataset.swipeReady = "true";
 
   const minDistance = Number(options.minDistance || 70);
-  const maxVerticalDistance = Number(options.maxVerticalDistance || 70);
-  const minHorizontalRatio = Number(options.minHorizontalRatio || 1.45);
+  const lockDistance = Number(options.lockDistance || 12);
+  const maxVerticalDistance = Number(options.maxVerticalDistance || 80);
+  const minHorizontalRatio = Number(options.minHorizontalRatio || 1.25);
+  const mode = options.mode || "screen";
+  const onSwipe = typeof callbacks === "function" ? callbacks : callbacks?.onSwipe;
+  const onMove = typeof callbacks === "function" ? null : callbacks?.onMove;
+  const onStart = typeof callbacks === "function" ? null : callbacks?.onStart;
+  const onCancel = typeof callbacks === "function" ? null : callbacks?.onCancel;
+
   let startX = 0;
   let startY = 0;
   let startTime = 0;
   let tracking = false;
+  let locked = false;
+  let cancelled = false;
+  let activeDirection = null;
+
+  const finish = () => {
+    tracking = false;
+    locked = false;
+    cancelled = false;
+    activeDirection = null;
+  };
 
   element.addEventListener("touchstart", event => {
     if (event.touches.length !== 1) return;
-    if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target)) return;
+    if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target, mode)) return;
 
     const touch = event.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
     startTime = Date.now();
     tracking = true;
+    locked = false;
+    cancelled = false;
+    activeDirection = null;
+    if (onStart) onStart(event);
   }, { passive: true });
+
+  element.addEventListener("touchmove", event => {
+    if (!tracking || event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (!locked) {
+      if (absX < lockDistance && absY < lockDistance) return;
+      if (absY > absX || absX < absY * minHorizontalRatio) {
+        cancelled = true;
+        if (onCancel) onCancel(event);
+        finish();
+        return;
+      }
+      locked = true;
+      activeDirection = dx > 0 ? "right" : "left";
+    }
+
+    if (!locked || cancelled) return;
+    if (event.cancelable) event.preventDefault();
+
+    const dampedDx = dx * 0.82;
+    const progress = Math.min(1, absX / Math.max(minDistance, window.innerWidth * 0.24));
+    if (onMove) onMove(dampedDx, activeDirection, progress, event);
+  }, { passive: false });
 
   element.addEventListener("touchend", event => {
     if (!tracking) return;
-    tracking = false;
 
     const touch = event.changedTouches[0];
-    if (!touch) return;
+    if (!touch) {
+      if (onCancel) onCancel(event);
+      finish();
+      return;
+    }
 
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
     const elapsed = Date.now() - startTime;
+    const direction = dx > 0 ? "right" : "left";
+    const velocity = Math.abs(dx) / Math.max(elapsed, 1);
+    const qualifies =
+      locked &&
+      elapsed <= 1000 &&
+      Math.abs(dx) >= minDistance &&
+      Math.abs(dy) <= maxVerticalDistance &&
+      Math.abs(dx) >= Math.abs(dy) * minHorizontalRatio;
 
-    if (elapsed > 900) return;
-    if (Math.abs(dx) < minDistance) return;
-    if (Math.abs(dy) > maxVerticalDistance) return;
-    if (Math.abs(dx) < Math.abs(dy) * minHorizontalRatio) return;
+    if (qualifies || (locked && Math.abs(dx) >= minDistance * 0.62 && velocity > 0.55)) {
+      if (onSwipe) onSwipe(direction, event, dx);
+    } else if (onCancel) {
+      onCancel(event);
+    }
 
-    onSwipe(dx > 0 ? "right" : "left", event);
+    finish();
+  }, { passive: true });
+
+  element.addEventListener("touchcancel", event => {
+    if (tracking && onCancel) onCancel(event);
+    finish();
   }, { passive: true });
 }
 
-function setupSwipeNavigation() {
-  attachHorizontalSwipe(document.querySelector(".calendar-panel"), direction => {
-    shiftCalendarMonth(direction === "left" ? 1 : -1);
-  }, { ignoreInteractive: false, minDistance: 55, maxVerticalDistance: 60 });
+function getAdjacentMainScreen(direction) {
+  if (state.currentScreen === "clientDetailScreen") return null;
 
-  attachHorizontalSwipe(document.querySelector(".main-layout"), direction => {
-    if (state.currentScreen === "clientDetailScreen") return;
+  const screens = getSwipeMainScreens();
+  const currentIndex = screens.findIndex(item => item.screen === state.currentScreen);
+  if (currentIndex < 0) return null;
 
-    const screens = getSwipeMainScreens();
-    const currentIndex = screens.findIndex(item => item.screen === state.currentScreen);
-    if (currentIndex < 0) return;
-
-    const nextIndex = direction === "left" ? currentIndex + 1 : currentIndex - 1;
-    if (nextIndex < 0 || nextIndex >= screens.length) return;
-
-    const next = screens[nextIndex];
-    switchScreen(next.screen, next.title);
-  }, { minDistance: 75, maxVerticalDistance: 70 });
+  const nextIndex = direction === "left" ? currentIndex + 1 : currentIndex - 1;
+  if (nextIndex < 0 || nextIndex >= screens.length) return null;
+  return screens[nextIndex];
 }
 
+function prepareScreenSwipePreview(direction) {
+  const main = document.querySelector(".main-layout");
+  if (!main) return null;
+
+  const next = getAdjacentMainScreen(direction);
+  main.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
+
+  if (!next) {
+    main.classList.add("is-swiping");
+    return null;
+  }
+
+  const nextEl = document.getElementById(next.screen);
+  if (nextEl) nextEl.classList.add("swipe-preview");
+  main.classList.add("is-swiping");
+  return next;
+}
+
+function animateScreenSwipeEnd(direction, shouldSwitch) {
+  const main = document.querySelector(".main-layout");
+  if (!main) return;
+
+  const next = getAdjacentMainScreen(direction);
+  main.classList.add("is-swipe-animating");
+
+  if (shouldSwitch && next) {
+    const endX = direction === "left" ? -window.innerWidth : window.innerWidth;
+    const endPreviewX = "0%";
+    main.style.setProperty("--swipe-x", `${endX}px`);
+    main.style.setProperty("--swipe-preview-x", endPreviewX);
+    main.style.setProperty("--swipe-opacity", "1");
+
+    window.setTimeout(() => {
+      resetSwipeVisuals(main);
+      switchScreen(next.screen, next.title);
+    }, 220);
+    return;
+  }
+
+  main.style.setProperty("--swipe-x", "0px");
+  main.style.setProperty("--swipe-preview-x", direction === "left" ? "100%" : "-100%");
+  main.style.setProperty("--swipe-opacity", "0");
+  window.setTimeout(() => resetSwipeVisuals(main), 220);
+}
+
+function animateCalendarSwipe(direction, shouldSwitch) {
+  const calendar = document.querySelector(".calendar-panel");
+  if (!calendar) return;
+
+  calendar.classList.add("is-swipe-animating");
+
+  if (shouldSwitch) {
+    calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "-34px" : "34px");
+    calendar.style.setProperty("--calendar-swipe-opacity", "0");
+    window.setTimeout(() => {
+      shiftCalendarMonth(direction === "left" ? 1 : -1);
+      calendar.classList.remove("is-swiping");
+      calendar.style.setProperty("--calendar-swipe-x", direction === "left" ? "34px" : "-34px");
+      window.requestAnimationFrame(() => {
+        calendar.style.setProperty("--calendar-swipe-x", "0px");
+        calendar.style.setProperty("--calendar-swipe-opacity", "1");
+      });
+      window.setTimeout(() => {
+        calendar.classList.remove("is-swipe-animating");
+        calendar.style.removeProperty("--calendar-swipe-x");
+        calendar.style.removeProperty("--calendar-swipe-opacity");
+      }, 210);
+    }, 110);
+    return;
+  }
+
+  calendar.style.setProperty("--calendar-swipe-x", "0px");
+  calendar.style.setProperty("--calendar-swipe-opacity", "1");
+  window.setTimeout(() => {
+    calendar.classList.remove("is-swiping", "is-swipe-animating");
+    calendar.style.removeProperty("--calendar-swipe-x");
+    calendar.style.removeProperty("--calendar-swipe-opacity");
+  }, 210);
+}
+function setupSwipeNavigation() {
+  attachHorizontalSwipe(document.querySelector(".calendar-panel"), {
+    onMove: (dx, direction) => {
+      const calendar = document.querySelector(".calendar-panel");
+      if (!calendar) return;
+      calendar.classList.add("is-swiping");
+      calendar.style.setProperty("--calendar-swipe-x", `${dx * 0.35}px`);
+      calendar.style.setProperty("--calendar-swipe-opacity", String(Math.max(0.78, 1 - Math.abs(dx) / 520)));
+    },
+    onSwipe: direction => animateCalendarSwipe(direction, true),
+    onCancel: () => animateCalendarSwipe("left", false)
+  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 68, minHorizontalRatio: 1.18 });
+
+  attachHorizontalSwipe(document.querySelector(".main-layout"), {
+    onMove: (dx, direction, progress) => {
+      const main = document.querySelector(".main-layout");
+      if (!main) return;
+      const next = prepareScreenSwipePreview(direction);
+      const edgeDampening = next ? 1 : 0.26;
+      setSwipeVisuals(main, dx * edgeDampening, direction, next ? progress : 0.22);
+    },
+    onSwipe: direction => {
+      const next = getAdjacentMainScreen(direction);
+      animateScreenSwipeEnd(direction, Boolean(next));
+    },
+    onCancel: () => {
+      const main = document.querySelector(".main-layout");
+      const currentX = Number(String(main?.style.getPropertyValue("--swipe-x") || "0").replace("px", ""));
+      animateScreenSwipeEnd(currentX < 0 ? "left" : "right", false);
+    }
+  }, { minDistance: 72, maxVerticalDistance: 86, minHorizontalRatio: 1.18 });
+}
 function rerenderAll() {
   renderAlphabetFilter();
   renderCalendar();
