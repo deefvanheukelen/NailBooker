@@ -106,9 +106,19 @@
         <section class="calendar-panel">
           <div class="month-header">
             <button class="icon-btn" id="prevMonthBtn" type="button" aria-label="Vorige maand">‹</button>
-            <button class="month-title month-select-btn" id="monthPickerBtn" type="button">
-              MAART 2026
-            </button>
+            <div class="month-title-actions">
+              <button class="month-title month-select-btn" id="monthPickerBtn" type="button">
+                MAART 2026
+              </button>
+              <button class="today-icon-btn" id="todayIconBtn" type="button" aria-label="Spring naar vandaag">
+                <svg class="today-icon" viewBox="0 0 26.5 26" aria-hidden="true">
+                  <path
+                    id="rect1"
+                    style="baseline-shift:baseline;display:inline;overflow:visible;opacity:1;vector-effect:none;stroke-width:1.64079;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
+                    d="M 8.3422089,0.9919416 A 1.0058012,1.0058012 0 0 0 7.3366004,1.9975501 V 2.9276955 H 4.574145 c -1.7239203,0 -3.1440102,1.4192417 -3.1440102,3.143162 V 21.857043 c 0,1.723921 1.4200899,3.140619 3.1440102,3.140619 h 17.342928 c 1.723921,0 3.144012,-1.416698 3.144012,-3.140619 V 6.0708575 c 0,-1.7239203 -1.420091,-3.143162 -3.144012,-3.143162 H 19.712536 V 1.9975501 A 1.0058012,1.0058012 0 0 0 18.706081,0.9919416 1.0058012,1.0058012 0 0 0 17.699623,1.9975501 V 2.9276955 H 9.3486654 V 1.9975501 A 1.0058012,1.0058012 0 0 0 8.3422089,0.9919416 Z M 4.574145,4.93976 H 7.3366004 V 6.3175963 A 1.0058012,1.0058012 0 0 0 8.3422089,7.3206609 1.0058012,1.0058012 0 0 0 9.3486654,6.3175963 V 4.93976 h 8.3509576 v 1.3778363 a 1.0058012,1.0058012 0 0 0 1.006458,1.0030646 1.0058012,1.0058012 0 0 0 1.006455,-1.0030646 V 4.93976 h 2.204537 c 0.64429,0 1.131946,0.4868097 1.131946,1.1310975 V 8.9138634 H 3.4421996 V 6.0708575 C 3.4421996,5.4265697 3.9298574,4.93976 4.574145,4.93976 Z M 3.4421996,9.6540796 H 23.049019 V 21.857043 c 0,0.64429 -0.487656,1.131099 -1.131946,1.131099 H 4.574145 c -0.6442876,0 -1.1319454,-0.486809 -1.1319454,-1.131099 z M 18.167664,17.156292 c -0.332408,0 -0.608791,0.279775 -0.608791,0.612182 v 2.031566 c 0,0.33241 0.276383,0.608793 0.608791,0.608793 h 2.230823 c 0.332408,0 0.612184,-0.276383 0.612184,-0.608793 v -2.031566 c 0,-0.332407 -0.279776,-0.612182 -0.612184,-0.612182 z m 0.06104,0.672383 h 2.112118 v 1.910317 h -2.112118 z" />
+                </svg>
+              </button>
+            </div>
             <button class="icon-btn" id="nextMonthBtn" type="button" aria-label="Volgende maand">›</button>
           </div>
 

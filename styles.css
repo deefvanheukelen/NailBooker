@@ -375,6 +375,39 @@ button {
   letter-spacing: 0.5px;
 }
 
+.month-title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.today-icon-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: var(--primary-dark);
+  background: transparent;
+  padding: 6px;
+}
+
+.today-icon-btn:hover,
+.today-icon-btn:active {
+  color: #000;
+}
+
+.today-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: currentColor;
+}
+
 .month-select-btn {
   border: none;
   background: none;
@@ -386,7 +419,7 @@ button {
 
 .month-select-btn:hover,
 .month-select-btn:active {
-  background: var(--primary-soft);
+  background: 	var(--primary-soft);
 }
 
 .weekday-row {
