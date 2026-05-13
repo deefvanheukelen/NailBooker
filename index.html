@@ -461,6 +461,11 @@
 				  </div>
 
 				  <div class="account-data-row">
+					<div class="account-data-label">Geslacht</div>
+					<div id="accountProfileGender" class="account-data-value">-</div>
+				  </div>
+
+				  <div class="account-data-row">
 					<div class="account-data-label">E-mail</div>
 					<div id="accountProfileEmail" class="account-data-value">-</div>
 				  </div>
@@ -899,6 +904,22 @@
       <label class="field-label" for="registerLastName">Naam</label>
       <input id="registerLastName" class="field" type="text" required />
 
+      <div class="field-label">Geslacht</div>
+      <div class="gender-choice-row" role="radiogroup" aria-label="Geslacht">
+        <label class="gender-choice">
+          <input type="radio" name="registerGender" value="M" />
+          <span>M</span>
+        </label>
+        <label class="gender-choice">
+          <input type="radio" name="registerGender" value="V" checked />
+          <span>V</span>
+        </label>
+        <label class="gender-choice">
+          <input type="radio" name="registerGender" value="X" />
+          <span>X</span>
+        </label>
+      </div>
+
       <label class="field-label" for="registerEmail">E-mail</label>
       <input id="registerEmail" class="field" type="email" required autocomplete="email" />
 
@@ -940,8 +961,6 @@
         </button>
       </div>
 
-      <label class="field-label" for="registerPhoto">Foto (optioneel)</label>
-      <input id="registerPhoto" class="field file-field" type="file" accept="image/*" />
 
       <div class="modal-actions end-only">
         <button class="btn btn-secondary action-btn" type="button" data-close="registerDialog">
@@ -968,8 +987,21 @@
       <label class="field-label" for="editLastName">Naam</label>
       <input id="editLastName" class="field" type="text" required />
 
-      <label class="field-label" for="editAvatar">Foto</label>
-      <input id="editAvatar" class="field file-field" type="file" accept="image/*" />
+      <div class="field-label">Geslacht</div>
+      <div class="gender-choice-row" role="radiogroup" aria-label="Geslacht">
+        <label class="gender-choice">
+          <input type="radio" name="editGender" value="M" />
+          <span>M</span>
+        </label>
+        <label class="gender-choice">
+          <input type="radio" name="editGender" value="V" checked />
+          <span>V</span>
+        </label>
+        <label class="gender-choice">
+          <input type="radio" name="editGender" value="X" />
+          <span>X</span>
+        </label>
+      </div>
 
       <div class="modal-actions end-only">
         <button class="btn btn-secondary action-btn" type="button" data-close="editProfileDialog">

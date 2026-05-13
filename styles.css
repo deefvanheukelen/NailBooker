@@ -4243,3 +4243,56 @@ button {
     padding: 10px 14px 86px;
   }
 }
+
+/* =========================================================
+   GESLACHTSKEUZE ACCOUNT
+========================================================= */
+.gender-choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gender-choice {
+  position: relative;
+  display: block;
+}
+
+.gender-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gender-choice span {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft);
+  transition:
+    transform 0.14s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.gender-choice:hover span {
+  transform: translateY(-1px);
+}
+
+.gender-choice input:checked + span {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+
+.gender-choice input:focus-visible + span {
+  outline: 2px solid rgba(185, 109, 135, 0.35);
+  outline-offset: 2px;
+}
