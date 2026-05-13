@@ -4960,7 +4960,7 @@ function renderCalendarMarkupFor(year, monthIndex) {
 
 function getCalendarPreviewDate(direction) {
   const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? -1 : 1));
+  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
@@ -5001,14 +5001,14 @@ function animateCalendarSwipe(direction, shouldSwitch) {
 
   if (shouldSwitch) {
     // De kalender volgt dezelfde richting als de vinger:
-    // links vegen = kalender naar links en maand terug,
-    // rechts vegen = kalender naar rechts en maand verder.
+    // De beweging blijft gelijk, maar de geladen maand wordt omgekeerd
+    // zodat de preview en de uiteindelijke kalender dezelfde maand tonen.
     calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
     calendar.style.setProperty("--calendar-preview-x", "0px");
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
 
     window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? -1 : 1);
+      shiftCalendarMonth(direction === "left" ? 1 : -1);
       resetCalendarSwipeVisuals();
     }, 230);
     return;
