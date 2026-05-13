@@ -660,8 +660,20 @@
         </div>
       </div>
 
-      <label class="field-label" for="appointmentService">Dienst</label>
-      <select id="appointmentService" class="field" required></select>
+      <label class="field-label" for="appointmentServiceSearch">Dienst</label>
+      <div class="appointment-service-picker">
+        <input
+          id="appointmentServiceSearch"
+          class="field appointment-service-search"
+          type="search"
+          placeholder="Zoek dienst..."
+          autocomplete="off"
+          aria-controls="appointmentServiceResults"
+          aria-expanded="false"
+        />
+        <div id="appointmentServiceResults" class="appointment-service-results hidden" role="listbox"></div>
+        <select id="appointmentService" class="field appointment-service-select-fallback" required aria-label="Dienst kiezen"></select>
+      </div>
 
       <div class="field-row">
         <div>
@@ -879,7 +891,7 @@
         <div class="payment-popover-title-wrap">
           <div class="payment-popover-title">Betaling registreren</div>
           <div class="payment-popover-amount" id="paymentAmount">€ 0,00</div>
-          <div class="payment-current-method">Huidige betaalwijze: <strong id="paymentDialogCurrentMethod">Nog niet betaald</strong></div>
+          <div id="paymentCurrentMethodWrap" class="payment-current-method">Betaalwijze: <strong id="paymentDialogCurrentMethod">Nog niet betaald</strong></div>
         </div>
         <button id="paymentPopoverCloseBtn" class="icon-btn payment-popover-close" type="button" aria-label="Sluiten">✕</button>
       </div>

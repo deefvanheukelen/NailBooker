@@ -3857,27 +3857,31 @@ button {
 }
 
 /* =========================================================
-   AFSPRAAKDIALOOG: SNEL KLANTEN ZOEKEN
+   AFSPRAAKDIALOOG: SNEL KLANTEN / DIENSTEN ZOEKEN
 ========================================================= */
-.appointment-customer-picker {
+.appointment-customer-picker,
+.appointment-service-picker {
   position: relative;
   display: grid;
   gap: 8px;
 }
 
-.appointment-customer-search {
+.appointment-customer-search,
+.appointment-service-search {
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.appointment-customer-select-fallback {
+.appointment-customer-select-fallback,
+.appointment-service-select-fallback {
   min-height: 42px;
   font-size: 13px;
   color: var(--muted);
   background: #fbf8fa;
 }
 
-.appointment-customer-results {
+.appointment-customer-results,
+.appointment-service-results {
   position: absolute;
   top: 56px;
   left: 0;
@@ -3893,7 +3897,8 @@ button {
   padding: 6px;
 }
 
-.appointment-customer-result {
+.appointment-customer-result,
+.appointment-service-result {
   width: 100%;
   border: none;
   background: transparent;
@@ -3907,34 +3912,43 @@ button {
 
 .appointment-customer-result:hover,
 .appointment-customer-result:active,
-.appointment-customer-result.active {
+.appointment-customer-result.active,
+.appointment-service-result:hover,
+.appointment-service-result:active,
+.appointment-service-result.active {
   background: var(--primary-soft);
   color: var(--primary-dark);
 }
 
-.appointment-customer-result-name {
+.appointment-customer-result-name,
+.appointment-service-result-name {
   font-weight: 700;
   font-size: 15px;
   line-height: 1.2;
 }
 
 .appointment-customer-result-meta,
-.appointment-customer-empty {
+.appointment-customer-empty,
+.appointment-service-result-meta,
+.appointment-service-empty {
   font-size: 12px;
   line-height: 1.35;
   color: var(--muted);
 }
 
-.appointment-customer-empty {
+.appointment-customer-empty,
+.appointment-service-empty {
   padding: 12px;
 }
 
 @media (min-width: 760px) {
-  .appointment-customer-results {
+  .appointment-customer-results,
+  .appointment-service-results {
     max-height: 340px;
   }
 
-  .appointment-customer-select-fallback {
+  .appointment-customer-select-fallback,
+  .appointment-service-select-fallback {
     max-width: 52%;
   }
 }
@@ -4295,4 +4309,116 @@ button {
 .gender-choice input:focus-visible + span {
   outline: 2px solid rgba(185, 109, 135, 0.35);
   outline-offset: 2px;
+}
+
+/* =========================================================
+   DIENSTEN SORTEREN
+========================================================= */
+.service-sort-card {
+  touch-action: none;
+}
+
+.service-sort-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: stretch;
+}
+
+.service-main-btn {
+  min-width: 0;
+}
+
+.service-drag-handle {
+  width: 48px;
+  border: none;
+  border-left: 1px solid var(--line);
+  background: #fff;
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-template-rows: repeat(3, 4px);
+  gap: 4px;
+  align-content: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.service-drag-handle:active {
+  cursor: grabbing;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.service-sort-card.is-dragging {
+  opacity: 0.62;
+  box-shadow: 0 8px 20px rgba(170, 120, 145, 0.18);
+}
+
+.service-sort-card.is-dragging,
+.service-sort-card.is-dragging * {
+  pointer-events: none;
+}
+
+/* =========================================================
+   DIENSTEN SORTEREN - VISUELE DROPFEEDBACK
+========================================================= */
+#servicesList.is-service-drag-active {
+  cursor: grabbing;
+}
+
+#servicesList.is-service-drag-active .service-sort-card {
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+}
+
+.service-sort-card.drop-before,
+.service-sort-card.drop-after {
+  position: relative;
+}
+
+.service-sort-card.drop-before::before,
+.service-sort-card.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  z-index: 5;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--primary-dark);
+  box-shadow: 0 0 0 4px rgba(217, 145, 171, 0.18);
+  pointer-events: none;
+}
+
+.service-sort-card.drop-before::before {
+  top: -5px;
+}
+
+.service-sort-card.drop-after::after {
+  bottom: -5px;
+}
+
+.service-sort-card.is-dragging {
+  opacity: 0.88;
+  background: var(--primary-soft);
+  border-color: var(--primary-dark);
+  transform: scale(1.015);
+  box-shadow: 0 14px 30px rgba(170, 120, 145, 0.28);
+}
+
+.service-sort-card.is-dragging .service-drag-handle {
+  background: var(--primary-dark);
+  color: #fff;
+}
+
+.service-drag-handle span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+  display: block;
+}
+
+.service-drag-handle:active span,
+.service-sort-card.is-dragging .service-drag-handle span {
+  background: #fff;
 }

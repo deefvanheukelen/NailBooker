@@ -88,7 +88,7 @@ function normalizeData(data) {
 
   return {
     customers: Array.isArray(safe.customers) ? safe.customers : [],
-    services: Array.isArray(safe.services) ? safe.services : [],
+    services: normalizeServices(safe.services),
     appointments,
     paymentMethods,
     tasks: normalizeTasks(safe.tasks),
@@ -97,6 +97,44 @@ function normalizeData(data) {
       ...(safe.settings || {})
     }
   };
+}
+
+function normalizeServices(items) {
+  const services = Array.isArray(items) ? items.map((item, index) => {
+    const id = Number(item?.id);
+    const sortOrderRaw = item?.sortOrder ?? item?.sort_order;
+    const sortOrder = Number(sortOrderRaw);
+
+    return {
+      ...item,
+      id: Number.isFinite(id) ? id : index + 1,
+      name: String(item?.name || "").trim(),
+      duration: Number(item?.duration || 0),
+      price: Number(item?.price || 0),
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : null
+    };
+  }).filter(service => service.name) : [];
+
+  return sortServicesForDisplay(services);
+}
+
+function sortServicesForDisplay(services = []) {
+  const items = Array.isArray(services) ? services.slice() : [];
+  const hasCustomOrder = items.some(service => Number.isFinite(Number(service?.sortOrder)));
+
+  return items.sort((a, b) => {
+    if (hasCustomOrder) {
+      const orderA = Number.isFinite(Number(a?.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+    }
+
+    return String(a?.name || "").localeCompare(String(b?.name || ""), "nl-BE", { sensitivity: "base" });
+  });
+}
+
+function getOrderedServices(data = getData()) {
+  return sortServicesForDisplay(data?.services || []);
 }
 
 function normalizeTasks(items) {
@@ -1404,28 +1442,174 @@ function renderClients() {
 function renderServices() {
   const data = getData();
   const list = document.getElementById("servicesList");
+  const services = getOrderedServices(data);
 
-  if (!data.services.length) {
+  if (!services.length) {
     list.innerHTML = `<div class="empty-state">Nog geen diensten.</div>`;
     return;
   }
 
   list.innerHTML = "";
 
-  data.services.forEach(service => {
+  services.forEach(service => {
     const card = document.createElement("div");
-    card.className = "service-card";
+    card.className = "service-card service-sort-card";
+    card.dataset.serviceId = service.id;
+    card.draggable = true;
 
     card.innerHTML = `
-      <button type="button" data-id="${service.id}">
-        <div class="client-name">${service.name}</div>
-        <div class="meta">${service.duration} min · ${euro(service.price)}</div>
-      </button>
+      <div class="service-sort-row">
+        <button class="service-main-btn" type="button" data-id="${service.id}">
+          <div class="client-name">${htmlEscape(service.name)}</div>
+          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
+        </button>
+        <button class="service-drag-handle" type="button" aria-label="Dienst verslepen" title="Versleep om te sorteren">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
     `;
 
-    card.querySelector("button").addEventListener("click", () => openEditServiceDialog(service.id));
+    card.querySelector(".service-main-btn").addEventListener("click", () => openEditServiceDialog(service.id));
     list.appendChild(card);
   });
+
+  setupServiceDragAndDrop(list);
+}
+
+let serviceDragId = null;
+let servicePointerDrag = null;
+
+function clearServiceDropIndicators(list) {
+  if (!list) return;
+  list.classList.remove("is-service-drag-active");
+  list.querySelectorAll(".service-sort-card.drop-before, .service-sort-card.drop-after").forEach(card => {
+    card.classList.remove("drop-before", "drop-after");
+  });
+}
+
+function setServiceDropIndicator(target, afterTarget) {
+  const list = target?.parentElement;
+  if (!list) return;
+  list.classList.add("is-service-drag-active");
+  list.querySelectorAll(".service-sort-card.drop-before, .service-sort-card.drop-after").forEach(card => {
+    if (card !== target) card.classList.remove("drop-before", "drop-after");
+  });
+  target.classList.toggle("drop-before", !afterTarget);
+  target.classList.toggle("drop-after", afterTarget);
+}
+
+function setupServiceDragAndDrop(list) {
+  if (!list || list.dataset.serviceSortReady === "true") return;
+  list.dataset.serviceSortReady = "true";
+
+  list.addEventListener("dragstart", event => {
+    const card = event.target.closest(".service-sort-card");
+    if (!card) return;
+    serviceDragId = card.dataset.serviceId;
+    card.classList.add("is-dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", serviceDragId);
+  });
+
+  list.addEventListener("dragover", event => {
+    if (!serviceDragId) return;
+    event.preventDefault();
+    const dragging = list.querySelector(".service-sort-card.is-dragging");
+    const target = event.target.closest(".service-sort-card:not(.is-dragging)");
+    if (!dragging || !target) return;
+
+    const rect = target.getBoundingClientRect();
+    const afterTarget = event.clientY > rect.top + rect.height / 2;
+    setServiceDropIndicator(target, afterTarget);
+    list.insertBefore(dragging, afterTarget ? target.nextSibling : target);
+  });
+
+  list.addEventListener("dragend", async () => {
+    const dragging = list.querySelector(".service-sort-card.is-dragging");
+    if (dragging) dragging.classList.remove("is-dragging");
+    clearServiceDropIndicators(list);
+    if (serviceDragId) await persistServiceOrderFromDom(list);
+    serviceDragId = null;
+  });
+
+  list.addEventListener("pointerdown", event => {
+    const handle = event.target.closest(".service-drag-handle");
+    const card = event.target.closest(".service-sort-card");
+    if (!handle || !card) return;
+
+    event.preventDefault();
+    servicePointerDrag = { card, pointerId: event.pointerId, moved: false };
+    card.classList.add("is-dragging");
+    try { handle.setPointerCapture(event.pointerId); } catch (error) {}
+  });
+
+  list.addEventListener("pointermove", event => {
+    if (!servicePointerDrag || servicePointerDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    servicePointerDrag.moved = true;
+
+    const dragging = servicePointerDrag.card;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".service-sort-card:not(.is-dragging)");
+    if (!dragging || !target || !list.contains(target)) return;
+
+    const rect = target.getBoundingClientRect();
+    const afterTarget = event.clientY > rect.top + rect.height / 2;
+    setServiceDropIndicator(target, afterTarget);
+    list.insertBefore(dragging, afterTarget ? target.nextSibling : target);
+  });
+
+  const endPointerDrag = async event => {
+    if (!servicePointerDrag || servicePointerDrag.pointerId !== event.pointerId) return;
+    const { card, moved } = servicePointerDrag;
+    card.classList.remove("is-dragging");
+    clearServiceDropIndicators(list);
+    servicePointerDrag = null;
+    if (moved) await persistServiceOrderFromDom(list);
+  };
+
+  list.addEventListener("pointerup", endPointerDrag);
+  list.addEventListener("pointercancel", endPointerDrag);
+}
+
+async function persistServiceOrderFromDom(list) {
+  const orderedIds = Array.from(list.querySelectorAll(".service-sort-card"))
+    .map(card => Number(card.dataset.serviceId))
+    .filter(Number.isFinite);
+
+  if (!orderedIds.length) return;
+
+  const data = getData();
+  data.services = data.services.map(service => {
+    const index = orderedIds.findIndex(id => String(id) === String(service.id));
+    return {
+      ...service,
+      sortOrder: index >= 0 ? index + 1 : Number(service.sortOrder || orderedIds.length + 1)
+    };
+  });
+  saveData(data);
+
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const updates = orderedIds.map((id, index) =>
+    supabaseClient
+      .from("services")
+      .update({ sort_order: index + 1 })
+      .eq("id", id)
+      .eq("user_id", user.id)
+  );
+
+  const results = await Promise.all(updates);
+  const firstError = results.find(result => result.error)?.error;
+  if (firstError) {
+    console.error("Volgorde diensten opslaan mislukt:", firstError.message);
+    await appAlert("De volgorde werd lokaal aangepast, maar kon niet online opgeslagen worden. Controleer of de database-update voor sort_order uitgevoerd is.", { title: "Volgorde niet online opgeslagen", variant: "warning" });
+  }
 }
 
 
@@ -3449,6 +3633,112 @@ function setupAppointmentCustomerSearch() {
   });
 }
 
+
+function serviceSearchText(service) {
+  return [service.name || "", service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""]
+    .join(" ")
+    .toLowerCase();
+}
+
+function setAppointmentService(serviceId, { updateSearch = true, updateDefaults = false } = {}) {
+  const data = getData();
+  const serviceSelect = document.getElementById("appointmentService");
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  const service = serviceById(data, serviceId);
+
+  if (serviceSelect) {
+    serviceSelect.value = service ? String(service.id) : "";
+  }
+
+  if (searchInput && updateSearch) {
+    searchInput.value = service ? service.name : "";
+  }
+
+  renderAppointmentServiceResults(searchInput?.value || "", false);
+
+  if (updateDefaults && service) {
+    syncServiceDefaults();
+  }
+}
+
+function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
+  const data = getData();
+  const resultsWrap = document.getElementById("appointmentServiceResults");
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  if (!resultsWrap) return;
+
+  const safeQuery = String(query || "").trim().toLowerCase();
+  const selectedId = document.getElementById("appointmentService")?.value || "";
+
+  let services = getOrderedServices(data);
+  if (safeQuery) {
+    services = services.filter(service => serviceSearchText(service).includes(safeQuery));
+  } else if (!showAllWhenEmpty) {
+    services = [];
+  }
+
+  services = services.slice(0, 40);
+
+  if (!services.length) {
+    resultsWrap.innerHTML = safeQuery
+      ? `<div class="appointment-service-empty">Geen diensten gevonden.</div>`
+      : "";
+    resultsWrap.classList.toggle("hidden", !safeQuery);
+    if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
+    return;
+  }
+
+  resultsWrap.innerHTML = services.map(service => {
+    const name = service.name || "Naamloze dienst";
+    const meta = [service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""].filter(Boolean).join(" · ");
+    const activeClass = String(service.id) === String(selectedId) ? " active" : "";
+    return `
+      <button class="appointment-service-result${activeClass}" type="button" role="option" data-service-id="${service.id}" aria-selected="${activeClass ? "true" : "false"}">
+        <span class="appointment-service-result-name">${htmlEscape(name)}</span>
+        ${meta ? `<span class="appointment-service-result-meta">${htmlEscape(meta)}</span>` : ""}
+      </button>
+    `;
+  }).join("");
+
+  resultsWrap.classList.remove("hidden");
+  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
+}
+
+function setupAppointmentServiceSearch() {
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  const resultsWrap = document.getElementById("appointmentServiceResults");
+  const serviceSelect = document.getElementById("appointmentService");
+  if (!searchInput || !resultsWrap || !serviceSelect || searchInput.dataset.ready === "true") return;
+
+  searchInput.dataset.ready = "true";
+
+  searchInput.addEventListener("input", () => {
+    serviceSelect.value = "";
+    renderAppointmentServiceResults(searchInput.value, false);
+  });
+
+  searchInput.addEventListener("focus", () => {
+    renderAppointmentServiceResults(searchInput.value, true);
+  });
+
+  resultsWrap.addEventListener("click", event => {
+    const btn = event.target.closest("[data-service-id]");
+    if (!btn) return;
+    setAppointmentService(btn.dataset.serviceId, { updateDefaults: true });
+  });
+
+  serviceSelect.addEventListener("change", () => {
+    setAppointmentService(serviceSelect.value, { updateDefaults: true });
+  });
+
+  document.addEventListener("click", event => {
+    const picker = event.target.closest(".appointment-service-picker");
+    if (picker) return;
+    resultsWrap.classList.add("hidden");
+    searchInput.setAttribute("aria-expanded", "false");
+  });
+}
+
 function populateAppointmentForm(customerId = null) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
@@ -3456,9 +3746,10 @@ function populateAppointmentForm(customerId = null) {
 
   customerSelect.innerHTML = `<option value="">Kies een klant...</option>` +
     data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
-  serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  serviceSelect.innerHTML = getOrderedServices(data).map(s => `<option value="${s.id}">${htmlEscape(s.name)}</option>`).join("");
 
   setupAppointmentCustomerSearch();
+  setupAppointmentServiceSearch();
 
   if (customerId) {
     setAppointmentCustomer(customerId);
@@ -3467,6 +3758,10 @@ function populateAppointmentForm(customerId = null) {
     const searchInput = document.getElementById("appointmentCustomerSearch");
     if (searchInput) searchInput.value = "";
   }
+
+  setAppointmentService("");
+  const serviceSearchInput = document.getElementById("appointmentServiceSearch");
+  if (serviceSearchInput) serviceSearchInput.value = "";
 }
 
 function syncServiceDefaults() {
@@ -3491,7 +3786,7 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
 
   const serviceSelect = document.getElementById("appointmentService");
   if (serviceSelect.options.length) {
-    serviceSelect.value = serviceSelect.options[0].value;
+    setAppointmentService(serviceSelect.options[0].value);
   }
 
   syncServiceDefaults();
@@ -3511,7 +3806,7 @@ function openEditAppointmentDialog(id) {
   setAppointmentCustomer(app.customerId);
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
-  document.getElementById("appointmentService").value = app.serviceId;
+  setAppointmentService(app.serviceId);
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
   document.getElementById("appointmentStatus").value = app.status;
@@ -3634,11 +3929,13 @@ function openPaymentDialog(id, anchorEl = null) {
     paymentAmount.textContent = euro(app.price);
     paymentAmount.classList.toggle("no-show", isNoShowAppointment(app));
   }
-  document.getElementById("paymentDialogCurrentMethod").textContent = isNoShowAppointment(app)
-    ? "No show"
-    : app.paid
-      ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
-      : "Nog niet betaald";
+  const currentMethodWrap = document.getElementById("paymentCurrentMethodWrap");
+  if (currentMethodWrap) {
+    currentMethodWrap.classList.toggle("hidden", isNoShowAppointment(app));
+  }
+  document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
+    ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
+    : "Nog niet betaald";
 
   renderPaymentPopoverOptions(app, data);
 
@@ -4246,7 +4543,8 @@ async function saveServiceFromForm(event) {
     if (id) {
       Object.assign(serviceById(data, id), payload);
     } else {
-      data.services.push({ id: nextId(data.services), ...payload });
+      const nextSortOrder = data.services.length ? Math.max(...data.services.map(service => Number(service.sortOrder || 0))) + 1 : 1;
+      data.services.push({ id: nextId(data.services), ...payload, sortOrder: nextSortOrder });
     }
 
     saveData(data);
@@ -4257,11 +4555,16 @@ async function saveServiceFromForm(event) {
 
   const id = document.getElementById("serviceId").value;
 
+  const currentData = getData();
+  const currentService = id ? serviceById(currentData, id) : null;
+  const nextSortOrder = currentData.services.length ? Math.max(...currentData.services.map(service => Number(service.sortOrder || 0))) + 1 : 1;
+
   const payload = {
     user_id: user.id,
     name: document.getElementById("serviceName").value.trim(),
     duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value)
+    price: Number(document.getElementById("servicePrice").value),
+    sort_order: Number(currentService?.sortOrder || nextSortOrder)
   };
 
   let error;
@@ -5404,6 +5707,7 @@ async function loadServicesFromSupabase() {
     .from("services")
     .select("*")
     .eq("user_id", user.id)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
   if (error) {
@@ -5415,7 +5719,8 @@ async function loadServicesFromSupabase() {
     id: s.id,
     name: s.name,
     duration: s.duration,
-    price: Number(s.price || 0)
+    price: Number(s.price || 0),
+    sortOrder: Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : null
   }));
 }
 
