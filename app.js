@@ -1455,9 +1455,14 @@ function renderServices() {
     const card = document.createElement("div");
     card.className = "service-card service-sort-card";
     card.dataset.serviceId = service.id;
+    card.draggable = true;
 
     card.innerHTML = `
       <div class="service-sort-row">
+        <button class="service-main-btn" type="button" data-id="${service.id}">
+          <div class="client-name">${htmlEscape(service.name)}</div>
+          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
+        </button>
         <button class="service-drag-handle" type="button" aria-label="Dienst verslepen" title="Versleep om te sorteren">
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
@@ -1465,10 +1470,6 @@ function renderServices() {
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
-        </button>
-        <button class="service-main-btn" type="button" data-id="${service.id}">
-          <div class="client-name">${htmlEscape(service.name)}</div>
-          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
         </button>
       </div>
     `;
@@ -1532,6 +1533,23 @@ function moveServiceCardToTouchPoint(list, dragging, clientY) {
   list.appendChild(dragging);
 }
 
+function cancelServiceTouchDrag() {
+  if (!serviceTouchDrag) return;
+  window.clearTimeout(serviceTouchDrag.longPressTimer);
+  serviceTouchDrag = null;
+}
+
+function startServiceTouchDrag(list) {
+  if (!serviceTouchDrag || serviceTouchDrag.active) return;
+
+  serviceTouchDrag.active = true;
+  serviceTouchDrag.moved = true;
+  serviceDragId = serviceTouchDrag.card.dataset.serviceId;
+  serviceTouchDrag.card.classList.add("is-dragging");
+  list.classList.add("is-service-drag-active");
+  moveServiceCardToTouchPoint(list, serviceTouchDrag.card, serviceTouchDrag.lastY);
+}
+
 function setupServiceDragAndDrop(list) {
   if (!list || list.dataset.serviceSortReady === "true") return;
   list.dataset.serviceSortReady = "true";
@@ -1544,55 +1562,61 @@ function setupServiceDragAndDrop(list) {
     const touch = getTouch(event);
     if (!handle || !card || !touch) return;
 
+    cancelServiceTouchDrag();
+
     serviceTouchDrag = {
+      list,
       card,
+      startX: touch.clientX,
       startY: touch.clientY,
       lastY: touch.clientY,
       active: false,
-      moved: false
+      moved: false,
+      longPressTimer: window.setTimeout(() => startServiceTouchDrag(list), 180)
     };
   }, { passive: true });
 
-  list.addEventListener("touchmove", event => {
+  // Belangrijk voor iPhone: deze touchmove hangt op window, niet op de scrollbare lijst.
+  // Daardoor blijft éénvinger-scroll volledig native zolang de long-press drag niet actief is.
+  window.addEventListener("touchmove", event => {
     if (!serviceTouchDrag) return;
     const touch = getTouch(event);
     if (!touch) return;
 
+    const deltaX = touch.clientX - serviceTouchDrag.startX;
     const deltaY = touch.clientY - serviceTouchDrag.startY;
     serviceTouchDrag.lastY = touch.clientY;
 
-    if (!serviceTouchDrag.active && Math.abs(deltaY) < 8) return;
-
-    // Vanaf hier is het een echte sorteerbeweging via het handvat.
-    // Alleen dan blokkeren we native scroll, zodat iPhone-scroll op de kaart zelf vrij blijft.
-    event.preventDefault();
-
     if (!serviceTouchDrag.active) {
-      serviceTouchDrag.active = true;
-      serviceDragId = serviceTouchDrag.card.dataset.serviceId;
-      serviceTouchDrag.card.classList.add("is-dragging");
-      list.classList.add("is-service-drag-active");
+      // Verticale beweging vóór de long-press betekent: de gebruiker wil scrollen.
+      if (Math.abs(deltaY) > 7 || Math.abs(deltaX) > 7) {
+        cancelServiceTouchDrag();
+      }
+      return;
     }
 
+    if (event.cancelable) event.preventDefault();
     serviceTouchDrag.moved = true;
-    moveServiceCardToTouchPoint(list, serviceTouchDrag.card, touch.clientY);
+    moveServiceCardToTouchPoint(serviceTouchDrag.list, serviceTouchDrag.card, touch.clientY);
   }, { passive: false });
 
   const finishTouchDrag = async () => {
     if (!serviceTouchDrag) return;
-    const { card, moved, active } = serviceTouchDrag;
+
+    const { list: dragList, card, moved, active, longPressTimer } = serviceTouchDrag;
+    window.clearTimeout(longPressTimer);
     card.classList.remove("is-dragging");
-    clearServiceDropIndicators(list);
+    clearServiceDropIndicators(dragList);
     serviceTouchDrag = null;
 
     if (moved && active) {
-      await persistServiceOrderFromDom(list);
+      await persistServiceOrderFromDom(dragList);
     }
     serviceDragId = null;
   };
 
-  list.addEventListener("touchend", finishTouchDrag, { passive: true });
-  list.addEventListener("touchcancel", finishTouchDrag, { passive: true });
+  window.addEventListener("touchend", finishTouchDrag, { passive: true });
+  window.addEventListener("touchcancel", finishTouchDrag, { passive: true });
 
   // Desktop/muis: eenvoudige HTML5 drag, maar alleen via het handvat.
   list.addEventListener("mousedown", event => {
