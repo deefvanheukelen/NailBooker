@@ -1459,10 +1459,6 @@ function renderServices() {
 
     card.innerHTML = `
       <div class="service-sort-row">
-        <button class="service-main-btn" type="button" data-id="${service.id}">
-          <div class="client-name">${htmlEscape(service.name)}</div>
-          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
-        </button>
         <button class="service-drag-handle" type="button" aria-label="Dienst verslepen" title="Versleep om te sorteren">
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
@@ -1470,6 +1466,10 @@ function renderServices() {
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
           <span aria-hidden="true"></span>
+        </button>
+        <button class="service-main-btn" type="button" data-id="${service.id}">
+          <div class="client-name">${htmlEscape(service.name)}</div>
+          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
         </button>
       </div>
     `;
@@ -1507,8 +1507,8 @@ function setupServiceDragAndDrop(list) {
   if (!list || list.dataset.serviceSortReady === "true") return;
   list.dataset.serviceSortReady = "true";
 
-  const LONG_PRESS_MS = 220;
-  const MOVE_CANCEL_PX = 8;
+  const LONG_PRESS_MS = 0;
+  const MOVE_CANCEL_PX = 10;
 
   const cleanupServicePointerDrag = () => {
     if (!servicePointerDrag) return;
@@ -1541,13 +1541,17 @@ function setupServiceDragAndDrop(list) {
     card.classList.add("is-dragging");
     card.style.width = `${rect.width}px`;
     card.style.height = `${rect.height}px`;
-    card.style.left = `${rect.left}px`;
-    card.style.top = `${rect.top}px`;
+    drag.currentX = rect.left;
+    drag.currentY = rect.top;
+    drag.rafId = null;
+
+    card.style.left = "0";
+    card.style.top = "0";
     card.style.position = "fixed";
     card.style.zIndex = "1200";
     card.style.margin = "0";
     card.style.pointerEvents = "none";
-    card.style.transform = "translate3d(0, 0, 0) scale(1.015)";
+    card.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0) scale(1.012)`;
 
     try { handle.setPointerCapture(pointerId); } catch (error) {}
   };
@@ -1556,10 +1560,14 @@ function setupServiceDragAndDrop(list) {
     const drag = servicePointerDrag;
     if (!drag?.active) return;
 
-    const left = event.clientX - drag.offsetX;
-    const top = event.clientY - drag.offsetY;
-    drag.card.style.left = `${left}px`;
-    drag.card.style.top = `${top}px`;
+    drag.currentX = event.clientX - drag.offsetX;
+    drag.currentY = event.clientY - drag.offsetY;
+
+    if (drag.rafId) return;
+    drag.rafId = window.requestAnimationFrame(() => {
+      drag.rafId = null;
+      drag.card.style.transform = `translate3d(${drag.currentX}px, ${drag.currentY}px, 0) scale(1.012)`;
+    });
   };
 
   const moveServicePlaceholder = (event) => {
@@ -1631,6 +1639,7 @@ function setupServiceDragAndDrop(list) {
       placeholder.remove();
     }
 
+    if (drag.rafId) window.cancelAnimationFrame(drag.rafId);
     card.classList.remove("is-dragging");
     card.removeAttribute("style");
     clearServiceDropIndicators(list);
@@ -1646,6 +1655,7 @@ function setupServiceDragAndDrop(list) {
     if (drag.active && placeholder?.parentNode) {
       placeholder.parentNode.insertBefore(card, placeholder);
       placeholder.remove();
+      if (drag.rafId) window.cancelAnimationFrame(drag.rafId);
       card.classList.remove("is-dragging");
       card.removeAttribute("style");
       clearServiceDropIndicators(list);
@@ -1662,8 +1672,8 @@ function setupServiceDragAndDrop(list) {
     const card = event.target.closest(".service-sort-card");
     if (!handle || !card || !list.contains(card)) return;
 
-    // Belangrijk voor iPhone: hier géén preventDefault().
-    // Daardoor blijft gewoon verticaal scrollen met één vinger werken.
+    // Alleen het handvat start drag. De rest van de kaart blijft volledig native scrollbaar.
+    if (event.cancelable) event.preventDefault();
     cleanupServicePointerDrag();
 
     const isMouse = event.pointerType === "mouse";
@@ -1682,7 +1692,7 @@ function setupServiceDragAndDrop(list) {
     document.addEventListener("pointermove", onServicePointerMove, true);
     document.addEventListener("pointerup", onServicePointerEnd, true);
     document.addEventListener("pointercancel", onServicePointerCancel, true);
-  }, { passive: true });
+  }, { passive: false });
 }
 
 
@@ -5167,7 +5177,7 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
     cancelled = false;
     activeDirection = null;
     if (onStart) onStart(event);
-  }, { passive: true });
+  }, { passive: false });
 
   element.addEventListener("touchmove", event => {
     if (stopPropagation) event.stopPropagation();
@@ -5229,13 +5239,13 @@ function attachHorizontalSwipe(element, callbacks, options = {}) {
     }
 
     finish();
-  }, { passive: true });
+  }, { passive: false });
 
   element.addEventListener("touchcancel", event => {
     if (stopPropagation) event.stopPropagation();
     if (tracking && onCancel) onCancel(event);
     finish();
-  }, { passive: true });
+  }, { passive: false });
 }
 
 function getAdjacentMainScreen(direction) {
