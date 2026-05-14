@@ -1455,7 +1455,7 @@ function renderServices() {
     const card = document.createElement("div");
     card.className = "service-card service-sort-card";
     card.dataset.serviceId = service.id;
-    card.draggable = true;
+    card.draggable = false;
 
     card.innerHTML = `
       <div class="service-sort-row">
@@ -1484,6 +1484,69 @@ function renderServices() {
 let serviceDragId = null;
 let servicePointerDrag = null;
 
+function serviceSortableCards(list) {
+  return Array.from(list.querySelectorAll(".service-sort-card:not(.service-drag-placeholder)"));
+}
+
+function moveServiceDragGhost(dragState, clientY) {
+  if (!dragState?.ghost) return;
+  dragState.ghost.style.transform = `translate3d(0, ${clientY - dragState.startY}px, 0)`;
+}
+
+function getServiceDropTarget(list, clientY, draggedCard) {
+  return serviceSortableCards(list)
+    .filter(card => card !== draggedCard)
+    .find(card => {
+      const rect = card.getBoundingClientRect();
+      return clientY < rect.top + rect.height / 2;
+    }) || null;
+}
+
+function createServiceDragGhost(card) {
+  const rect = card.getBoundingClientRect();
+  const ghost = card.cloneNode(true);
+  ghost.classList.add("service-drag-ghost");
+  ghost.classList.remove("is-dragging", "drop-before", "drop-after");
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  ghost.style.transform = "translate3d(0, 0, 0)";
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+function createServiceDragPlaceholder(card) {
+  const placeholder = document.createElement("div");
+  placeholder.className = "service-card service-sort-card service-drag-placeholder";
+  placeholder.style.height = `${card.getBoundingClientRect().height}px`;
+  return placeholder;
+}
+
+function animateServiceReorder(list, reorderFn) {
+  const cards = serviceSortableCards(list);
+  const first = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
+
+  reorderFn();
+
+  serviceSortableCards(list).forEach(card => {
+    const before = first.get(card);
+    if (!before) return;
+    const after = card.getBoundingClientRect();
+    const deltaY = before.top - after.top;
+    if (!deltaY) return;
+
+    card.style.transition = "none";
+    card.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+    card.getBoundingClientRect();
+    card.style.transition = "transform 170ms cubic-bezier(0.22, 0.72, 0.18, 1)";
+    card.style.transform = "";
+    window.setTimeout(() => {
+      card.style.transition = "";
+    }, 190);
+  });
+}
+
 function clearServiceDropIndicators(list) {
   if (!list) return;
   list.classList.remove("is-service-drag-active");
@@ -1507,74 +1570,98 @@ function setupServiceDragAndDrop(list) {
   if (!list || list.dataset.serviceSortReady === "true") return;
   list.dataset.serviceSortReady = "true";
 
-  list.addEventListener("dragstart", event => {
-    const card = event.target.closest(".service-sort-card");
-    if (!card) return;
-    serviceDragId = card.dataset.serviceId;
-    card.classList.add("is-dragging");
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", serviceDragId);
-  });
-
-  list.addEventListener("dragover", event => {
-    if (!serviceDragId) return;
-    event.preventDefault();
-    const dragging = list.querySelector(".service-sort-card.is-dragging");
-    const target = event.target.closest(".service-sort-card:not(.is-dragging)");
-    if (!dragging || !target) return;
-
-    const rect = target.getBoundingClientRect();
-    const afterTarget = event.clientY > rect.top + rect.height / 2;
-    setServiceDropIndicator(target, afterTarget);
-    list.insertBefore(dragging, afterTarget ? target.nextSibling : target);
-  });
-
-  list.addEventListener("dragend", async () => {
-    const dragging = list.querySelector(".service-sort-card.is-dragging");
-    if (dragging) dragging.classList.remove("is-dragging");
-    clearServiceDropIndicators(list);
-    if (serviceDragId) await persistServiceOrderFromDom(list);
-    serviceDragId = null;
-  });
-
   list.addEventListener("pointerdown", event => {
     const handle = event.target.closest(".service-drag-handle");
     const card = event.target.closest(".service-sort-card");
     if (!handle || !card) return;
 
-    event.preventDefault();
-    servicePointerDrag = { card, pointerId: event.pointerId, moved: false };
-    card.classList.add("is-dragging");
-    try { handle.setPointerCapture(event.pointerId); } catch (error) {}
+    servicePointerDrag = {
+      card,
+      handle,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+      moved: false,
+      ghost: null,
+      placeholder: null
+    };
   });
 
   list.addEventListener("pointermove", event => {
     if (!servicePointerDrag || servicePointerDrag.pointerId !== event.pointerId) return;
+
+    const dragState = servicePointerDrag;
+    const deltaX = event.clientX - dragState.startX;
+    const deltaY = event.clientY - dragState.startY;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    if (!dragState.moved && distance < 8) return;
+
     event.preventDefault();
-    servicePointerDrag.moved = true;
+    dragState.lastY = event.clientY;
 
-    const dragging = servicePointerDrag.card;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".service-sort-card:not(.is-dragging)");
-    if (!dragging || !target || !list.contains(target)) return;
+    if (!dragState.moved) {
+      dragState.moved = true;
+      serviceDragId = dragState.card.dataset.serviceId;
+      dragState.placeholder = createServiceDragPlaceholder(dragState.card);
+      dragState.ghost = createServiceDragGhost(dragState.card);
+      dragState.card.classList.add("is-dragging");
+      dragState.card.after(dragState.placeholder);
+      list.classList.add("is-service-drag-active");
+      try { dragState.handle.setPointerCapture(event.pointerId); } catch (error) {}
+    }
 
-    const rect = target.getBoundingClientRect();
-    const afterTarget = event.clientY > rect.top + rect.height / 2;
-    setServiceDropIndicator(target, afterTarget);
-    list.insertBefore(dragging, afterTarget ? target.nextSibling : target);
+    moveServiceDragGhost(dragState, event.clientY);
+
+    const target = getServiceDropTarget(list, event.clientY, dragState.card);
+    const currentPlaceholder = dragState.placeholder;
+    if (!currentPlaceholder) return;
+
+    animateServiceReorder(list, () => {
+      if (target) {
+        list.insertBefore(currentPlaceholder, target);
+      } else {
+        list.appendChild(currentPlaceholder);
+      }
+    });
   });
 
   const endPointerDrag = async event => {
     if (!servicePointerDrag || servicePointerDrag.pointerId !== event.pointerId) return;
-    const { card, moved } = servicePointerDrag;
+
+    const dragState = servicePointerDrag;
+    servicePointerDrag = null;
+
+    if (!dragState.moved) return;
+
+    const { card, ghost, placeholder, handle } = dragState;
+    try { handle.releasePointerCapture(event.pointerId); } catch (error) {}
+
+    if (placeholder && placeholder.parentNode) {
+      placeholder.replaceWith(card);
+    }
+
     card.classList.remove("is-dragging");
     clearServiceDropIndicators(list);
-    servicePointerDrag = null;
-    if (moved) await persistServiceOrderFromDom(list);
+
+    if (ghost) {
+      const finalRect = card.getBoundingClientRect();
+      ghost.style.left = `${finalRect.left}px`;
+      ghost.style.top = `${finalRect.top}px`;
+      ghost.style.transform = "translate3d(0, 0, 0)";
+      ghost.classList.add("is-dropping");
+      window.setTimeout(() => ghost.remove(), 180);
+    }
+
+    if (serviceDragId) await persistServiceOrderFromDom(list);
+    serviceDragId = null;
   };
 
   list.addEventListener("pointerup", endPointerDrag);
   list.addEventListener("pointercancel", endPointerDrag);
 }
+
 
 async function persistServiceOrderFromDom(list) {
   const orderedIds = Array.from(list.querySelectorAll(".service-sort-card"))
