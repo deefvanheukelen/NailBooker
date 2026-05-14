@@ -4316,23 +4316,23 @@ button {
 ========================================================= */
 #servicesList {
   touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .service-sort-card {
   touch-action: pan-y;
+  will-change: transform;
 }
 
 .service-sort-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 48px;
   align-items: stretch;
-  touch-action: pan-y;
 }
 
 .service-main-btn {
   min-width: 0;
-  touch-action: pan-y;
+  touch-action: manipulation;
 }
 
 .service-drag-handle {
@@ -4348,6 +4348,8 @@ button {
   justify-content: center;
   cursor: grab;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .service-drag-handle:active {
@@ -4356,25 +4358,53 @@ button {
   color: var(--primary-dark);
 }
 
-.service-sort-card.is-dragging {
-  opacity: 0.62;
-  box-shadow: 0 8px 20px rgba(170, 120, 145, 0.18);
+.service-drag-handle span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+  display: block;
 }
 
-.service-sort-card.is-dragging,
-.service-sort-card.is-dragging * {
-  pointer-events: none;
+.service-drag-handle:active span,
+.service-sort-card.is-dragging .service-drag-handle span {
+  background: #fff;
 }
 
 /* =========================================================
-   DIENSTEN SORTEREN - VISUELE DROPFEEDBACK
+   DIENSTEN SORTEREN - FLOATING DRAG
 ========================================================= */
+body.service-dragging-active {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 #servicesList.is-service-drag-active {
   cursor: grabbing;
 }
 
-#servicesList.is-service-drag-active .service-sort-card {
-  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+#servicesList.is-service-drag-active .service-sort-card:not(.is-dragging):not(.service-drag-placeholder) {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.service-sort-card.is-dragging {
+  opacity: 0.98;
+  background: var(--primary-soft);
+  border-color: var(--primary-dark);
+  box-shadow: 0 18px 38px rgba(170, 120, 145, 0.34);
+  transform: translate3d(0, 0, 0) scale(1.02);
+}
+
+.service-sort-card.is-dragging .service-drag-handle {
+  background: var(--primary-dark);
+  color: #fff;
+}
+
+.service-drag-placeholder {
+  opacity: 0.28;
+  border: 1px dashed var(--primary-dark);
+  background: var(--primary-soft);
+  box-shadow: none;
 }
 
 .service-sort-card.drop-before,
@@ -4402,30 +4432,4 @@ button {
 
 .service-sort-card.drop-after::after {
   bottom: -5px;
-}
-
-.service-sort-card.is-dragging {
-  opacity: 0.88;
-  background: var(--primary-soft);
-  border-color: var(--primary-dark);
-  transform: scale(1.015);
-  box-shadow: 0 14px 30px rgba(170, 120, 145, 0.28);
-}
-
-.service-sort-card.is-dragging .service-drag-handle {
-  background: var(--primary-dark);
-  color: #fff;
-}
-
-.service-drag-handle span {
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--muted);
-  display: block;
-}
-
-.service-drag-handle:active span,
-.service-sort-card.is-dragging .service-drag-handle span {
-  background: #fff;
 }
