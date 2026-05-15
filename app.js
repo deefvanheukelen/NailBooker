@@ -16,8 +16,7 @@ const state = {
   previousMainScreen: "clientsScreen",
   clientLetter: "",
   settingsSavePending: false,
-  statsTopCustomersVisible: 10,
-  todoFilter: "open"
+  statsTopCustomersVisible: 10
 };
 
 const monthNames = [
@@ -88,77 +87,14 @@ function normalizeData(data) {
 
   return {
     customers: Array.isArray(safe.customers) ? safe.customers : [],
-    services: normalizeServices(safe.services),
+    services: Array.isArray(safe.services) ? safe.services : [],
     appointments,
     paymentMethods,
-    tasks: normalizeTasks(safe.tasks),
     settings: {
       ...defaults,
       ...(safe.settings || {})
     }
   };
-}
-
-function normalizeServices(items) {
-  const services = Array.isArray(items) ? items.map((item, index) => {
-    const id = Number(item?.id);
-    const sortOrderRaw = item?.sortOrder ?? item?.sort_order;
-    const sortOrder = Number(sortOrderRaw);
-
-    return {
-      ...item,
-      id: Number.isFinite(id) ? id : index + 1,
-      name: String(item?.name || "").trim(),
-      duration: Number(item?.duration || 0),
-      price: Number(item?.price || 0),
-      sortOrder: Number.isFinite(sortOrder) ? sortOrder : null
-    };
-  }).filter(service => service.name) : [];
-
-  return sortServicesForDisplay(services);
-}
-
-function sortServicesForDisplay(services = []) {
-  const items = Array.isArray(services) ? services.slice() : [];
-  const hasCustomOrder = items.some(service => Number.isFinite(Number(service?.sortOrder)));
-
-  return items.sort((a, b) => {
-    if (hasCustomOrder) {
-      const orderA = Number.isFinite(Number(a?.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER;
-      const orderB = Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER;
-      if (orderA !== orderB) return orderA - orderB;
-    }
-
-    return String(a?.name || "").localeCompare(String(b?.name || ""), "nl-BE", { sensitivity: "base" });
-  });
-}
-
-function getOrderedServices(data = getData()) {
-  return sortServicesForDisplay(data?.services || []);
-}
-
-function normalizeTasks(items) {
-  return Array.isArray(items) ? items.map((item, index) => {
-    const title = String(item?.title || item?.name || "").trim();
-    if (!title) return null;
-
-    const id = Number(item?.id);
-    const dueDate = item?.dueDate ?? item?.due_date ?? null;
-    const dueTime = item?.dueTime ?? item?.due_time ?? null;
-    const completedAt = item?.completedAt ?? item?.completed_at ?? null;
-
-    return {
-      id: Number.isFinite(id) ? id : index + 1,
-      title,
-      note: String(item?.note || "").trim(),
-      dueDate: dueDate ? String(dueDate).slice(0, 10) : "",
-      dueTime: dueTime ? String(dueTime).slice(0, 5) : "",
-      completed: Boolean(item?.completed ?? item?.is_completed ?? completedAt),
-      completedAt: completedAt || null,
-      createdAt: item?.createdAt || item?.created_at || null,
-      updatedAt: item?.updatedAt || item?.updated_at || null
-    };
-  }).filter(Boolean) : [];
 }
 
 function seedData() {
@@ -537,7 +473,7 @@ async function getCurrentProfile() {
 
     const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("first_name, last_name, gender")
+        .select("first_name, last_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -562,47 +498,63 @@ function extractFirstNameFromUser(user, profile = null) {
   return "log in";
 }
 
-const PROFILE_ICON_PATHS = {
-  V: `M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z`,
-  M: `M 3.6374198,0 C 3.4540217,3.036e-4 3.4214095,0.00349189 3.3154756,0.03152262 2.8549135,0.1534047 2.4649907,0.4368526 2.1791109,0.85782878 2.1021551,0.97115074 1.9980168,1.1889382 1.9543184,1.3270508 1.8468211,1.6668118 1.8388561,1.9749142 1.9305472,2.2696289 l 0.031523,0.1018026 -0.049093,0.053227 c -0.056865,0.061707 -0.080335,0.1114295 -0.095085,0.2020549 -0.011688,0.071879 0.00815,0.193191 0.041858,0.2583821 0.025677,0.049638 0.1038024,0.13375 0.1524455,0.1638143 0.035567,0.022011 0.043663,0.038079 0.087333,0.1777669 0.1166071,0.3729075 0.2959115,0.7403445 0.4738728,0.9699667 0.074391,0.095987 0.1522491,0.1797745 0.2340943,0.2511474 0.020453,0.097548 0.023943,0.1985671 -0.05116,0.3152263 C 3.0053973,4.9253771 3.3116633,5.2406996 3.6673921,5.6875081 3.9254693,5.3517298 4.2169454,5.0412508 4.5696626,4.7764526 4.5236356,4.6502467 4.4818767,4.524497 4.4843965,4.4079997 4.5594946,4.3377882 4.6310517,4.2596419 4.6921358,4.1795898 4.8577761,3.9625216 5.0395075,3.5866275 5.1525728,3.2266764 5.1966858,3.0862373 5.2042087,3.0707757 5.2404227,3.0483927 5.3043837,3.0088487 5.382608,2.9127901 5.4094047,2.8411702 5.4413367,2.7558202 5.4446204,2.6329554 5.4166394,2.5497152 5.4035464,2.5107782 5.3744656,2.465074 5.3370576,2.4241414 L 5.2781465,2.3595459 5.2993339,2.1590413 C 5.3438532,1.7422941 5.3201564,1.286544 5.2404227,1.0314616 5.1445231,0.72465445 4.9335864,0.56679575 4.6166882,0.5648234 L 4.529355,0.56430664 4.4787121,0.47283936 C 4.3624997,0.26216493 4.1640326,0.10149639 3.9288749,0.02738851 3.8506143,0.00272077 3.8200291,-3.0354e-4 3.6374198,0 Z M 4.9438,4.7836873 C 4.7987425,4.7922617 3.8687464,5.7860032 3.6699759,6.1040202 3.325603,5.6159425 2.9034813,5.1268559 2.3951184,4.8090088 c -0.05915,0 -1.43545288,0.4792087 -1.61798912,0.8015015 -0.10785341,0.055863 -0.2248545,0.1729885 -0.27181803,0.2723348 -0.095247,0.201486 -0.21951845,0.8153326 -0.27285157,1.3487548 -0.0114383,0.1143975 -0.0110118,0.1430333 0.00155,0.1581299 0.0139354,0.016774 0.59265755,0.018604 3.58737792,0.018604 2.9917103,0 3.2975353,-0.00168 3.3114258,-0.018604 C 7.1749462,7.3389522 7.035362,6.4376935 6.9276582,6.0662964 6.8812981,5.9064267 6.8427121,5.8298835 6.7648775,5.7433187 6.6966428,5.6674182 6.6557811,5.6190979 6.4713553,5.4777018 6.1530074,5.20364 5.0336915,4.8003479 4.9500012,4.7842041 c -0.0019,-3.667e-4 -0.0039,-6.529e-4 -0.0062,-5.168e-4 z`,
-  X: `M 3.698999,0.0361735 V 6.0150332 C 3.910821,5.8633946 4.8502975,5.2914635 4.8513835,5.2709961 4.8520965,5.2570727 4.7584004,5.1204799 4.6431274,4.9676554 4.4537104,4.7165383 4.4333211,4.6753573 4.4333211,4.5371908 V 4.3842285 l 0.298173,-0.023254 C 5.1582301,4.3280501 5.5185959,4.2651161 5.7231649,4.1873413 5.9215489,4.1119173 6.1103136,4.0041399 6.1097046,3.9666829 L 6.1091878,3.9661662 C 6.1059762,3.9512263 6.0568557,3.9082723 5.99705,3.8695312 5.84327,3.7699187 5.6739929,3.500564 5.6068929,3.2488973 5.5604229,3.0746422 5.5519835,2.9131065 5.5572835,2.2918498 5.5620735,1.7332114 5.5519024,1.4865953 5.5159424,1.3141317 5.4306684,0.90514936 5.2597727,0.61510182 5.0131307,0.45940348 4.8618177,0.36388462 4.5880625,0.28254832 4.4193685,0.28267008 4.3333775,0.28276517 4.2107521,0.2438357 4.0628011,0.1694987 3.9419041,0.10875463 3.820789,0.06420654 3.698999,0.0361735 Z M 3.669027,0.0408244 C 3.4856286,0.0411263 3.4530164,0.04447102 3.3470825,0.07234701 2.8865204,0.19355621 2.4965976,0.47535022 2.2107178,0.89400228 2.133762,1.0066986 2.0296237,1.2232904 1.9859253,1.3606405 1.878428,1.6985258 1.870463,2.0049632 1.9621541,2.2980509 l 0.031523,0.1012859 -0.049093,0.05271 c -0.056865,0.061366 -0.080335,0.1108962 -0.095085,0.2010213 -0.011688,0.071482 0.00815,0.1920008 0.041858,0.2568319 0.025677,0.049364 0.1038024,0.1333991 0.1524455,0.1632975 0.035567,0.021889 0.043663,0.037817 0.087333,0.1767334 0.1166071,0.3708487 0.2959116,0.7359278 0.4738729,0.9642823 0.074391,0.095457 0.152249,0.179135 0.2340942,0.2501139 0.020453,0.097009 0.032842,0.1837961 -0.042261,0.2998113 0.2487895,0.1612873 0.6493701,0.7759261 0.9074157,1.2362963 L 3.697967,0.04082448 c -0.00916,-6.48e-6 -0.018888,-1.662e-5 -0.028939,0 z m 1.1260292,4.7325277 0.1979207,0.2506306 c 0.171721,0.2172843 0.4723226,0.6778449 0.4723226,0.7239869 v 5.167e-4 l -5.168e-4,5.168e-4 -5.167e-4,5.168e-4 c -0.014232,0.00789 -0.1328044,0.014469 -0.2754354,0.014469 H 4.9118449 L 4.3258341,6.2099569 C 4.0461311,6.4229754 3.78742,6.6171837 3.698999,6.6802124 V 7.4083333 H 7.1504679 L 7.1297974,7.2874105 C 7.1184374,7.2209072 7.0866707,7.0142175 7.0590007,6.828007 6.8898557,5.6898565 6.6812342,5.4762232 5.2027832,4.9252808 Z m -2.3683309,0.050126 c -0.05915,0 -1.43545289,0.4763371 -1.61798913,0.7968506 -0.10785341,0.055555 -0.22485451,0.1719866 -0.27181804,0.2707845 -0.095247,0.2003736 -0.21951844,0.8110429 -0.27285156,1.3415202 -0.0114383,0.1137659 -0.0110112,0.1420831 0.00155,0.1570963 0.0136913,0.016389 0.57268747,0.018537 3.43234863,0.018604 V 6.6786835 C 3.3542796,6.1950554 2.933245,5.1384244 2.4267253,4.8234781 Z`
-};
-
-function normalizeGender(value) {
-  const safe = String(value || "V").trim().toUpperCase();
-  return ["M", "V", "X"].includes(safe) ? safe : "V";
-}
-
-function genderLabel(value) {
-  return normalizeGender(value);
-}
-
-function buildProfileIcon(gender = "V", { size = 28 } = {}) {
-  const safeGender = normalizeGender(gender);
-  const path = PROFILE_ICON_PATHS[safeGender] || PROFILE_ICON_PATHS.V;
-
+function buildHeaderAccountIcon(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
   return `
   <svg
-    width="${size}"
-    height="${size}"
-    viewBox="0 0 7.4083331 7.4083333"
-    version="1.1"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <g>
-      <path style="fill:#df9db3;fill-opacity:1;stroke-width:0" d="${path}" />
-    </g>
+	width="28"
+	height="28"
+	viewBox="0 0 7.4083331 7.4083333"
+	version="1.1"
+	id="svg-login"
+	<g>
+		<path style="fill:#df9db3;fill-opacity:1;stroke-width:0" 
+		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
+		id="path-login" />
+	</g>
   </svg>
   `;
 }
 
-function buildHeaderAccountIcon(profile = null) {
-  return buildProfileIcon(profile?.gender || "V", { size: 28 });
+function buildAccountAvatar(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
+  return `
+  <svg
+	width="28"
+	height="28"
+	viewBox="0 0 7.4083331 7.4083333"
+	version="1.1"
+	id="svg-login"
+	<g>
+		<path style="fill:#df9db3;fill-opacity:1;stroke-width:0" 
+		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
+		id="path-login" />
+	</g>
+  </svg>
+  `;
 }
 
-function buildAccountAvatar(profile = null) {
-  return buildProfileIcon(profile?.gender || "V", { size: 78 });
+async function uploadAvatar(userId, file) {
+  if (!file) return null;
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const filePath = `${userId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("avatars")
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabaseClient.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  return data?.publicUrl || null;
 }
 
 async function upsertProfile(userId, values) {
@@ -610,7 +562,7 @@ async function upsertProfile(userId, values) {
     id: userId,
     first_name: values.first_name || "",
     last_name: values.last_name || "",
-    gender: normalizeGender(values.gender)
+    avatar_url: values.avatar_url || null
   };
 
   const { error } = await supabaseClient
@@ -634,7 +586,6 @@ async function syncAuthUI() {
   const accountProfileEmail = document.getElementById("accountProfileEmail");
   const accountProfileFirstName = document.getElementById("accountProfileFirstName");
   const accountProfileLastName = document.getElementById("accountProfileLastName");
-  const accountProfileGender = document.getElementById("accountProfileGender");
   const accountAvatar = document.getElementById("accountAvatar");
 
   if (headerUserName) {
@@ -661,16 +612,13 @@ async function syncAuthUI() {
     user.user_metadata?.last_name?.trim() ||
     "-";
 
-  const gender = normalizeGender(profile?.gender || user.user_metadata?.gender || "V");
-
   const profileName = [firstName, lastName].filter(Boolean).join(" ").trim() || user.email || "-";
 
   if (accountProfileName) accountProfileName.textContent = profileName;
   if (accountProfileEmail) accountProfileEmail.textContent = user.email || "-";
   if (accountProfileFirstName) accountProfileFirstName.textContent = firstName || "-";
   if (accountProfileLastName) accountProfileLastName.textContent = lastName || "-";
-  if (accountProfileGender) accountProfileGender.textContent = genderLabel(gender);
-  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar({ ...profile, gender });
+  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar(profile);
 
   if (guestView) guestView.classList.add("hidden");
   if (loggedInView) loggedInView.classList.remove("hidden");
@@ -791,8 +739,7 @@ async function openEditProfileDialog() {
   const profile = await getCurrentProfile();
   document.getElementById("editFirstName").value = profile?.first_name || user.user_metadata?.first_name || "";
   document.getElementById("editLastName").value = profile?.last_name || user.user_metadata?.last_name || "";
-  const editGender = document.querySelector(`input[name="editGender"][value="${normalizeGender(profile?.gender || user.user_metadata?.gender || "V")}"]`);
-  if (editGender) editGender.checked = true;
+  document.getElementById("editAvatar").value = "";
   document.getElementById("editProfileDialog").showModal();
 }
 
@@ -801,7 +748,7 @@ async function saveProfileFromForm(event) {
 
   const firstName = document.getElementById("editFirstName")?.value.trim();
   const lastName = document.getElementById("editLastName")?.value.trim();
-  const gender = normalizeGender(document.querySelector('input[name="editGender"]:checked')?.value || "V");
+  const avatarFile = document.getElementById("editAvatar")?.files?.[0] || null;
 
   if (!firstName || !lastName) {
     await appAlert("Vul voornaam en naam in.", { title: "Profiel", variant: "warning" });
@@ -818,11 +765,15 @@ async function saveProfileFromForm(event) {
   try {
     await ensureActiveAuthSession();
 
+    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
+    if (avatarFile) {
+      avatarUrl = await uploadAvatar(user.id, avatarFile);
+    }
+
     const { error: updateUserError } = await supabaseClient.auth.updateUser({
       data: {
         first_name: firstName,
         last_name: lastName,
-        gender,
         full_name: `${firstName} ${lastName}`.trim()
       }
     });
@@ -834,7 +785,7 @@ async function saveProfileFromForm(event) {
     await upsertProfile(user.id, {
       first_name: firstName,
       last_name: lastName,
-      gender
+      avatar_url: avatarUrl
     });
 
     closeDialog("editProfileDialog");
@@ -991,10 +942,10 @@ async function registerAccount(event) {
 
   const firstName = document.getElementById("registerFirstName").value.trim();
   const lastName = document.getElementById("registerLastName").value.trim();
-  const gender = normalizeGender(document.querySelector('input[name="registerGender"]:checked')?.value || "V");
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
   const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
+  const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
 
   if (!firstName || !lastName || !email || !password || !passwordConfirm) {
     await appAlert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
@@ -1013,7 +964,6 @@ async function registerAccount(event) {
       data: {
         first_name: firstName,
         last_name: lastName,
-        gender,
         full_name: `${firstName} ${lastName}`.trim()
       }
     }
@@ -1025,16 +975,22 @@ async function registerAccount(event) {
   }
 
   try {
+    let avatarUrl = null;
+
+    if (photoFile && data.user && data.session) {
+      avatarUrl = await uploadAvatar(data.user.id, photoFile);
+    }
+
     if (data.user && data.session) {
       await upsertProfile(data.user.id, {
         first_name: firstName,
         last_name: lastName,
-        gender
+        avatar_url: avatarUrl
       });
     }
   } catch (profileError) {
     console.error("Profiel opslaan mislukt:", profileError.message);
-    await appAlert("Je account is aangemaakt, maar de profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
+    await appAlert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
   }
 
   document.getElementById("registerForm").reset();
@@ -1153,35 +1109,15 @@ function updateTopbar(screenId, title) {
   } else if (screenId === "paymentMethodsScreen") {
     fab.onclick = openNewPaymentMethodDialog;
     fab.style.display = "block";
-  } else if (screenId === "todoScreen") {
-    fab.onclick = openNewTodoDialog;
-    fab.style.display = "block";
   } else {
     fab.style.display = "none";
   }
 }
 
-function screenTitleById(screenId) {
-  const map = {
-    agendaScreen: "Agenda",
-    revenueScreen: "Omzet",
-    todoScreen: "To Do",
-    clientsScreen: "Klanten",
-    servicesScreen: "Diensten",
-    paymentMethodsScreen: "Betaalwijze",
-    statisticsScreen: "Statistieken",
-    settingsScreen: "Instellingen",
-    accountScreen: "Account",
-    clientDetailScreen: "Klant"
-  };
-
-  return map[screenId] || "Agenda";
-}
-
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -1200,10 +1136,6 @@ function switchScreen(screenId, title) {
 
   if (screenId === "revenueScreen") {
     setRevenuePeriod("day", state.selectedDate || todayStr);
-  }
-
-  if (screenId === "todoScreen") {
-    renderTodoList();
   }
 
   if (screenId === "statisticsScreen") {
@@ -1442,259 +1374,28 @@ function renderClients() {
 function renderServices() {
   const data = getData();
   const list = document.getElementById("servicesList");
-  const services = getOrderedServices(data);
 
-  if (!services.length) {
+  if (!data.services.length) {
     list.innerHTML = `<div class="empty-state">Nog geen diensten.</div>`;
     return;
   }
 
   list.innerHTML = "";
 
-  services.forEach(service => {
+  data.services.forEach(service => {
     const card = document.createElement("div");
-    card.className = "service-card service-sort-card";
-    card.dataset.serviceId = service.id;
-    card.draggable = true;
+    card.className = "service-card";
 
     card.innerHTML = `
-      <div class="service-sort-row">
-        <button class="service-main-btn" type="button" data-id="${service.id}">
-          <div class="client-name">${htmlEscape(service.name)}</div>
-          <div class="meta">${service.duration} min · ${euro(service.price)}</div>
-        </button>
-        <button class="service-drag-handle" type="button" aria-label="Dienst verslepen" title="Versleep om te sorteren">
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-        </button>
-      </div>
+      <button type="button" data-id="${service.id}">
+        <div class="client-name">${service.name}</div>
+        <div class="meta">${service.duration} min · ${euro(service.price)}</div>
+      </button>
     `;
 
-    card.querySelector(".service-main-btn").addEventListener("click", () => openEditServiceDialog(service.id));
+    card.querySelector("button").addEventListener("click", () => openEditServiceDialog(service.id));
     list.appendChild(card);
   });
-
-  setupServiceDragAndDrop(list);
-}
-
-let serviceDragId = null;
-let serviceTouchDrag = null;
-
-function clearServiceDropIndicators(list) {
-  if (!list) return;
-  list.classList.remove("is-service-drag-active");
-  list.querySelectorAll(".service-sort-card.drop-before, .service-sort-card.drop-after").forEach(card => {
-    card.classList.remove("drop-before", "drop-after");
-  });
-}
-
-function setServiceDropIndicator(target, afterTarget) {
-  const list = target?.parentElement;
-  if (!list) return;
-  list.classList.add("is-service-drag-active");
-  list.querySelectorAll(".service-sort-card.drop-before, .service-sort-card.drop-after").forEach(card => {
-    if (card !== target) card.classList.remove("drop-before", "drop-after");
-  });
-  target.classList.toggle("drop-before", !afterTarget);
-  target.classList.toggle("drop-after", afterTarget);
-}
-
-function getServiceCardAfterPoint(list, clientY) {
-  const cards = Array.from(list.querySelectorAll(".service-sort-card:not(.is-dragging)"));
-  let closest = null;
-  let closestOffset = Number.NEGATIVE_INFINITY;
-
-  cards.forEach(card => {
-    const rect = card.getBoundingClientRect();
-    const offset = clientY - rect.top - rect.height / 2;
-    if (offset < 0 && offset > closestOffset) {
-      closestOffset = offset;
-      closest = card;
-    }
-  });
-
-  return closest;
-}
-
-function moveServiceCardToTouchPoint(list, dragging, clientY) {
-  const beforeCard = getServiceCardAfterPoint(list, clientY);
-  if (beforeCard) {
-    setServiceDropIndicator(beforeCard, false);
-    list.insertBefore(dragging, beforeCard);
-    return;
-  }
-
-  const lastCard = Array.from(list.querySelectorAll(".service-sort-card:not(.is-dragging)")).slice(-1)[0];
-  if (lastCard) setServiceDropIndicator(lastCard, true);
-  list.appendChild(dragging);
-}
-
-function cancelServiceTouchDrag() {
-  if (!serviceTouchDrag) return;
-  window.clearTimeout(serviceTouchDrag.longPressTimer);
-  serviceTouchDrag = null;
-}
-
-function startServiceTouchDrag(list) {
-  if (!serviceTouchDrag || serviceTouchDrag.active) return;
-
-  serviceTouchDrag.active = true;
-  serviceTouchDrag.moved = true;
-  serviceDragId = serviceTouchDrag.card.dataset.serviceId;
-  serviceTouchDrag.card.classList.add("is-dragging");
-  list.classList.add("is-service-drag-active");
-  moveServiceCardToTouchPoint(list, serviceTouchDrag.card, serviceTouchDrag.lastY);
-}
-
-function setupServiceDragAndDrop(list) {
-  if (!list || list.dataset.serviceSortReady === "true") return;
-  list.dataset.serviceSortReady = "true";
-
-  const getTouch = event => event.changedTouches?.[0] || event.touches?.[0] || null;
-
-  list.addEventListener("touchstart", event => {
-    const handle = event.target.closest(".service-drag-handle");
-    const card = event.target.closest(".service-sort-card");
-    const touch = getTouch(event);
-    if (!handle || !card || !touch) return;
-
-    cancelServiceTouchDrag();
-
-    serviceTouchDrag = {
-      list,
-      card,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      lastY: touch.clientY,
-      active: false,
-      moved: false,
-      longPressTimer: window.setTimeout(() => startServiceTouchDrag(list), 180)
-    };
-  }, { passive: true });
-
-  // Belangrijk voor iPhone: deze touchmove hangt op window, niet op de scrollbare lijst.
-  // Daardoor blijft éénvinger-scroll volledig native zolang de long-press drag niet actief is.
-  window.addEventListener("touchmove", event => {
-    if (!serviceTouchDrag) return;
-    const touch = getTouch(event);
-    if (!touch) return;
-
-    const deltaX = touch.clientX - serviceTouchDrag.startX;
-    const deltaY = touch.clientY - serviceTouchDrag.startY;
-    serviceTouchDrag.lastY = touch.clientY;
-
-    if (!serviceTouchDrag.active) {
-      // Verticale beweging vóór de long-press betekent: de gebruiker wil scrollen.
-      if (Math.abs(deltaY) > 7 || Math.abs(deltaX) > 7) {
-        cancelServiceTouchDrag();
-      }
-      return;
-    }
-
-    if (event.cancelable) event.preventDefault();
-    serviceTouchDrag.moved = true;
-    moveServiceCardToTouchPoint(serviceTouchDrag.list, serviceTouchDrag.card, touch.clientY);
-  }, { passive: false });
-
-  const finishTouchDrag = async () => {
-    if (!serviceTouchDrag) return;
-
-    const { list: dragList, card, moved, active, longPressTimer } = serviceTouchDrag;
-    window.clearTimeout(longPressTimer);
-    card.classList.remove("is-dragging");
-    clearServiceDropIndicators(dragList);
-    serviceTouchDrag = null;
-
-    if (moved && active) {
-      await persistServiceOrderFromDom(dragList);
-    }
-    serviceDragId = null;
-  };
-
-  window.addEventListener("touchend", finishTouchDrag, { passive: true });
-  window.addEventListener("touchcancel", finishTouchDrag, { passive: true });
-
-  // Desktop/muis: eenvoudige HTML5 drag, maar alleen via het handvat.
-  list.addEventListener("mousedown", event => {
-    const handle = event.target.closest(".service-drag-handle");
-    const card = event.target.closest(".service-sort-card");
-    if (!handle || !card) return;
-    card.setAttribute("draggable", "true");
-  });
-
-  list.addEventListener("dragstart", event => {
-    const handle = event.target.closest(".service-drag-handle");
-    const card = event.target.closest(".service-sort-card");
-    if (!handle || !card) {
-      event.preventDefault();
-      return;
-    }
-
-    serviceDragId = card.dataset.serviceId;
-    card.classList.add("is-dragging");
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", serviceDragId);
-  });
-
-  list.addEventListener("dragover", event => {
-    if (!serviceDragId) return;
-    event.preventDefault();
-    const dragging = list.querySelector(".service-sort-card.is-dragging");
-    if (!dragging) return;
-    moveServiceCardToTouchPoint(list, dragging, event.clientY);
-  });
-
-  list.addEventListener("dragend", async () => {
-    const dragging = list.querySelector(".service-sort-card.is-dragging");
-    if (dragging) {
-      dragging.classList.remove("is-dragging");
-      dragging.removeAttribute("draggable");
-    }
-    clearServiceDropIndicators(list);
-    if (serviceDragId) await persistServiceOrderFromDom(list);
-    serviceDragId = null;
-  });
-}
-
-
-async function persistServiceOrderFromDom(list) {
-  const orderedIds = Array.from(list.querySelectorAll(".service-sort-card"))
-    .map(card => Number(card.dataset.serviceId))
-    .filter(Number.isFinite);
-
-  if (!orderedIds.length) return;
-
-  const data = getData();
-  data.services = data.services.map(service => {
-    const index = orderedIds.findIndex(id => String(id) === String(service.id));
-    return {
-      ...service,
-      sortOrder: index >= 0 ? index + 1 : Number(service.sortOrder || orderedIds.length + 1)
-    };
-  });
-  saveData(data);
-
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  const updates = orderedIds.map((id, index) =>
-    supabaseClient
-      .from("services")
-      .update({ sort_order: index + 1 })
-      .eq("id", id)
-      .eq("user_id", user.id)
-  );
-
-  const results = await Promise.all(updates);
-  const firstError = results.find(result => result.error)?.error;
-  if (firstError) {
-    console.error("Volgorde diensten opslaan mislukt:", firstError.message);
-    await appAlert("De volgorde werd lokaal aangepast, maar kon niet online opgeslagen worden. Controleer of de database-update voor sort_order uitgevoerd is.", { title: "Volgorde niet online opgeslagen", variant: "warning" });
-  }
 }
 
 
@@ -3718,112 +3419,6 @@ function setupAppointmentCustomerSearch() {
   });
 }
 
-
-function serviceSearchText(service) {
-  return [service.name || "", service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""]
-    .join(" ")
-    .toLowerCase();
-}
-
-function setAppointmentService(serviceId, { updateSearch = true, updateDefaults = false } = {}) {
-  const data = getData();
-  const serviceSelect = document.getElementById("appointmentService");
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  const service = serviceById(data, serviceId);
-
-  if (serviceSelect) {
-    serviceSelect.value = service ? String(service.id) : "";
-  }
-
-  if (searchInput && updateSearch) {
-    searchInput.value = service ? service.name : "";
-  }
-
-  renderAppointmentServiceResults(searchInput?.value || "", false);
-
-  if (updateDefaults && service) {
-    syncServiceDefaults();
-  }
-}
-
-function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
-  const data = getData();
-  const resultsWrap = document.getElementById("appointmentServiceResults");
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  if (!resultsWrap) return;
-
-  const safeQuery = String(query || "").trim().toLowerCase();
-  const selectedId = document.getElementById("appointmentService")?.value || "";
-
-  let services = getOrderedServices(data);
-  if (safeQuery) {
-    services = services.filter(service => serviceSearchText(service).includes(safeQuery));
-  } else if (!showAllWhenEmpty) {
-    services = [];
-  }
-
-  services = services.slice(0, 40);
-
-  if (!services.length) {
-    resultsWrap.innerHTML = safeQuery
-      ? `<div class="appointment-service-empty">Geen diensten gevonden.</div>`
-      : "";
-    resultsWrap.classList.toggle("hidden", !safeQuery);
-    if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
-    return;
-  }
-
-  resultsWrap.innerHTML = services.map(service => {
-    const name = service.name || "Naamloze dienst";
-    const meta = [service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""].filter(Boolean).join(" · ");
-    const activeClass = String(service.id) === String(selectedId) ? " active" : "";
-    return `
-      <button class="appointment-service-result${activeClass}" type="button" role="option" data-service-id="${service.id}" aria-selected="${activeClass ? "true" : "false"}">
-        <span class="appointment-service-result-name">${htmlEscape(name)}</span>
-        ${meta ? `<span class="appointment-service-result-meta">${htmlEscape(meta)}</span>` : ""}
-      </button>
-    `;
-  }).join("");
-
-  resultsWrap.classList.remove("hidden");
-  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
-}
-
-function setupAppointmentServiceSearch() {
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  const resultsWrap = document.getElementById("appointmentServiceResults");
-  const serviceSelect = document.getElementById("appointmentService");
-  if (!searchInput || !resultsWrap || !serviceSelect || searchInput.dataset.ready === "true") return;
-
-  searchInput.dataset.ready = "true";
-
-  searchInput.addEventListener("input", () => {
-    serviceSelect.value = "";
-    renderAppointmentServiceResults(searchInput.value, false);
-  });
-
-  searchInput.addEventListener("focus", () => {
-    renderAppointmentServiceResults(searchInput.value, true);
-  });
-
-  resultsWrap.addEventListener("click", event => {
-    const btn = event.target.closest("[data-service-id]");
-    if (!btn) return;
-    setAppointmentService(btn.dataset.serviceId, { updateDefaults: true });
-  });
-
-  serviceSelect.addEventListener("change", () => {
-    setAppointmentService(serviceSelect.value, { updateDefaults: true });
-  });
-
-  document.addEventListener("click", event => {
-    const picker = event.target.closest(".appointment-service-picker");
-    if (picker) return;
-    resultsWrap.classList.add("hidden");
-    searchInput.setAttribute("aria-expanded", "false");
-  });
-}
-
 function populateAppointmentForm(customerId = null) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
@@ -3831,10 +3426,9 @@ function populateAppointmentForm(customerId = null) {
 
   customerSelect.innerHTML = `<option value="">Kies een klant...</option>` +
     data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
-  serviceSelect.innerHTML = getOrderedServices(data).map(s => `<option value="${s.id}">${htmlEscape(s.name)}</option>`).join("");
+  serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 
   setupAppointmentCustomerSearch();
-  setupAppointmentServiceSearch();
 
   if (customerId) {
     setAppointmentCustomer(customerId);
@@ -3843,10 +3437,6 @@ function populateAppointmentForm(customerId = null) {
     const searchInput = document.getElementById("appointmentCustomerSearch");
     if (searchInput) searchInput.value = "";
   }
-
-  setAppointmentService("");
-  const serviceSearchInput = document.getElementById("appointmentServiceSearch");
-  if (serviceSearchInput) serviceSearchInput.value = "";
 }
 
 function syncServiceDefaults() {
@@ -3871,7 +3461,7 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
 
   const serviceSelect = document.getElementById("appointmentService");
   if (serviceSelect.options.length) {
-    setAppointmentService(serviceSelect.options[0].value);
+    serviceSelect.value = serviceSelect.options[0].value;
   }
 
   syncServiceDefaults();
@@ -3891,7 +3481,7 @@ function openEditAppointmentDialog(id) {
   setAppointmentCustomer(app.customerId);
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
-  setAppointmentService(app.serviceId);
+  document.getElementById("appointmentService").value = app.serviceId;
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
   document.getElementById("appointmentStatus").value = app.status;
@@ -4014,13 +3604,11 @@ function openPaymentDialog(id, anchorEl = null) {
     paymentAmount.textContent = euro(app.price);
     paymentAmount.classList.toggle("no-show", isNoShowAppointment(app));
   }
-  const currentMethodWrap = document.getElementById("paymentCurrentMethodWrap");
-  if (currentMethodWrap) {
-    currentMethodWrap.classList.toggle("hidden", isNoShowAppointment(app));
-  }
-  document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
-    ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
-    : "Nog niet betaald";
+  document.getElementById("paymentDialogCurrentMethod").textContent = isNoShowAppointment(app)
+    ? "No show"
+    : app.paid
+      ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
+      : "Nog niet betaald";
 
   renderPaymentPopoverOptions(app, data);
 
@@ -4060,132 +3648,6 @@ function renderPaymentMethods() {
     card.querySelector("button").addEventListener("click", () => openEditPaymentMethodDialog(method.id));
     list.appendChild(card);
   });
-}
-
-function formatTodoDueLabel(task) {
-  const date = task?.dueDate || "";
-  const time = task?.dueTime || "";
-  if (!date && !time) return "Geen herinnering ingesteld";
-  const dateLabel = date ? formatLongDate(date) : "Geen datum";
-  return time ? `${dateLabel} om ${time}` : dateLabel;
-}
-
-function todoDueTimestamp(task) {
-  if (!task?.dueDate) return null;
-  const time = task.dueTime || "23:59";
-  const ts = new Date(`${task.dueDate}T${time}:00`).getTime();
-  return Number.isFinite(ts) ? ts : null;
-}
-
-function isTodoOverdue(task) {
-  const ts = todoDueTimestamp(task);
-  return !task?.completed && ts !== null && ts < Date.now();
-}
-
-function sortedTasks(tasks) {
-  return tasks.slice().sort((a, b) => {
-    if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
-    const aDue = todoDueTimestamp(a);
-    const bDue = todoDueTimestamp(b);
-    if (aDue !== null && bDue !== null && aDue !== bDue) return aDue - bDue;
-    if (aDue !== null && bDue === null) return -1;
-    if (aDue === null && bDue !== null) return 1;
-    return String(b.createdAt || b.updatedAt || b.id).localeCompare(String(a.createdAt || a.updatedAt || a.id), "nl-BE");
-  });
-}
-
-function renderTodoList() {
-  const data = getData();
-  const list = document.getElementById("todoList");
-  const title = document.getElementById("todoListTitle");
-  const badge = document.getElementById("todoCountBadge");
-  const search = document.getElementById("todoSearch");
-  if (!list) return;
-
-  const tasks = normalizeTasks(data.tasks || []);
-  const q = String(search?.value || "").trim().toLowerCase();
-  const filter = state.todoFilter || "open";
-
-  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.todoFilter === filter);
-  });
-
-  const openCount = tasks.filter(task => !task.completed).length;
-  if (badge) badge.textContent = `${openCount} open`;
-  if (title) {
-    title.textContent = filter === "done" ? "Afgewerkte taken" : filter === "all" ? "Alle taken" : "Open taken";
-  }
-
-  let filtered = tasks.filter(task => {
-    if (filter === "open") return !task.completed;
-    if (filter === "done") return task.completed;
-    return true;
-  });
-
-  if (q) {
-    filtered = filtered.filter(task => [task.title, task.note, formatTodoDueLabel(task)].join(" ").toLowerCase().includes(q));
-  }
-
-  filtered = sortedTasks(filtered);
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state">Geen taken gevonden.</div>`;
-    return;
-  }
-
-  list.innerHTML = "";
-  filtered.forEach(task => {
-    const card = document.createElement("div");
-    card.className = `todo-card${task.completed ? " is-completed" : ""}${isTodoOverdue(task) ? " is-overdue" : ""}`;
-    card.innerHTML = `
-      <button class="todo-check-btn" type="button" data-id="${task.id}" aria-label="${task.completed ? "Markeer als open" : "Markeer als afgewerkt"}">
-        <span aria-hidden="true">${task.completed ? "✓" : ""}</span>
-      </button>
-      <button class="todo-main-btn" type="button" data-id="${task.id}">
-        <div class="todo-title-row">
-          <div class="client-name todo-title">${escapeHtml(task.title)}</div>
-          ${isTodoOverdue(task) ? `<span class="todo-status-pill overdue">Te laat</span>` : task.completed ? `<span class="todo-status-pill done">Afgewerkt</span>` : ""}
-        </div>
-        <div class="meta">${escapeHtml(formatTodoDueLabel(task))}</div>
-        ${task.note ? `<div class="todo-note">${escapeHtml(task.note)}</div>` : ""}
-      </button>
-    `;
-
-    card.querySelector(".todo-main-btn")?.addEventListener("click", () => openEditTodoDialog(task.id));
-    card.querySelector(".todo-check-btn")?.addEventListener("click", event => {
-      event.stopPropagation();
-      toggleTodoCompleted(task.id);
-    });
-    list.appendChild(card);
-  });
-}
-
-function openNewTodoDialog() {
-  document.getElementById("todoModalTitle").textContent = "Nieuwe taak";
-  document.getElementById("todoId").value = "";
-  document.getElementById("todoTitle").value = "";
-  document.getElementById("todoDueDate").value = "";
-  document.getElementById("todoDueTime").value = "";
-  document.getElementById("todoNote").value = "";
-  document.getElementById("todoCompleted").checked = false;
-  document.getElementById("deleteTodoBtn").style.visibility = "hidden";
-  document.getElementById("todoDialog").showModal();
-}
-
-function openEditTodoDialog(id) {
-  const data = getData();
-  const task = (data.tasks || []).find(item => String(item.id) === String(id));
-  if (!task) return;
-
-  document.getElementById("todoModalTitle").textContent = "Taak bewerken";
-  document.getElementById("todoId").value = task.id;
-  document.getElementById("todoTitle").value = task.title || "";
-  document.getElementById("todoDueDate").value = task.dueDate || "";
-  document.getElementById("todoDueTime").value = task.dueTime || "";
-  document.getElementById("todoNote").value = task.note || "";
-  document.getElementById("todoCompleted").checked = Boolean(task.completed);
-  document.getElementById("deleteTodoBtn").style.visibility = "visible";
-  document.getElementById("todoDialog").showModal();
 }
 
 function openNewPaymentMethodDialog() {
@@ -4265,172 +3727,6 @@ function openEditServiceDialog(id) {
 /* =========================
    SAVE / DELETE
 ========================= */
-
-async function saveTodoFromForm(event) {
-  event.preventDefault();
-
-  const user = await getCurrentUser();
-  const data = getData();
-  const rawId = document.getElementById("todoId")?.value || "";
-  const id = rawId ? Number(rawId) : null;
-  const title = document.getElementById("todoTitle")?.value.trim() || "";
-  const dueDate = document.getElementById("todoDueDate")?.value || "";
-  const dueTime = document.getElementById("todoDueTime")?.value || "";
-  const note = document.getElementById("todoNote")?.value.trim() || "";
-  const completed = Boolean(document.getElementById("todoCompleted")?.checked);
-
-  if (!title) {
-    await appAlert("Geef een taak of herinnering in.", { title: "To Do", variant: "warning" });
-    return;
-  }
-
-  if (!user) {
-    const tasks = normalizeTasks(data.tasks || []);
-    const now = new Date().toISOString();
-    if (id) {
-      const existing = tasks.find(task => Number(task.id) === id);
-      if (existing) {
-        Object.assign(existing, {
-          title,
-          dueDate,
-          dueTime,
-          note,
-          completed,
-          completedAt: completed ? (existing.completedAt || now) : null,
-          updatedAt: now
-        });
-      }
-    } else {
-      tasks.push({
-        id: nextId(tasks),
-        title,
-        dueDate,
-        dueTime,
-        note,
-        completed,
-        completedAt: completed ? now : null,
-        createdAt: now,
-        updatedAt: now
-      });
-    }
-    data.tasks = tasks;
-    saveData(data);
-    closeDialog("todoDialog");
-    renderTodoList();
-    return;
-  }
-
-  const payload = {
-    user_id: user.id,
-    title,
-    due_date: dueDate || null,
-    due_time: dueTime || null,
-    note: note || null,
-    is_completed: completed,
-    completed_at: completed ? new Date().toISOString() : null,
-    updated_at: new Date().toISOString()
-  };
-
-  let error;
-  if (id) {
-    ({ error } = await supabaseClient
-      .from("tasks")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
-  } else {
-    ({ error } = await supabaseClient
-      .from("tasks")
-      .insert(payload));
-  }
-
-  if (error) {
-    await appAlert("Opslaan taak mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("todoDialog");
-  renderTodoList();
-}
-
-async function toggleTodoCompleted(id) {
-  const user = await getCurrentUser();
-  const data = getData();
-  const tasks = normalizeTasks(data.tasks || []);
-  const task = tasks.find(item => String(item.id) === String(id));
-  if (!task) return;
-
-  const nextCompleted = !task.completed;
-  const completedAt = nextCompleted ? new Date().toISOString() : null;
-
-  if (!user) {
-    task.completed = nextCompleted;
-    task.completedAt = completedAt;
-    task.updatedAt = new Date().toISOString();
-    data.tasks = tasks;
-    saveData(data);
-    renderTodoList();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("tasks")
-    .update({
-      is_completed: nextCompleted,
-      completed_at: completedAt,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("Taak aanpassen mislukt: " + error.message, { title: "Aanpassen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  renderTodoList();
-}
-
-async function deleteCurrentTodo() {
-  const id = document.getElementById("todoId")?.value;
-  if (!id) return;
-
-  const confirmed = await appConfirm("Deze taak wordt definitief verwijderd.", {
-    title: "Taak verwijderen",
-    confirmText: "Verwijderen",
-    cancelText: "Annuleren",
-    variant: "warning"
-  });
-  if (!confirmed) return;
-
-  const user = await getCurrentUser();
-  const data = getData();
-
-  if (!user) {
-    data.tasks = normalizeTasks(data.tasks || []).filter(task => String(task.id) !== String(id));
-    saveData(data);
-    closeDialog("todoDialog");
-    renderTodoList();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("tasks")
-    .delete()
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("Verwijderen taak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("todoDialog");
-  renderTodoList();
-}
 
 async function savePaymentMethodFromForm(event) {
   event.preventDefault();
@@ -4628,8 +3924,7 @@ async function saveServiceFromForm(event) {
     if (id) {
       Object.assign(serviceById(data, id), payload);
     } else {
-      const nextSortOrder = data.services.length ? Math.max(...data.services.map(service => Number(service.sortOrder || 0))) + 1 : 1;
-      data.services.push({ id: nextId(data.services), ...payload, sortOrder: nextSortOrder });
+      data.services.push({ id: nextId(data.services), ...payload });
     }
 
     saveData(data);
@@ -4640,16 +3935,11 @@ async function saveServiceFromForm(event) {
 
   const id = document.getElementById("serviceId").value;
 
-  const currentData = getData();
-  const currentService = id ? serviceById(currentData, id) : null;
-  const nextSortOrder = currentData.services.length ? Math.max(...currentData.services.map(service => Number(service.sortOrder || 0))) + 1 : 1;
-
   const payload = {
     user_id: user.id,
     name: document.getElementById("serviceName").value.trim(),
     duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value),
-    sort_order: Number(currentService?.sortOrder || nextSortOrder)
+    price: Number(document.getElementById("servicePrice").value)
   };
 
   let error;
@@ -5275,20 +4565,6 @@ function animateScreenSwipeEnd(direction, shouldSwitch) {
 }
 
 
-function todayIconButtonMarkup(idAttribute = "") {
-  const idPart = idAttribute ? ` id="${idAttribute}"` : "";
-  return `
-    <button class="today-icon-btn"${idPart} type="button" aria-label="Spring naar vandaag">
-      <svg class="today-icon" viewBox="0 0 26.5 26" aria-hidden="true">
-        <path
-          id="rect1"
-          style="baseline-shift:baseline;display:inline;overflow:visible;opacity:1;vector-effect:none;stroke-width:1.64079;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
-          d="M 8.3422089,0.9919416 A 1.0058012,1.0058012 0 0 0 7.3366004,1.9975501 V 2.9276955 H 4.574145 c -1.7239203,0 -3.1440102,1.4192417 -3.1440102,3.143162 V 21.857043 c 0,1.723921 1.4200899,3.140619 3.1440102,3.140619 h 17.342928 c 1.723921,0 3.144012,-1.416698 3.144012,-3.140619 V 6.0708575 c 0,-1.7239203 -1.420091,-3.143162 -3.144012,-3.143162 H 19.712536 V 1.9975501 A 1.0058012,1.0058012 0 0 0 18.706081,0.9919416 1.0058012,1.0058012 0 0 0 17.699623,1.9975501 V 2.9276955 H 9.3486654 V 1.9975501 A 1.0058012,1.0058012 0 0 0 8.3422089,0.9919416 Z M 4.574145,4.93976 H 7.3366004 V 6.3175963 A 1.0058012,1.0058012 0 0 0 8.3422089,7.3206609 1.0058012,1.0058012 0 0 0 9.3486654,6.3175963 V 4.93976 h 8.3509576 v 1.3778363 a 1.0058012,1.0058012 0 0 0 1.006458,1.0030646 1.0058012,1.0058012 0 0 0 1.006455,-1.0030646 V 4.93976 h 2.204537 c 0.64429,0 1.131946,0.4868097 1.131946,1.1310975 V 8.9138634 H 3.4421996 V 6.0708575 C 3.4421996,5.4265697 3.9298574,4.93976 4.574145,4.93976 Z M 3.4421996,9.6540796 H 23.049019 V 21.857043 c 0,0.64429 -0.487656,1.131099 -1.131946,1.131099 H 4.574145 c -0.6442876,0 -1.1319454,-0.486809 -1.1319454,-1.131099 z M 18.167664,17.156292 c -0.332408,0 -0.608791,0.279775 -0.608791,0.612182 v 2.031566 c 0,0.33241 0.276383,0.608793 0.608791,0.608793 h 2.230823 c 0.332408,0 0.612184,-0.276383 0.612184,-0.608793 v -2.031566 c 0,-0.332407 -0.279776,-0.612182 -0.612184,-0.612182 z m 0.06104,0.672383 h 2.112118 v 1.910317 h -2.112118 z" />
-      </svg>
-    </button>
-  `;
-}
-
 function renderCalendarMarkupFor(year, monthIndex) {
   const data = getData();
   const first = new Date(year, monthIndex, 1);
@@ -5330,10 +4606,7 @@ function renderCalendarMarkupFor(year, monthIndex) {
   return `
     <div class="month-header">
       <button class="icon-btn" type="button" aria-label="Vorige maand">‹</button>
-      <div class="month-title-actions">
-        <button class="month-title month-select-btn" type="button">${monthNames[monthIndex]} ${year}</button>
-        ${todayIconButtonMarkup()}
-      </div>
+      <button class="month-title month-select-btn" type="button">${monthNames[monthIndex]} ${year}</button>
       <button class="icon-btn" type="button" aria-label="Volgende maand">›</button>
     </div>
     <div class="weekday-row">
@@ -5385,9 +4658,6 @@ function animateCalendarSwipe(direction, shouldSwitch) {
   prepareCalendarSwipePreview(direction);
 
   if (shouldSwitch) {
-    // De kalender volgt dezelfde richting als de vinger:
-    // De beweging blijft gelijk, maar de geladen maand wordt omgekeerd
-    // zodat de preview en de uiteindelijke kalender dezelfde maand tonen.
     calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
     calendar.style.setProperty("--calendar-preview-x", "0px");
     calendar.style.setProperty("--calendar-swipe-opacity", "1");
@@ -5451,7 +4721,6 @@ function rerenderAll() {
   renderClients();
   renderServices();
   renderPaymentMethods();
-  renderTodoList();
   renderStatistics();
   renderRevenue();
 
@@ -5472,7 +4741,6 @@ function registerEvents() {
   document.getElementById("nextMonthBtn").addEventListener("click", () => shiftCalendarMonth(1));
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
-  document.getElementById("todayIconBtn")?.addEventListener("click", jumpToToday);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
@@ -5490,7 +4758,6 @@ function registerEvents() {
       paymentMethodsScreen: "Betaalwijze",
       statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
-      todoScreen: "To Do",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
     };
@@ -5524,16 +4791,6 @@ function registerEvents() {
 
   document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
   document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
-
-  document.getElementById("todoForm")?.addEventListener("submit", saveTodoFromForm);
-  document.getElementById("deleteTodoBtn")?.addEventListener("click", deleteCurrentTodo);
-  document.getElementById("todoSearch")?.addEventListener("input", renderTodoList);
-  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.todoFilter = btn.dataset.todoFilter || "open";
-      renderTodoList();
-    });
-  });
 
   document.getElementById("paymentPopoverCloseBtn")?.addEventListener("click", closePaymentPopover);
 
@@ -5694,7 +4951,7 @@ function registerEvents() {
           state.currentYear = picked.getFullYear();
           state.currentMonth = picked.getMonth();
         }
-        switchScreen(event.data.screen || 'agendaScreen', screenTitleById(event.data.screen || 'agendaScreen'));
+        switchScreen(event.data.screen || 'agendaScreen', event.data.screen === 'statisticsScreen' ? 'Statistieken' : 'Agenda');
         rerenderAll();
       }
     });
@@ -5792,7 +5049,6 @@ async function loadServicesFromSupabase() {
     .from("services")
     .select("*")
     .eq("user_id", user.id)
-    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
   if (error) {
@@ -5804,8 +5060,7 @@ async function loadServicesFromSupabase() {
     id: s.id,
     name: s.name,
     duration: s.duration,
-    price: Number(s.price || 0),
-    sortOrder: Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : null
+    price: Number(s.price || 0)
   }));
 }
 
@@ -5839,43 +5094,11 @@ async function loadAppointmentsFromSupabase() {
   }));
 }
 
-async function loadTasksFromSupabase() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const { data, error } = await supabaseClient
-    .from("tasks")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("is_completed", { ascending: true })
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("due_time", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Fout bij laden taken:", error.message);
-    return [];
-  }
-
-  return (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    note: item.note || "",
-    dueDate: item.due_date || "",
-    dueTime: item.due_time ? String(item.due_time).slice(0, 5) : "",
-    completed: Boolean(item.is_completed),
-    completedAt: item.completed_at || null,
-    createdAt: item.created_at || null,
-    updatedAt: item.updated_at || null
-  }));
-}
-
 async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
   const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
-  const tasks = await loadTasksFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
@@ -5883,7 +5106,6 @@ async function loadAllDataFromSupabase() {
     services,
     paymentMethods,
     appointments,
-    tasks,
     settings
   });
 
