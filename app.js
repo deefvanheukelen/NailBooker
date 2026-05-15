@@ -147,18 +147,6 @@ function paymentMethodNameForAppointment(appointment, data = getData()) {
   return appointment.paymentMethodName || "";
 }
 
-function isNoShowAppointment(appointment) {
-  return String(appointment?.status || "").toLowerCase() === "no-show";
-}
-
-function appointmentRevenueAmount(appointment) {
-  return isNoShowAppointment(appointment) ? 0 : Number(appointment?.price || 0);
-}
-
-function appointmentStatusLabel(appointment) {
-  return isNoShowAppointment(appointment) ? "No show" : (appointment?.status || "-");
-}
-
 function buildPaymentMethodOptions(methods, selectedValue = "") {
   return methods.map(method => {
     const selected = String(method.name) === String(selectedValue) ? ' selected' : '';
@@ -1057,38 +1045,6 @@ async function logoutAccount() {
    UI
 ========================= */
 
-function scrollActiveBottomNavButton(behavior = "smooth") {
-  const nav = document.querySelector(".bottom-nav");
-  const activeBtn = nav?.querySelector(".nav-btn.active");
-  if (!nav || !activeBtn) return;
-
-  const targetLeft = activeBtn.offsetLeft - (nav.clientWidth / 2) + (activeBtn.offsetWidth / 2);
-  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
-  const left = Math.max(0, Math.min(maxLeft, targetLeft));
-
-  try {
-    nav.scrollTo({ left, behavior });
-  } catch (error) {
-    nav.scrollLeft = left;
-  }
-}
-
-function scrollBottomNavButtonForScreen(screenId, behavior = "smooth") {
-  const nav = document.querySelector(".bottom-nav");
-  const targetBtn = nav?.querySelector(`.nav-btn[data-screen="${screenId}"]`);
-  if (!nav || !targetBtn) return;
-
-  const targetLeft = targetBtn.offsetLeft - (nav.clientWidth / 2) + (targetBtn.offsetWidth / 2);
-  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
-  const left = Math.max(0, Math.min(maxLeft, targetLeft));
-
-  try {
-    nav.scrollTo({ left, behavior });
-  } catch (error) {
-    nav.scrollLeft = left;
-  }
-}
-
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = title;
 
@@ -1129,8 +1085,6 @@ function switchScreen(screenId, title) {
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.screen === screenId);
   });
-
-  scrollActiveBottomNavButton("smooth");
 
   updateTopbar(screenId, title);
 
@@ -1252,15 +1206,15 @@ function renderAgendaList() {
     const service = serviceById(data, app.serviceId);
 
     const row = document.createElement("div");
-    row.className = `appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}`;
+    row.className = "appointment-row";
     const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
 
     const appointmentMetaParts = [];
     if (service?.name) {
       appointmentMetaParts.push(service.name);
     }
-    if (isNoShowAppointment(app)) {
-      appointmentMetaParts.push("No show");
+    if ((app.status || "").toLowerCase() === "no-show") {
+      appointmentMetaParts.push("no show");
     } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
       appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
     }
@@ -1274,7 +1228,7 @@ function renderAgendaList() {
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
         <div class="meta">${appointmentMetaParts.join(" · ")}</div>
       </div>
-      <button class="price-chip ${app.paid ? "paid" : ""} ${isNoShowAppointment(app) ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
+      <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
     `;
 
     row.addEventListener("click", (e) => {
@@ -1476,7 +1430,7 @@ function revenueFilteredAppointments() {
   const paymentStatusFilter = document.getElementById("revenuePaymentStatusFilter").value;
   const paymentFilter = document.getElementById("revenuePaymentFilter").value;
 
-  let filtered = data.appointments.filter(a => !isNoShowAppointment(a));
+  let filtered = data.appointments.filter(a => a.status !== "no-show");
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
@@ -1701,8 +1655,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date.startsWith(prefix));
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
       };
     });
   }
@@ -1718,8 +1672,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date === key);
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
       };
     });
   }
@@ -2543,9 +2497,9 @@ function renderRevenue() {
   const titleEl = document.getElementById("revenueTitle");
   if (titleEl) titleEl.textContent = title;
 
-  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
-  const total = filtered.reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
-  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
+  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const total = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
 
   document.getElementById("plannedRevenue").textContent = euro(total);
   document.getElementById("paidRevenue").textContent = euro(paid);
@@ -2578,10 +2532,8 @@ function getStatisticsSummary(data = getData()) {
   const services = Array.isArray(data.services) ? data.services : [];
   const appointments = Array.isArray(data.appointments) ? data.appointments : [];
 
-  const noShowAppointments = appointments.filter(app => isNoShowAppointment(app));
-  const revenueAppointments = appointments.filter(app => !isNoShowAppointment(app));
-  const paidAppointments = revenueAppointments.filter(app => app.paid);
-  const paidRevenue = paidAppointments.reduce((sum, app) => sum + appointmentRevenueAmount(app), 0);
+  const paidAppointments = appointments.filter(app => app.paid);
+  const paidRevenue = paidAppointments.reduce((sum, app) => sum + Number(app.price || 0), 0);
 
   const serviceUsage = services.map(service => ({
     label: service.name,
@@ -2597,7 +2549,7 @@ function getStatisticsSummary(data = getData()) {
 
   const statusMap = {};
   appointments.forEach(app => {
-    const label = isNoShowAppointment(app) ? 'No show' : (String(app.status || 'Onbekend').trim() || 'Onbekend');
+    const label = String(app.status || 'Onbekend').trim() || 'Onbekend';
     statusMap[label] = (statusMap[label] || 0) + 1;
   });
   const statusUsage = Object.entries(statusMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
@@ -2606,7 +2558,7 @@ function getStatisticsSummary(data = getData()) {
   paidAppointments.forEach(app => {
     const service = services.find(item => String(item.id) === String(app.serviceId));
     const label = service?.name || 'Onbekende dienst';
-    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + appointmentRevenueAmount(app);
+    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + Number(app.price || 0);
   });
   const revenueByService = Object.entries(revenueByServiceMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
@@ -2614,7 +2566,6 @@ function getStatisticsSummary(data = getData()) {
     appointmentCount: appointments.length,
     customerCount: customers.length,
     paidAppointmentCount: paidAppointments.length,
-    noShowCount: noShowAppointments.length,
     paidRevenue,
     serviceUsage,
     paymentUsage,
@@ -2764,10 +2715,6 @@ function renderStatistics() {
         <strong>${summary.paidAppointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">No shows</span>
-        <strong class="statistics-no-show-value">${summary.noShowCount}</strong>
-      </div>
-      <div class="statistics-kpi">
         <span class="statistics-kpi-label">Omzet tot op heden</span>
         <strong>${euro(summary.paidRevenue)}</strong>
       </div>
@@ -2792,13 +2739,6 @@ function renderStatistics() {
         <h2>Gekozen betaalwijze</h2>
       </div>
       ${buildStatisticsDonut(summary.paymentUsage)}
-    </section>
-
-    <section class="statistics-card">
-      <div class="statistics-card-head">
-        <h2>Afspraakstatussen</h2>
-      </div>
-      ${buildStatisticsDonut(summary.statusUsage)}
     </section>
 
     <section class="statistics-card">
@@ -3251,7 +3191,7 @@ function openClientDetail(clientId) {
                   const service = serviceById(data, app.serviceId);
 
                   return `
-                    <div class="client-appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}">
+                    <div class="client-appointment-row">
                       <div class="client-appointment-datecol">
                         <div class="client-appointment-date">${formatShortDate(app.date)}</div>
                         <div class="client-appointment-time">${app.time || ""}</div>
@@ -3260,7 +3200,7 @@ function openClientDetail(clientId) {
                       <div class="client-appointment-main">
                         <div class="client-appointment-service">${service ? service.name : "-"}</div>
                         <div class="client-appointment-status">
-                          ${appointmentStatusLabel(app)}${isNoShowAppointment(app) ? ` · <span class="no-show-amount">${euro(app.price)}</span>` : (app.paid ? " · betaald" : "")}
+                          ${app.status || "-"}${app.paid ? " · betaald" : ""}
                         </div>
                       </div>
 
@@ -3545,26 +3485,16 @@ function renderPaymentPopoverOptions(app, data = getData()) {
 
   const methods = getPaymentMethods(data);
   const selectedName = paymentMethodNameForAppointment(app, data) || "";
-  const appIsNoShow = isNoShowAppointment(app);
-  const items = [
-    { value: "no-show", label: "No show", noShow: true, unpaid: false },
-    { value: "", label: "Onbetaald", noShow: false, unpaid: true },
-    ...methods.map(method => ({ value: method.name, label: method.name, noShow: false, unpaid: false }))
-  ];
+  const items = [{ value: "", label: "Onbetaald", unpaid: true }, ...methods.map(method => ({ value: method.name, label: method.name, unpaid: false }))];
 
   list.innerHTML = items.map(item => {
-    const isActive = item.noShow
-      ? appIsNoShow
-      : item.unpaid
-        ? (!app.paid && !appIsNoShow)
-        : (app.paid && !appIsNoShow && item.value === selectedName);
+    const isActive = item.unpaid ? !app.paid : (app.paid && item.value === selectedName);
     return `
       <button
         type="button"
-        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""} ${item.noShow ? "is-no-show" : ""}"
+        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""}"
         data-payment-value="${item.value}"
         data-unpaid="${item.unpaid ? "true" : "false"}"
-        data-no-show="${item.noShow ? "true" : "false"}"
         role="menuitemradio"
         aria-checked="${isActive ? "true" : "false"}"
       >
@@ -3577,10 +3507,6 @@ function renderPaymentPopoverOptions(app, data = getData()) {
     button.addEventListener("click", async event => {
       event.stopPropagation();
       const methodName = button.dataset.paymentValue || "";
-      if (button.dataset.noShow === "true") {
-        await markNoShow();
-        return;
-      }
       if (button.dataset.unpaid === "true") {
         await markUnpaid();
         return;
@@ -3599,16 +3525,10 @@ function openPaymentDialog(id, anchorEl = null) {
   if (!popover) return;
 
   document.getElementById("paymentAppointmentId").value = id;
-  const paymentAmount = document.getElementById("paymentAmount");
-  if (paymentAmount) {
-    paymentAmount.textContent = euro(app.price);
-    paymentAmount.classList.toggle("no-show", isNoShowAppointment(app));
-  }
-  document.getElementById("paymentDialogCurrentMethod").textContent = isNoShowAppointment(app)
-    ? "No show"
-    : app.paid
-      ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
-      : "Nog niet betaald";
+  document.getElementById("paymentAmount").textContent = euro(app.price);
+  document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
+    ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
+    : "Nog niet betaald";
 
   renderPaymentPopoverOptions(app, data);
 
@@ -4020,10 +3940,6 @@ async function saveAppointmentFromForm(event) {
     if (id) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
       Object.assign(existingApp, localPayload);
-      if (localPayload.status === "no-show") {
-        existingApp.paid = false;
-        existingApp.paymentMethodName = null;
-      }
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
@@ -4046,9 +3962,8 @@ async function saveAppointmentFromForm(event) {
   }
 
   const existingApp = data.appointments.find(a => String(a.id) === String(id));
-  const localIsNoShow = localPayload.status === "no-show";
-  const isPaid = localIsNoShow ? false : (existingApp ? Boolean(existingApp.paid) : false);
-  const existingPaymentMethodName = localIsNoShow ? null : (paymentMethodNameForAppointment(existingApp, data) || null);
+  const isPaid = existingApp ? Boolean(existingApp.paid) : false;
+  const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
 
   const payload = {
     user_id: user.id,
@@ -4172,7 +4087,7 @@ async function confirmPaymentSelection(methodName) {
 
     appointment.paid = true;
     appointment.paymentMethodName = safeMethodName;
-    appointment.status = "afgerond";
+    if (appointment.status === "gepland") appointment.status = "afgerond";
 
     saveData(data);
     closePaymentPopover();
@@ -4200,45 +4115,6 @@ async function confirmPaymentSelection(methodName) {
   rerenderAll();
 }
 
-async function markNoShow() {
-  const id = document.getElementById("paymentAppointmentId").value;
-  const user = await getCurrentUser();
-
-  if (!user) {
-    const data = getData();
-    const appointment = data.appointments.find(a => String(a.id) === String(id));
-    if (!appointment) return;
-
-    appointment.paid = false;
-    appointment.paymentMethodName = null;
-    appointment.status = "no-show";
-
-    saveData(data);
-    closePaymentPopover();
-    rerenderAll();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("appointments")
-    .update({
-      paid: false,
-      payment_method_label: null,
-      status: "no-show"
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("No show opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closePaymentPopover();
-  rerenderAll();
-}
-
 async function markUnpaid() {
   const id = document.getElementById("paymentAppointmentId").value;
   const user = await getCurrentUser();
@@ -4250,7 +4126,6 @@ async function markUnpaid() {
 
     appointment.paid = false;
     appointment.paymentMethodName = null;
-    if (isNoShowAppointment(appointment)) appointment.status = "gepland";
 
     saveData(data);
     closePaymentPopover();
@@ -4258,16 +4133,11 @@ async function markUnpaid() {
     return;
   }
 
-  const data = getData();
-  const appointment = data.appointments.find(a => String(a.id) === String(id));
-  const nextStatus = isNoShowAppointment(appointment) ? "gepland" : (appointment?.status || "gepland");
-
   const { error } = await supabaseClient
     .from("appointments")
     .update({
       paid: false,
-      payment_method_label: null,
-      status: nextStatus
+      payment_method_label: null
     })
     .eq("id", Number(id))
     .eq("user_id", user.id);
@@ -4319,401 +4189,6 @@ function closeDialog(id) {
   if (typeof dialog.close === "function") dialog.close();
 }
 
-function shiftCalendarMonth(step) {
-  // Enkel de zichtbare kalendermaand wijzigen.
-  // De geselecteerde afspraakdag blijft bewust actief totdat de gebruiker een dag aanklikt.
-  state.currentMonth += step;
-
-  if (state.currentMonth < 0) {
-    state.currentMonth = 11;
-    state.currentYear--;
-  }
-
-  if (state.currentMonth > 11) {
-    state.currentMonth = 0;
-    state.currentYear++;
-  }
-
-  renderCalendar();
-}
-
-function getSwipeMainScreens() {
-  return Array.from(document.querySelectorAll(".bottom-nav .nav-btn"))
-    .map(btn => ({
-      screen: btn.dataset.screen,
-      title: btn.dataset.title
-    }))
-    .filter(item => item.screen && item.title);
-}
-
-function isSwipeIgnoredTarget(target, mode = "screen") {
-  const selector = mode === "calendar"
-    ? [
-        "input",
-        "select",
-        "textarea",
-        "dialog",
-        ".modal",
-        ".payment-popover",
-        ".bottom-nav"
-      ].join(",")
-    : [
-        "dialog",
-        ".modal",
-        ".payment-popover",
-        ".calendar-panel",
-        ".revenue-bars",
-        ".revenue-period-strip",
-        ".bottom-nav",
-        ".alphabet-filter"
-      ].join(",");
-
-  return Boolean(target?.closest?.(selector));
-}
-
-function resetSwipeVisuals(container) {
-  if (!container) return;
-  container.classList.remove("is-swiping", "is-swipe-animating");
-  container.style.removeProperty("--swipe-x");
-  container.style.removeProperty("--swipe-preview-x");
-  container.style.removeProperty("--swipe-opacity");
-  container.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
-}
-
-function setSwipeVisuals(container, dx, direction, progress) {
-  if (!container) return;
-  const previewX = direction === "left" ? 100 + (dx / window.innerWidth) * 100 : -100 + (dx / window.innerWidth) * 100;
-  container.style.setProperty("--swipe-x", `${dx}px`);
-  container.style.setProperty("--swipe-preview-x", `${previewX}%`);
-  container.style.setProperty("--swipe-opacity", String(Math.min(1, 0.28 + progress * 0.72)));
-}
-
-function attachHorizontalSwipe(element, callbacks, options = {}) {
-  if (!element || element.dataset.swipeReady === "true") return;
-  element.dataset.swipeReady = "true";
-
-  const minDistance = Number(options.minDistance || 70);
-  const lockDistance = Number(options.lockDistance || 12);
-  const maxVerticalDistance = Number(options.maxVerticalDistance || 80);
-  const minHorizontalRatio = Number(options.minHorizontalRatio || 1.25);
-  const mode = options.mode || "screen";
-  const stopPropagation = Boolean(options.stopPropagation);
-  const onSwipe = typeof callbacks === "function" ? callbacks : callbacks?.onSwipe;
-  const onMove = typeof callbacks === "function" ? null : callbacks?.onMove;
-  const onStart = typeof callbacks === "function" ? null : callbacks?.onStart;
-  const onCancel = typeof callbacks === "function" ? null : callbacks?.onCancel;
-
-  let startX = 0;
-  let startY = 0;
-  let startTime = 0;
-  let tracking = false;
-  let locked = false;
-  let cancelled = false;
-  let activeDirection = null;
-
-  const finish = () => {
-    tracking = false;
-    locked = false;
-    cancelled = false;
-    activeDirection = null;
-  };
-
-  element.addEventListener("touchstart", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (event.touches.length !== 1) return;
-    if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target, mode)) return;
-
-    const touch = event.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    startTime = Date.now();
-    tracking = true;
-    locked = false;
-    cancelled = false;
-    activeDirection = null;
-    if (onStart) onStart(event);
-  }, { passive: true });
-
-  element.addEventListener("touchmove", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (!tracking || event.touches.length !== 1) return;
-
-    const touch = event.touches[0];
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
-    if (!locked) {
-      if (absX < lockDistance && absY < lockDistance) return;
-      if (absY > absX || absX < absY * minHorizontalRatio) {
-        cancelled = true;
-        if (onCancel) onCancel(event);
-        finish();
-        return;
-      }
-      locked = true;
-      activeDirection = dx > 0 ? "right" : "left";
-    }
-
-    if (!locked || cancelled) return;
-    if (event.cancelable) event.preventDefault();
-
-    const dampedDx = dx * 0.82;
-    const progress = Math.min(1, absX / Math.max(minDistance, window.innerWidth * 0.24));
-    if (onMove) onMove(dampedDx, activeDirection, progress, event);
-  }, { passive: false });
-
-  element.addEventListener("touchend", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (!tracking) return;
-
-    const touch = event.changedTouches[0];
-    if (!touch) {
-      if (onCancel) onCancel(event);
-      finish();
-      return;
-    }
-
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const elapsed = Date.now() - startTime;
-    const direction = dx > 0 ? "right" : "left";
-    const velocity = Math.abs(dx) / Math.max(elapsed, 1);
-    const qualifies =
-      locked &&
-      elapsed <= 1000 &&
-      Math.abs(dx) >= minDistance &&
-      Math.abs(dy) <= maxVerticalDistance &&
-      Math.abs(dx) >= Math.abs(dy) * minHorizontalRatio;
-
-    if (qualifies || (locked && Math.abs(dx) >= minDistance * 0.62 && velocity > 0.55)) {
-      if (onSwipe) onSwipe(direction, event, dx);
-    } else if (onCancel) {
-      onCancel(event);
-    }
-
-    finish();
-  }, { passive: true });
-
-  element.addEventListener("touchcancel", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (tracking && onCancel) onCancel(event);
-    finish();
-  }, { passive: true });
-}
-
-function getAdjacentMainScreen(direction) {
-  if (state.currentScreen === "clientDetailScreen") return null;
-
-  const screens = getSwipeMainScreens();
-  const currentIndex = screens.findIndex(item => item.screen === state.currentScreen);
-  if (currentIndex < 0) return null;
-
-  const nextIndex = direction === "left" ? currentIndex + 1 : currentIndex - 1;
-  if (nextIndex < 0 || nextIndex >= screens.length) return null;
-  return screens[nextIndex];
-}
-
-function prepareScreenSwipePreview(direction) {
-  const main = document.querySelector(".main-layout");
-  if (!main) return null;
-
-  const next = getAdjacentMainScreen(direction);
-  main.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
-
-  if (!next) {
-    main.classList.add("is-swiping");
-    return null;
-  }
-
-  const nextEl = document.getElementById(next.screen);
-  if (nextEl) nextEl.classList.add("swipe-preview");
-  scrollBottomNavButtonForScreen(next.screen, "smooth");
-  main.classList.add("is-swiping");
-  return next;
-}
-
-function animateScreenSwipeEnd(direction, shouldSwitch) {
-  const main = document.querySelector(".main-layout");
-  if (!main) return;
-
-  const next = getAdjacentMainScreen(direction);
-  main.classList.add("is-swipe-animating");
-
-  if (shouldSwitch && next) {
-    const endX = direction === "left" ? -window.innerWidth : window.innerWidth;
-    const endPreviewX = "0%";
-    main.style.setProperty("--swipe-x", `${endX}px`);
-    main.style.setProperty("--swipe-preview-x", endPreviewX);
-    main.style.setProperty("--swipe-opacity", "1");
-
-    window.setTimeout(() => {
-      resetSwipeVisuals(main);
-      switchScreen(next.screen, next.title);
-    }, 220);
-    return;
-  }
-
-  main.style.setProperty("--swipe-x", "0px");
-  main.style.setProperty("--swipe-preview-x", direction === "left" ? "100%" : "-100%");
-  main.style.setProperty("--swipe-opacity", "0");
-  window.setTimeout(() => {
-    resetSwipeVisuals(main);
-    scrollActiveBottomNavButton("smooth");
-  }, 220);
-}
-
-
-function renderCalendarMarkupFor(year, monthIndex) {
-  const data = getData();
-  const first = new Date(year, monthIndex, 1);
-  const last = new Date(year, monthIndex + 1, 0);
-  let weekday = first.getDay();
-  weekday = weekday === 0 ? 7 : weekday;
-
-  const cells = [];
-  for (let i = 1; i < weekday; i++) {
-    cells.push(`<div class="empty-cell"></div>`);
-  }
-
-  for (let day = 1; day <= last.getDate(); day++) {
-    const dateStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = data.appointments.filter(a => a.date === dateStr);
-    const isSelected = dateStr === state.selectedDate;
-    const isToday = dateStr === todayStr;
-
-    let dotsHtml = "";
-    if (appts.length) {
-      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
-      const visibleDots = Math.min(appts.length, maxVisibleDots);
-      dotsHtml = `
-        <div class="day-dots">
-          ${Array.from({ length: visibleDots }).map(() => `<i></i>`).join("")}
-          ${appts.length > visibleDots ? `<span class="day-dots-more">+</span>` : ""}
-        </div>
-      `;
-    }
-
-    cells.push(`
-      <div class="day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}">
-        <span class="day-number">${day}</span>
-        ${dotsHtml}
-      </div>
-    `);
-  }
-
-  return `
-    <div class="month-header">
-      <button class="icon-btn" type="button" aria-label="Vorige maand">‹</button>
-      <button class="month-title month-select-btn" type="button">${monthNames[monthIndex]} ${year}</button>
-      <button class="icon-btn" type="button" aria-label="Volgende maand">›</button>
-    </div>
-    <div class="weekday-row">
-      <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
-    </div>
-    <div class="calendar-grid">${cells.join("")}</div>
-  `;
-}
-
-function getCalendarPreviewDate(direction) {
-  const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
-  return { year: d.getFullYear(), month: d.getMonth() };
-}
-
-function prepareCalendarSwipePreview(direction) {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return null;
-
-  const existing = calendar.querySelector(".calendar-swipe-preview");
-  if (existing && existing.dataset.direction === direction) return existing;
-  if (existing) existing.remove();
-
-  const previewDate = getCalendarPreviewDate(direction);
-  const preview = document.createElement("div");
-  preview.className = "calendar-swipe-preview";
-  preview.dataset.direction = direction;
-  preview.innerHTML = renderCalendarMarkupFor(previewDate.year, previewDate.month);
-  calendar.appendChild(preview);
-  return preview;
-}
-
-function resetCalendarSwipeVisuals() {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return;
-  calendar.classList.remove("is-swiping", "is-swipe-animating");
-  calendar.style.removeProperty("--calendar-current-x");
-  calendar.style.removeProperty("--calendar-preview-x");
-  calendar.style.removeProperty("--calendar-swipe-opacity");
-  calendar.querySelectorAll(".calendar-swipe-preview").forEach(el => el.remove());
-}
-
-function animateCalendarSwipe(direction, shouldSwitch) {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return;
-
-  const width = Math.max(calendar.clientWidth, window.innerWidth);
-  calendar.classList.add("is-swiping", "is-swipe-animating");
-  prepareCalendarSwipePreview(direction);
-
-  if (shouldSwitch) {
-    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
-    calendar.style.setProperty("--calendar-preview-x", "0px");
-    calendar.style.setProperty("--calendar-swipe-opacity", "1");
-
-    window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? 1 : -1);
-      resetCalendarSwipeVisuals();
-    }, 230);
-    return;
-  }
-
-  calendar.style.setProperty("--calendar-current-x", "0px");
-  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? width : -width}px`);
-  calendar.style.setProperty("--calendar-swipe-opacity", "0");
-  window.setTimeout(resetCalendarSwipeVisuals, 230);
-}
-function setupSwipeNavigation() {
-  attachHorizontalSwipe(document.querySelector(".calendar-panel"), {
-    onMove: (dx, direction) => {
-      const calendar = document.querySelector(".calendar-panel");
-      if (!calendar) return;
-      const width = Math.max(calendar.clientWidth, window.innerWidth);
-      prepareCalendarSwipePreview(direction);
-      calendar.classList.add("is-swiping");
-      const visualDx = dx;
-      calendar.style.setProperty("--calendar-current-x", `${visualDx}px`);
-      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (width + visualDx) : (-width + visualDx)}px`);
-      calendar.style.setProperty("--calendar-swipe-opacity", String(Math.min(1, 0.35 + Math.abs(dx) / Math.max(width, 1))));
-    },
-    onSwipe: direction => animateCalendarSwipe(direction, true),
-    onCancel: () => {
-      const calendar = document.querySelector(".calendar-panel");
-      const currentX = Number(String(calendar?.style.getPropertyValue("--calendar-current-x") || "0").replace("px", ""));
-      animateCalendarSwipe(currentX < 0 ? "left" : "right", false);
-    }
-  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 90, minHorizontalRatio: 1.08, stopPropagation: true });
-
-  attachHorizontalSwipe(document.querySelector(".main-layout"), {
-    onMove: (dx, direction, progress) => {
-      const main = document.querySelector(".main-layout");
-      if (!main) return;
-      const next = prepareScreenSwipePreview(direction);
-      const edgeDampening = next ? 1 : 0.26;
-      setSwipeVisuals(main, dx * edgeDampening, direction, next ? progress : 0.22);
-    },
-    onSwipe: direction => {
-      const next = getAdjacentMainScreen(direction);
-      animateScreenSwipeEnd(direction, Boolean(next));
-    },
-    onCancel: () => {
-      const main = document.querySelector(".main-layout");
-      const currentX = Number(String(main?.style.getPropertyValue("--swipe-x") || "0").replace("px", ""));
-      animateScreenSwipeEnd(currentX < 0 ? "left" : "right", false);
-    }
-  }, { minDistance: 72, maxVerticalDistance: 86, minHorizontalRatio: 1.18 });
-}
 function rerenderAll() {
   renderAlphabetFilter();
   renderCalendar();
@@ -4736,9 +4211,31 @@ function rerenderAll() {
 ========================= */
 
 function registerEvents() {
-  document.getElementById("prevMonthBtn").addEventListener("click", () => shiftCalendarMonth(-1));
+  document.getElementById("prevMonthBtn").addEventListener("click", () => {
+    state.currentMonth--;
+    if (state.currentMonth < 0) {
+      state.currentMonth = 11;
+      state.currentYear--;
+    }
 
-  document.getElementById("nextMonthBtn").addEventListener("click", () => shiftCalendarMonth(1));
+    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+    renderCalendar();
+    renderAgendaList();
+    renderRevenue();
+  });
+
+  document.getElementById("nextMonthBtn").addEventListener("click", () => {
+    state.currentMonth++;
+    if (state.currentMonth > 11) {
+      state.currentMonth = 0;
+      state.currentYear++;
+    }
+
+    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+    renderCalendar();
+    renderAgendaList();
+    renderRevenue();
+  });
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
@@ -4747,8 +4244,6 @@ function registerEvents() {
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => switchScreen(btn.dataset.screen, btn.dataset.title));
   });
-
-  setupSwipeNavigation();
 
   document.getElementById("backBtn").addEventListener("click", () => {
     const map = {
