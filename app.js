@@ -1177,6 +1177,201 @@ function renderCalendar() {
   }
 }
 
+
+function shiftedCalendarMonth(year, month, step) {
+  const d = new Date(year, month + step, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function setCalendarMonth(step) {
+  const next = shiftedCalendarMonth(state.currentYear, state.currentMonth, step);
+  state.currentYear = next.year;
+  state.currentMonth = next.month;
+  state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+  renderCalendar();
+  renderAgendaList();
+  renderRevenue();
+}
+
+function fillCalendarPreview(preview, year, month) {
+  const data = getData();
+  const panel = document.querySelector(".calendar-panel");
+  if (!preview || !panel) return;
+
+  preview.innerHTML = panel.innerHTML;
+  preview.querySelectorAll("[id]").forEach(el => el.removeAttribute("id"));
+  preview.querySelectorAll("button").forEach(button => {
+    button.setAttribute("tabindex", "-1");
+    button.setAttribute("aria-hidden", "true");
+  });
+
+  const title = preview.querySelector(".month-select-btn");
+  const grid = preview.querySelector(".calendar-grid");
+  if (!title || !grid) return;
+
+  title.textContent = `${monthNames[month]} ${year}`;
+  grid.innerHTML = "";
+
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  let weekday = first.getDay();
+  weekday = weekday === 0 ? 7 : weekday;
+
+  for (let i = 1; i < weekday; i++) {
+    const empty = document.createElement("div");
+    empty.className = "empty-cell";
+    grid.appendChild(empty);
+  }
+
+  for (let day = 1; day <= last.getDate(); day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const appts = data.appointments.filter(a => a.date === dateStr);
+    const cell = document.createElement("div");
+    const isToday = dateStr === todayStr;
+    cell.className = `day-cell${isToday ? " today" : ""}`;
+    cell.innerHTML = `<button class="day-button" aria-label="${dateStr}" tabindex="-1" aria-hidden="true"></button><span class="day-number">${day}</span>`;
+
+    if (appts.length) {
+      const dots = document.createElement("div");
+      dots.className = "day-dots";
+      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
+      const visibleDots = Math.min(appts.length, maxVisibleDots);
+      Array.from({ length: visibleDots }).forEach(() => {
+        const i = document.createElement("i");
+        dots.appendChild(i);
+      });
+      if (appts.length > visibleDots) {
+        const more = document.createElement("span");
+        more.className = "day-dots-more";
+        more.textContent = "+";
+        dots.appendChild(more);
+      }
+      cell.appendChild(dots);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function animateCalendarMonth(step) {
+  const panel = document.querySelector(".calendar-panel");
+  if (!panel || panel.dataset.swipeAnimating === "true") {
+    setCalendarMonth(step);
+    return;
+  }
+
+  const target = shiftedCalendarMonth(state.currentYear, state.currentMonth, step);
+  const width = panel.clientWidth || window.innerWidth || 360;
+  const preview = document.createElement("div");
+  preview.className = "calendar-swipe-preview";
+  fillCalendarPreview(preview, target.year, target.month);
+  panel.appendChild(preview);
+
+  panel.dataset.swipeAnimating = "true";
+  panel.classList.add("is-swiping");
+  panel.style.setProperty("--calendar-current-x", "0px");
+  panel.style.setProperty("--calendar-preview-x", `${step > 0 ? width : -width}px`);
+  panel.style.setProperty("--calendar-swipe-opacity", "0.65");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      panel.classList.remove("is-swiping");
+      panel.classList.add("is-swipe-animating");
+      panel.style.setProperty("--calendar-current-x", `${step > 0 ? -width : width}px`);
+      panel.style.setProperty("--calendar-preview-x", "0px");
+      panel.style.setProperty("--calendar-swipe-opacity", "1");
+    });
+  });
+
+  const finish = () => {
+    panel.removeEventListener("transitionend", onTransitionEnd);
+    setCalendarMonth(step);
+    preview.remove();
+    panel.classList.remove("is-swiping", "is-swipe-animating");
+    panel.style.removeProperty("--calendar-current-x");
+    panel.style.removeProperty("--calendar-preview-x");
+    panel.style.removeProperty("--calendar-swipe-opacity");
+    delete panel.dataset.swipeAnimating;
+  };
+
+  const onTransitionEnd = event => {
+    if (event.target.closest(".calendar-panel") !== panel) return;
+    if (event.propertyName !== "transform") return;
+    finish();
+  };
+
+  panel.addEventListener("transitionend", onTransitionEnd);
+  window.setTimeout(() => {
+    if (panel.dataset.swipeAnimating === "true") finish();
+  }, 360);
+}
+
+function setupCalendarSwipeNavigation() {
+  const panel = document.querySelector(".calendar-panel");
+  if (!panel || panel.dataset.calendarSwipeReady === "true") return;
+  panel.dataset.calendarSwipeReady = "true";
+
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let tracking = false;
+  let horizontal = false;
+  const threshold = 44;
+
+  const reset = () => {
+    tracking = false;
+    horizontal = false;
+    startX = 0;
+    startY = 0;
+    lastX = 0;
+  };
+
+  panel.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    if (event.target.closest("button, input, select, textarea, dialog")) return;
+    tracking = true;
+    horizontal = false;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+    lastX = startX;
+  }, { passive: true });
+
+  panel.addEventListener("touchmove", event => {
+    if (!tracking || event.touches.length !== 1) return;
+    const x = event.touches[0].clientX;
+    const y = event.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    if (!horizontal) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        reset();
+        return;
+      }
+      horizontal = true;
+    }
+
+    event.preventDefault();
+    lastX = x;
+  }, { passive: false });
+
+  panel.addEventListener("touchend", () => {
+    if (!tracking || !horizontal) {
+      reset();
+      return;
+    }
+
+    const dx = lastX - startX;
+    reset();
+
+    if (Math.abs(dx) < threshold) return;
+    animateCalendarMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  panel.addEventListener("touchcancel", reset, { passive: true });
+}
+
 function renderAgendaList() {
   const data = getData();
   const list = document.getElementById("agendaList");
@@ -4211,31 +4406,9 @@ function rerenderAll() {
 ========================= */
 
 function registerEvents() {
-  document.getElementById("prevMonthBtn").addEventListener("click", () => {
-    state.currentMonth--;
-    if (state.currentMonth < 0) {
-      state.currentMonth = 11;
-      state.currentYear--;
-    }
-
-    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
-    renderCalendar();
-    renderAgendaList();
-    renderRevenue();
-  });
-
-  document.getElementById("nextMonthBtn").addEventListener("click", () => {
-    state.currentMonth++;
-    if (state.currentMonth > 11) {
-      state.currentMonth = 0;
-      state.currentYear++;
-    }
-
-    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
-    renderCalendar();
-    renderAgendaList();
-    renderRevenue();
-  });
+  document.getElementById("prevMonthBtn").addEventListener("click", () => animateCalendarMonth(-1));
+  document.getElementById("nextMonthBtn").addEventListener("click", () => animateCalendarMonth(1));
+  setupCalendarSwipeNavigation();
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
