@@ -4436,3 +4436,29 @@ button {
 .service-sort-card.is-dragging .service-drag-handle span {
   background: #fff;
 }
+
+/* =========================================================
+   iPHONE SCROLLFIX
+   - Laat de hoofdcontainer zelf geen touch-gesture claimen.
+   - Alleen de echte scrollzones behandelen verticale pan-bewegingen.
+   - Dit wijzigt geen layout of functionaliteit.
+========================================================= */
+.main-layout {
+  touch-action: auto;
+}
+
+.scroll-list,
+.revenue-screen-shell,
+.statistics-screen-shell,
+.revenue-wheel-column,
+.payment-method-popup-list {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.scroll-list,
+.revenue-screen-shell,
+.statistics-screen-shell {
+  overscroll-behavior-y: contain;
+}

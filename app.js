@@ -16,8 +16,7 @@ const state = {
   previousMainScreen: "clientsScreen",
   clientLetter: "",
   settingsSavePending: false,
-  statsTopCustomersVisible: 10,
-  todoFilter: "open"
+  statsTopCustomersVisible: 10
 };
 
 const monthNames = [
@@ -91,36 +90,11 @@ function normalizeData(data) {
     services: Array.isArray(safe.services) ? safe.services : [],
     appointments,
     paymentMethods,
-    tasks: normalizeTasks(safe.tasks),
     settings: {
       ...defaults,
       ...(safe.settings || {})
     }
   };
-}
-
-function normalizeTasks(items) {
-  return Array.isArray(items) ? items.map((item, index) => {
-    const title = String(item?.title || item?.name || "").trim();
-    if (!title) return null;
-
-    const id = Number(item?.id);
-    const dueDate = item?.dueDate ?? item?.due_date ?? null;
-    const dueTime = item?.dueTime ?? item?.due_time ?? null;
-    const completedAt = item?.completedAt ?? item?.completed_at ?? null;
-
-    return {
-      id: Number.isFinite(id) ? id : index + 1,
-      title,
-      note: String(item?.note || "").trim(),
-      dueDate: dueDate ? String(dueDate).slice(0, 10) : "",
-      dueTime: dueTime ? String(dueTime).slice(0, 5) : "",
-      completed: Boolean(item?.completed ?? item?.is_completed ?? completedAt),
-      completedAt: completedAt || null,
-      createdAt: item?.createdAt || item?.created_at || null,
-      updatedAt: item?.updatedAt || item?.updated_at || null
-    };
-  }).filter(Boolean) : [];
 }
 
 function seedData() {
@@ -171,18 +145,6 @@ function paymentMethodNameById(data, id) {
 function paymentMethodNameForAppointment(appointment, data = getData()) {
   if (!appointment) return "";
   return appointment.paymentMethodName || "";
-}
-
-function isNoShowAppointment(appointment) {
-  return String(appointment?.status || "").toLowerCase() === "no-show";
-}
-
-function appointmentRevenueAmount(appointment) {
-  return isNoShowAppointment(appointment) ? 0 : Number(appointment?.price || 0);
-}
-
-function appointmentStatusLabel(appointment) {
-  return isNoShowAppointment(appointment) ? "No show" : (appointment?.status || "-");
 }
 
 function buildPaymentMethodOptions(methods, selectedValue = "") {
@@ -499,7 +461,7 @@ async function getCurrentProfile() {
 
     const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("first_name, last_name, gender")
+        .select("first_name, last_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -524,47 +486,63 @@ function extractFirstNameFromUser(user, profile = null) {
   return "log in";
 }
 
-const PROFILE_ICON_PATHS = {
-  V: `M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z`,
-  M: `M 3.6374198,0 C 3.4540217,3.036e-4 3.4214095,0.00349189 3.3154756,0.03152262 2.8549135,0.1534047 2.4649907,0.4368526 2.1791109,0.85782878 2.1021551,0.97115074 1.9980168,1.1889382 1.9543184,1.3270508 1.8468211,1.6668118 1.8388561,1.9749142 1.9305472,2.2696289 l 0.031523,0.1018026 -0.049093,0.053227 c -0.056865,0.061707 -0.080335,0.1114295 -0.095085,0.2020549 -0.011688,0.071879 0.00815,0.193191 0.041858,0.2583821 0.025677,0.049638 0.1038024,0.13375 0.1524455,0.1638143 0.035567,0.022011 0.043663,0.038079 0.087333,0.1777669 0.1166071,0.3729075 0.2959115,0.7403445 0.4738728,0.9699667 0.074391,0.095987 0.1522491,0.1797745 0.2340943,0.2511474 0.020453,0.097548 0.023943,0.1985671 -0.05116,0.3152263 C 3.0053973,4.9253771 3.3116633,5.2406996 3.6673921,5.6875081 3.9254693,5.3517298 4.2169454,5.0412508 4.5696626,4.7764526 4.5236356,4.6502467 4.4818767,4.524497 4.4843965,4.4079997 4.5594946,4.3377882 4.6310517,4.2596419 4.6921358,4.1795898 4.8577761,3.9625216 5.0395075,3.5866275 5.1525728,3.2266764 5.1966858,3.0862373 5.2042087,3.0707757 5.2404227,3.0483927 5.3043837,3.0088487 5.382608,2.9127901 5.4094047,2.8411702 5.4413367,2.7558202 5.4446204,2.6329554 5.4166394,2.5497152 5.4035464,2.5107782 5.3744656,2.465074 5.3370576,2.4241414 L 5.2781465,2.3595459 5.2993339,2.1590413 C 5.3438532,1.7422941 5.3201564,1.286544 5.2404227,1.0314616 5.1445231,0.72465445 4.9335864,0.56679575 4.6166882,0.5648234 L 4.529355,0.56430664 4.4787121,0.47283936 C 4.3624997,0.26216493 4.1640326,0.10149639 3.9288749,0.02738851 3.8506143,0.00272077 3.8200291,-3.0354e-4 3.6374198,0 Z M 4.9438,4.7836873 C 4.7987425,4.7922617 3.8687464,5.7860032 3.6699759,6.1040202 3.325603,5.6159425 2.9034813,5.1268559 2.3951184,4.8090088 c -0.05915,0 -1.43545288,0.4792087 -1.61798912,0.8015015 -0.10785341,0.055863 -0.2248545,0.1729885 -0.27181803,0.2723348 -0.095247,0.201486 -0.21951845,0.8153326 -0.27285157,1.3487548 -0.0114383,0.1143975 -0.0110118,0.1430333 0.00155,0.1581299 0.0139354,0.016774 0.59265755,0.018604 3.58737792,0.018604 2.9917103,0 3.2975353,-0.00168 3.3114258,-0.018604 C 7.1749462,7.3389522 7.035362,6.4376935 6.9276582,6.0662964 6.8812981,5.9064267 6.8427121,5.8298835 6.7648775,5.7433187 6.6966428,5.6674182 6.6557811,5.6190979 6.4713553,5.4777018 6.1530074,5.20364 5.0336915,4.8003479 4.9500012,4.7842041 c -0.0019,-3.667e-4 -0.0039,-6.529e-4 -0.0062,-5.168e-4 z`,
-  X: `M 3.698999,0.0361735 V 6.0150332 C 3.910821,5.8633946 4.8502975,5.2914635 4.8513835,5.2709961 4.8520965,5.2570727 4.7584004,5.1204799 4.6431274,4.9676554 4.4537104,4.7165383 4.4333211,4.6753573 4.4333211,4.5371908 V 4.3842285 l 0.298173,-0.023254 C 5.1582301,4.3280501 5.5185959,4.2651161 5.7231649,4.1873413 5.9215489,4.1119173 6.1103136,4.0041399 6.1097046,3.9666829 L 6.1091878,3.9661662 C 6.1059762,3.9512263 6.0568557,3.9082723 5.99705,3.8695312 5.84327,3.7699187 5.6739929,3.500564 5.6068929,3.2488973 5.5604229,3.0746422 5.5519835,2.9131065 5.5572835,2.2918498 5.5620735,1.7332114 5.5519024,1.4865953 5.5159424,1.3141317 5.4306684,0.90514936 5.2597727,0.61510182 5.0131307,0.45940348 4.8618177,0.36388462 4.5880625,0.28254832 4.4193685,0.28267008 4.3333775,0.28276517 4.2107521,0.2438357 4.0628011,0.1694987 3.9419041,0.10875463 3.820789,0.06420654 3.698999,0.0361735 Z M 3.669027,0.0408244 C 3.4856286,0.0411263 3.4530164,0.04447102 3.3470825,0.07234701 2.8865204,0.19355621 2.4965976,0.47535022 2.2107178,0.89400228 2.133762,1.0066986 2.0296237,1.2232904 1.9859253,1.3606405 1.878428,1.6985258 1.870463,2.0049632 1.9621541,2.2980509 l 0.031523,0.1012859 -0.049093,0.05271 c -0.056865,0.061366 -0.080335,0.1108962 -0.095085,0.2010213 -0.011688,0.071482 0.00815,0.1920008 0.041858,0.2568319 0.025677,0.049364 0.1038024,0.1333991 0.1524455,0.1632975 0.035567,0.021889 0.043663,0.037817 0.087333,0.1767334 0.1166071,0.3708487 0.2959116,0.7359278 0.4738729,0.9642823 0.074391,0.095457 0.152249,0.179135 0.2340942,0.2501139 0.020453,0.097009 0.032842,0.1837961 -0.042261,0.2998113 0.2487895,0.1612873 0.6493701,0.7759261 0.9074157,1.2362963 L 3.697967,0.04082448 c -0.00916,-6.48e-6 -0.018888,-1.662e-5 -0.028939,0 z m 1.1260292,4.7325277 0.1979207,0.2506306 c 0.171721,0.2172843 0.4723226,0.6778449 0.4723226,0.7239869 v 5.167e-4 l -5.168e-4,5.168e-4 -5.167e-4,5.168e-4 c -0.014232,0.00789 -0.1328044,0.014469 -0.2754354,0.014469 H 4.9118449 L 4.3258341,6.2099569 C 4.0461311,6.4229754 3.78742,6.6171837 3.698999,6.6802124 V 7.4083333 H 7.1504679 L 7.1297974,7.2874105 C 7.1184374,7.2209072 7.0866707,7.0142175 7.0590007,6.828007 6.8898557,5.6898565 6.6812342,5.4762232 5.2027832,4.9252808 Z m -2.3683309,0.050126 c -0.05915,0 -1.43545289,0.4763371 -1.61798913,0.7968506 -0.10785341,0.055555 -0.22485451,0.1719866 -0.27181804,0.2707845 -0.095247,0.2003736 -0.21951844,0.8110429 -0.27285156,1.3415202 -0.0114383,0.1137659 -0.0110112,0.1420831 0.00155,0.1570963 0.0136913,0.016389 0.57268747,0.018537 3.43234863,0.018604 V 6.6786835 C 3.3542796,6.1950554 2.933245,5.1384244 2.4267253,4.8234781 Z`
-};
-
-function normalizeGender(value) {
-  const safe = String(value || "V").trim().toUpperCase();
-  return ["M", "V", "X"].includes(safe) ? safe : "V";
-}
-
-function genderLabel(value) {
-  return normalizeGender(value);
-}
-
-function buildProfileIcon(gender = "V", { size = 28 } = {}) {
-  const safeGender = normalizeGender(gender);
-  const path = PROFILE_ICON_PATHS[safeGender] || PROFILE_ICON_PATHS.V;
-
+function buildHeaderAccountIcon(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
   return `
   <svg
-    width="${size}"
-    height="${size}"
-    viewBox="0 0 7.4083331 7.4083333"
-    version="1.1"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <g>
-      <path style="fill:#df9db3;fill-opacity:1;stroke-width:0" d="${path}" />
-    </g>
+	width="28"
+	height="28"
+	viewBox="0 0 7.4083331 7.4083333"
+	version="1.1"
+	id="svg-login"
+	<g>
+		<path style="fill:#df9db3;fill-opacity:1;stroke-width:0" 
+		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
+		id="path-login" />
+	</g>
   </svg>
   `;
 }
 
-function buildHeaderAccountIcon(profile = null) {
-  return buildProfileIcon(profile?.gender || "V", { size: 28 });
+function buildAccountAvatar(profile = null) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
+  }
+  return `
+  <svg
+	width="28"
+	height="28"
+	viewBox="0 0 7.4083331 7.4083333"
+	version="1.1"
+	id="svg-login"
+	<g>
+		<path style="fill:#df9db3;fill-opacity:1;stroke-width:0" 
+		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
+		id="path-login" />
+	</g>
+  </svg>
+  `;
 }
 
-function buildAccountAvatar(profile = null) {
-  return buildProfileIcon(profile?.gender || "V", { size: 78 });
+async function uploadAvatar(userId, file) {
+  if (!file) return null;
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const filePath = `${userId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("avatars")
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabaseClient.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  return data?.publicUrl || null;
 }
 
 async function upsertProfile(userId, values) {
@@ -572,7 +550,7 @@ async function upsertProfile(userId, values) {
     id: userId,
     first_name: values.first_name || "",
     last_name: values.last_name || "",
-    gender: normalizeGender(values.gender)
+    avatar_url: values.avatar_url || null
   };
 
   const { error } = await supabaseClient
@@ -596,7 +574,6 @@ async function syncAuthUI() {
   const accountProfileEmail = document.getElementById("accountProfileEmail");
   const accountProfileFirstName = document.getElementById("accountProfileFirstName");
   const accountProfileLastName = document.getElementById("accountProfileLastName");
-  const accountProfileGender = document.getElementById("accountProfileGender");
   const accountAvatar = document.getElementById("accountAvatar");
 
   if (headerUserName) {
@@ -623,16 +600,13 @@ async function syncAuthUI() {
     user.user_metadata?.last_name?.trim() ||
     "-";
 
-  const gender = normalizeGender(profile?.gender || user.user_metadata?.gender || "V");
-
   const profileName = [firstName, lastName].filter(Boolean).join(" ").trim() || user.email || "-";
 
   if (accountProfileName) accountProfileName.textContent = profileName;
   if (accountProfileEmail) accountProfileEmail.textContent = user.email || "-";
   if (accountProfileFirstName) accountProfileFirstName.textContent = firstName || "-";
   if (accountProfileLastName) accountProfileLastName.textContent = lastName || "-";
-  if (accountProfileGender) accountProfileGender.textContent = genderLabel(gender);
-  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar({ ...profile, gender });
+  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar(profile);
 
   if (guestView) guestView.classList.add("hidden");
   if (loggedInView) loggedInView.classList.remove("hidden");
@@ -753,8 +727,7 @@ async function openEditProfileDialog() {
   const profile = await getCurrentProfile();
   document.getElementById("editFirstName").value = profile?.first_name || user.user_metadata?.first_name || "";
   document.getElementById("editLastName").value = profile?.last_name || user.user_metadata?.last_name || "";
-  const editGender = document.querySelector(`input[name="editGender"][value="${normalizeGender(profile?.gender || user.user_metadata?.gender || "V")}"]`);
-  if (editGender) editGender.checked = true;
+  document.getElementById("editAvatar").value = "";
   document.getElementById("editProfileDialog").showModal();
 }
 
@@ -763,7 +736,7 @@ async function saveProfileFromForm(event) {
 
   const firstName = document.getElementById("editFirstName")?.value.trim();
   const lastName = document.getElementById("editLastName")?.value.trim();
-  const gender = normalizeGender(document.querySelector('input[name="editGender"]:checked')?.value || "V");
+  const avatarFile = document.getElementById("editAvatar")?.files?.[0] || null;
 
   if (!firstName || !lastName) {
     await appAlert("Vul voornaam en naam in.", { title: "Profiel", variant: "warning" });
@@ -780,11 +753,15 @@ async function saveProfileFromForm(event) {
   try {
     await ensureActiveAuthSession();
 
+    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
+    if (avatarFile) {
+      avatarUrl = await uploadAvatar(user.id, avatarFile);
+    }
+
     const { error: updateUserError } = await supabaseClient.auth.updateUser({
       data: {
         first_name: firstName,
         last_name: lastName,
-        gender,
         full_name: `${firstName} ${lastName}`.trim()
       }
     });
@@ -796,7 +773,7 @@ async function saveProfileFromForm(event) {
     await upsertProfile(user.id, {
       first_name: firstName,
       last_name: lastName,
-      gender
+      avatar_url: avatarUrl
     });
 
     closeDialog("editProfileDialog");
@@ -953,10 +930,10 @@ async function registerAccount(event) {
 
   const firstName = document.getElementById("registerFirstName").value.trim();
   const lastName = document.getElementById("registerLastName").value.trim();
-  const gender = normalizeGender(document.querySelector('input[name="registerGender"]:checked')?.value || "V");
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
   const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
+  const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
 
   if (!firstName || !lastName || !email || !password || !passwordConfirm) {
     await appAlert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
@@ -975,7 +952,6 @@ async function registerAccount(event) {
       data: {
         first_name: firstName,
         last_name: lastName,
-        gender,
         full_name: `${firstName} ${lastName}`.trim()
       }
     }
@@ -987,16 +963,22 @@ async function registerAccount(event) {
   }
 
   try {
+    let avatarUrl = null;
+
+    if (photoFile && data.user && data.session) {
+      avatarUrl = await uploadAvatar(data.user.id, photoFile);
+    }
+
     if (data.user && data.session) {
       await upsertProfile(data.user.id, {
         first_name: firstName,
         last_name: lastName,
-        gender
+        avatar_url: avatarUrl
       });
     }
   } catch (profileError) {
     console.error("Profiel opslaan mislukt:", profileError.message);
-    await appAlert("Je account is aangemaakt, maar de profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
+    await appAlert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
   }
 
   document.getElementById("registerForm").reset();
@@ -1063,38 +1045,6 @@ async function logoutAccount() {
    UI
 ========================= */
 
-function scrollActiveBottomNavButton(behavior = "smooth") {
-  const nav = document.querySelector(".bottom-nav");
-  const activeBtn = nav?.querySelector(".nav-btn.active");
-  if (!nav || !activeBtn) return;
-
-  const targetLeft = activeBtn.offsetLeft - (nav.clientWidth / 2) + (activeBtn.offsetWidth / 2);
-  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
-  const left = Math.max(0, Math.min(maxLeft, targetLeft));
-
-  try {
-    nav.scrollTo({ left, behavior });
-  } catch (error) {
-    nav.scrollLeft = left;
-  }
-}
-
-function scrollBottomNavButtonForScreen(screenId, behavior = "smooth") {
-  const nav = document.querySelector(".bottom-nav");
-  const targetBtn = nav?.querySelector(`.nav-btn[data-screen="${screenId}"]`);
-  if (!nav || !targetBtn) return;
-
-  const targetLeft = targetBtn.offsetLeft - (nav.clientWidth / 2) + (targetBtn.offsetWidth / 2);
-  const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
-  const left = Math.max(0, Math.min(maxLeft, targetLeft));
-
-  try {
-    nav.scrollTo({ left, behavior });
-  } catch (error) {
-    nav.scrollLeft = left;
-  }
-}
-
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = title;
 
@@ -1115,35 +1065,15 @@ function updateTopbar(screenId, title) {
   } else if (screenId === "paymentMethodsScreen") {
     fab.onclick = openNewPaymentMethodDialog;
     fab.style.display = "block";
-  } else if (screenId === "todoScreen") {
-    fab.onclick = openNewTodoDialog;
-    fab.style.display = "block";
   } else {
     fab.style.display = "none";
   }
 }
 
-function screenTitleById(screenId) {
-  const map = {
-    agendaScreen: "Agenda",
-    revenueScreen: "Omzet",
-    todoScreen: "To Do",
-    clientsScreen: "Klanten",
-    servicesScreen: "Diensten",
-    paymentMethodsScreen: "Betaalwijze",
-    statisticsScreen: "Statistieken",
-    settingsScreen: "Instellingen",
-    accountScreen: "Account",
-    clientDetailScreen: "Klant"
-  };
-
-  return map[screenId] || "Agenda";
-}
-
 function switchScreen(screenId, title) {
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -1156,16 +1086,10 @@ function switchScreen(screenId, title) {
     btn.classList.toggle("active", btn.dataset.screen === screenId);
   });
 
-  scrollActiveBottomNavButton("smooth");
-
   updateTopbar(screenId, title);
 
   if (screenId === "revenueScreen") {
     setRevenuePeriod("day", state.selectedDate || todayStr);
-  }
-
-  if (screenId === "todoScreen") {
-    renderTodoList();
   }
 
   if (screenId === "statisticsScreen") {
@@ -1282,15 +1206,15 @@ function renderAgendaList() {
     const service = serviceById(data, app.serviceId);
 
     const row = document.createElement("div");
-    row.className = `appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}`;
+    row.className = "appointment-row";
     const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
 
     const appointmentMetaParts = [];
     if (service?.name) {
       appointmentMetaParts.push(service.name);
     }
-    if (isNoShowAppointment(app)) {
-      appointmentMetaParts.push("No show");
+    if ((app.status || "").toLowerCase() === "no-show") {
+      appointmentMetaParts.push("no show");
     } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
       appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
     }
@@ -1304,7 +1228,7 @@ function renderAgendaList() {
         <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
         <div class="meta">${appointmentMetaParts.join(" · ")}</div>
       </div>
-      <button class="price-chip ${app.paid ? "paid" : ""} ${isNoShowAppointment(app) ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
+      <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
     `;
 
     row.addEventListener("click", (e) => {
@@ -1506,7 +1430,7 @@ function revenueFilteredAppointments() {
   const paymentStatusFilter = document.getElementById("revenuePaymentStatusFilter").value;
   const paymentFilter = document.getElementById("revenuePaymentFilter").value;
 
-  let filtered = data.appointments.filter(a => !isNoShowAppointment(a));
+  let filtered = data.appointments.filter(a => a.status !== "no-show");
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
@@ -1731,8 +1655,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date.startsWith(prefix));
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
       };
     });
   }
@@ -1748,8 +1672,8 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date === key);
       return {
         label: String(index + 1),
-        paid: items.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0),
-        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0)
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
       };
     });
   }
@@ -2573,9 +2497,9 @@ function renderRevenue() {
   const titleEl = document.getElementById("revenueTitle");
   if (titleEl) titleEl.textContent = title;
 
-  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
-  const total = filtered.reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
-  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + appointmentRevenueAmount(a), 0);
+  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const total = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
 
   document.getElementById("plannedRevenue").textContent = euro(total);
   document.getElementById("paidRevenue").textContent = euro(paid);
@@ -2608,10 +2532,8 @@ function getStatisticsSummary(data = getData()) {
   const services = Array.isArray(data.services) ? data.services : [];
   const appointments = Array.isArray(data.appointments) ? data.appointments : [];
 
-  const noShowAppointments = appointments.filter(app => isNoShowAppointment(app));
-  const revenueAppointments = appointments.filter(app => !isNoShowAppointment(app));
-  const paidAppointments = revenueAppointments.filter(app => app.paid);
-  const paidRevenue = paidAppointments.reduce((sum, app) => sum + appointmentRevenueAmount(app), 0);
+  const paidAppointments = appointments.filter(app => app.paid);
+  const paidRevenue = paidAppointments.reduce((sum, app) => sum + Number(app.price || 0), 0);
 
   const serviceUsage = services.map(service => ({
     label: service.name,
@@ -2627,7 +2549,7 @@ function getStatisticsSummary(data = getData()) {
 
   const statusMap = {};
   appointments.forEach(app => {
-    const label = isNoShowAppointment(app) ? 'No show' : (String(app.status || 'Onbekend').trim() || 'Onbekend');
+    const label = String(app.status || 'Onbekend').trim() || 'Onbekend';
     statusMap[label] = (statusMap[label] || 0) + 1;
   });
   const statusUsage = Object.entries(statusMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
@@ -2636,7 +2558,7 @@ function getStatisticsSummary(data = getData()) {
   paidAppointments.forEach(app => {
     const service = services.find(item => String(item.id) === String(app.serviceId));
     const label = service?.name || 'Onbekende dienst';
-    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + appointmentRevenueAmount(app);
+    revenueByServiceMap[label] = (revenueByServiceMap[label] || 0) + Number(app.price || 0);
   });
   const revenueByService = Object.entries(revenueByServiceMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'nl-BE'));
 
@@ -2644,7 +2566,6 @@ function getStatisticsSummary(data = getData()) {
     appointmentCount: appointments.length,
     customerCount: customers.length,
     paidAppointmentCount: paidAppointments.length,
-    noShowCount: noShowAppointments.length,
     paidRevenue,
     serviceUsage,
     paymentUsage,
@@ -2794,10 +2715,6 @@ function renderStatistics() {
         <strong>${summary.paidAppointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">No shows</span>
-        <strong class="statistics-no-show-value">${summary.noShowCount}</strong>
-      </div>
-      <div class="statistics-kpi">
         <span class="statistics-kpi-label">Omzet tot op heden</span>
         <strong>${euro(summary.paidRevenue)}</strong>
       </div>
@@ -2822,13 +2739,6 @@ function renderStatistics() {
         <h2>Gekozen betaalwijze</h2>
       </div>
       ${buildStatisticsDonut(summary.paymentUsage)}
-    </section>
-
-    <section class="statistics-card">
-      <div class="statistics-card-head">
-        <h2>Afspraakstatussen</h2>
-      </div>
-      ${buildStatisticsDonut(summary.statusUsage)}
     </section>
 
     <section class="statistics-card">
@@ -3281,7 +3191,7 @@ function openClientDetail(clientId) {
                   const service = serviceById(data, app.serviceId);
 
                   return `
-                    <div class="client-appointment-row${isNoShowAppointment(app) ? " no-show-appointment" : (app.paid ? " paid-appointment" : "")}">
+                    <div class="client-appointment-row">
                       <div class="client-appointment-datecol">
                         <div class="client-appointment-date">${formatShortDate(app.date)}</div>
                         <div class="client-appointment-time">${app.time || ""}</div>
@@ -3290,7 +3200,7 @@ function openClientDetail(clientId) {
                       <div class="client-appointment-main">
                         <div class="client-appointment-service">${service ? service.name : "-"}</div>
                         <div class="client-appointment-status">
-                          ${appointmentStatusLabel(app)}${isNoShowAppointment(app) ? ` · <span class="no-show-amount">${euro(app.price)}</span>` : (app.paid ? " · betaald" : "")}
+                          ${app.status || "-"}${app.paid ? " · betaald" : ""}
                         </div>
                       </div>
 
@@ -3449,112 +3359,6 @@ function setupAppointmentCustomerSearch() {
   });
 }
 
-
-function serviceSearchText(service) {
-  return [service.name || "", service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""]
-    .join(" ")
-    .toLowerCase();
-}
-
-function setAppointmentService(serviceId, { updateSearch = true, updateDefaults = false } = {}) {
-  const data = getData();
-  const serviceSelect = document.getElementById("appointmentService");
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  const service = serviceById(data, serviceId);
-
-  if (serviceSelect) {
-    serviceSelect.value = service ? String(service.id) : "";
-  }
-
-  if (searchInput && updateSearch) {
-    searchInput.value = service ? service.name : "";
-  }
-
-  renderAppointmentServiceResults(searchInput?.value || "", false);
-
-  if (updateDefaults && service) {
-    syncServiceDefaults();
-  }
-}
-
-function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
-  const data = getData();
-  const resultsWrap = document.getElementById("appointmentServiceResults");
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  if (!resultsWrap) return;
-
-  const safeQuery = String(query || "").trim().toLowerCase();
-  const selectedId = document.getElementById("appointmentService")?.value || "";
-
-  let services = data.services.slice().sort((a, b) => (a.name || "").localeCompare(b.name || "", "nl-BE"));
-  if (safeQuery) {
-    services = services.filter(service => serviceSearchText(service).includes(safeQuery));
-  } else if (!showAllWhenEmpty) {
-    services = [];
-  }
-
-  services = services.slice(0, 40);
-
-  if (!services.length) {
-    resultsWrap.innerHTML = safeQuery
-      ? `<div class="appointment-service-empty">Geen diensten gevonden.</div>`
-      : "";
-    resultsWrap.classList.toggle("hidden", !safeQuery);
-    if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
-    return;
-  }
-
-  resultsWrap.innerHTML = services.map(service => {
-    const name = service.name || "Naamloze dienst";
-    const meta = [service.duration ? `${service.duration} min` : "", service.price != null ? euro(service.price) : ""].filter(Boolean).join(" · ");
-    const activeClass = String(service.id) === String(selectedId) ? " active" : "";
-    return `
-      <button class="appointment-service-result${activeClass}" type="button" role="option" data-service-id="${service.id}" aria-selected="${activeClass ? "true" : "false"}">
-        <span class="appointment-service-result-name">${htmlEscape(name)}</span>
-        ${meta ? `<span class="appointment-service-result-meta">${htmlEscape(meta)}</span>` : ""}
-      </button>
-    `;
-  }).join("");
-
-  resultsWrap.classList.remove("hidden");
-  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
-}
-
-function setupAppointmentServiceSearch() {
-  const searchInput = document.getElementById("appointmentServiceSearch");
-  const resultsWrap = document.getElementById("appointmentServiceResults");
-  const serviceSelect = document.getElementById("appointmentService");
-  if (!searchInput || !resultsWrap || !serviceSelect || searchInput.dataset.ready === "true") return;
-
-  searchInput.dataset.ready = "true";
-
-  searchInput.addEventListener("input", () => {
-    serviceSelect.value = "";
-    renderAppointmentServiceResults(searchInput.value, false);
-  });
-
-  searchInput.addEventListener("focus", () => {
-    renderAppointmentServiceResults(searchInput.value, true);
-  });
-
-  resultsWrap.addEventListener("click", event => {
-    const btn = event.target.closest("[data-service-id]");
-    if (!btn) return;
-    setAppointmentService(btn.dataset.serviceId, { updateDefaults: true });
-  });
-
-  serviceSelect.addEventListener("change", () => {
-    setAppointmentService(serviceSelect.value, { updateDefaults: true });
-  });
-
-  document.addEventListener("click", event => {
-    const picker = event.target.closest(".appointment-service-picker");
-    if (picker) return;
-    resultsWrap.classList.add("hidden");
-    searchInput.setAttribute("aria-expanded", "false");
-  });
-}
-
 function populateAppointmentForm(customerId = null) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
@@ -3565,7 +3369,6 @@ function populateAppointmentForm(customerId = null) {
   serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 
   setupAppointmentCustomerSearch();
-  setupAppointmentServiceSearch();
 
   if (customerId) {
     setAppointmentCustomer(customerId);
@@ -3574,10 +3377,6 @@ function populateAppointmentForm(customerId = null) {
     const searchInput = document.getElementById("appointmentCustomerSearch");
     if (searchInput) searchInput.value = "";
   }
-
-  setAppointmentService("");
-  const serviceSearchInput = document.getElementById("appointmentServiceSearch");
-  if (serviceSearchInput) serviceSearchInput.value = "";
 }
 
 function syncServiceDefaults() {
@@ -3602,7 +3401,7 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
 
   const serviceSelect = document.getElementById("appointmentService");
   if (serviceSelect.options.length) {
-    setAppointmentService(serviceSelect.options[0].value);
+    serviceSelect.value = serviceSelect.options[0].value;
   }
 
   syncServiceDefaults();
@@ -3622,7 +3421,7 @@ function openEditAppointmentDialog(id) {
   setAppointmentCustomer(app.customerId);
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
-  setAppointmentService(app.serviceId);
+  document.getElementById("appointmentService").value = app.serviceId;
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
   document.getElementById("appointmentStatus").value = app.status;
@@ -3686,26 +3485,16 @@ function renderPaymentPopoverOptions(app, data = getData()) {
 
   const methods = getPaymentMethods(data);
   const selectedName = paymentMethodNameForAppointment(app, data) || "";
-  const appIsNoShow = isNoShowAppointment(app);
-  const items = [
-    { value: "no-show", label: "No show", noShow: true, unpaid: false },
-    { value: "", label: "Onbetaald", noShow: false, unpaid: true },
-    ...methods.map(method => ({ value: method.name, label: method.name, noShow: false, unpaid: false }))
-  ];
+  const items = [{ value: "", label: "Onbetaald", unpaid: true }, ...methods.map(method => ({ value: method.name, label: method.name, unpaid: false }))];
 
   list.innerHTML = items.map(item => {
-    const isActive = item.noShow
-      ? appIsNoShow
-      : item.unpaid
-        ? (!app.paid && !appIsNoShow)
-        : (app.paid && !appIsNoShow && item.value === selectedName);
+    const isActive = item.unpaid ? !app.paid : (app.paid && item.value === selectedName);
     return `
       <button
         type="button"
-        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""} ${item.noShow ? "is-no-show" : ""}"
+        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""}"
         data-payment-value="${item.value}"
         data-unpaid="${item.unpaid ? "true" : "false"}"
-        data-no-show="${item.noShow ? "true" : "false"}"
         role="menuitemradio"
         aria-checked="${isActive ? "true" : "false"}"
       >
@@ -3718,10 +3507,6 @@ function renderPaymentPopoverOptions(app, data = getData()) {
     button.addEventListener("click", async event => {
       event.stopPropagation();
       const methodName = button.dataset.paymentValue || "";
-      if (button.dataset.noShow === "true") {
-        await markNoShow();
-        return;
-      }
       if (button.dataset.unpaid === "true") {
         await markUnpaid();
         return;
@@ -3740,15 +3525,7 @@ function openPaymentDialog(id, anchorEl = null) {
   if (!popover) return;
 
   document.getElementById("paymentAppointmentId").value = id;
-  const paymentAmount = document.getElementById("paymentAmount");
-  if (paymentAmount) {
-    paymentAmount.textContent = euro(app.price);
-    paymentAmount.classList.toggle("no-show", isNoShowAppointment(app));
-  }
-  const currentMethodWrap = document.getElementById("paymentCurrentMethodWrap");
-  if (currentMethodWrap) {
-    currentMethodWrap.classList.toggle("hidden", isNoShowAppointment(app));
-  }
+  document.getElementById("paymentAmount").textContent = euro(app.price);
   document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
     ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
     : "Nog niet betaald";
@@ -3791,132 +3568,6 @@ function renderPaymentMethods() {
     card.querySelector("button").addEventListener("click", () => openEditPaymentMethodDialog(method.id));
     list.appendChild(card);
   });
-}
-
-function formatTodoDueLabel(task) {
-  const date = task?.dueDate || "";
-  const time = task?.dueTime || "";
-  if (!date && !time) return "Geen herinnering ingesteld";
-  const dateLabel = date ? formatLongDate(date) : "Geen datum";
-  return time ? `${dateLabel} om ${time}` : dateLabel;
-}
-
-function todoDueTimestamp(task) {
-  if (!task?.dueDate) return null;
-  const time = task.dueTime || "23:59";
-  const ts = new Date(`${task.dueDate}T${time}:00`).getTime();
-  return Number.isFinite(ts) ? ts : null;
-}
-
-function isTodoOverdue(task) {
-  const ts = todoDueTimestamp(task);
-  return !task?.completed && ts !== null && ts < Date.now();
-}
-
-function sortedTasks(tasks) {
-  return tasks.slice().sort((a, b) => {
-    if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
-    const aDue = todoDueTimestamp(a);
-    const bDue = todoDueTimestamp(b);
-    if (aDue !== null && bDue !== null && aDue !== bDue) return aDue - bDue;
-    if (aDue !== null && bDue === null) return -1;
-    if (aDue === null && bDue !== null) return 1;
-    return String(b.createdAt || b.updatedAt || b.id).localeCompare(String(a.createdAt || a.updatedAt || a.id), "nl-BE");
-  });
-}
-
-function renderTodoList() {
-  const data = getData();
-  const list = document.getElementById("todoList");
-  const title = document.getElementById("todoListTitle");
-  const badge = document.getElementById("todoCountBadge");
-  const search = document.getElementById("todoSearch");
-  if (!list) return;
-
-  const tasks = normalizeTasks(data.tasks || []);
-  const q = String(search?.value || "").trim().toLowerCase();
-  const filter = state.todoFilter || "open";
-
-  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.todoFilter === filter);
-  });
-
-  const openCount = tasks.filter(task => !task.completed).length;
-  if (badge) badge.textContent = `${openCount} open`;
-  if (title) {
-    title.textContent = filter === "done" ? "Afgewerkte taken" : filter === "all" ? "Alle taken" : "Open taken";
-  }
-
-  let filtered = tasks.filter(task => {
-    if (filter === "open") return !task.completed;
-    if (filter === "done") return task.completed;
-    return true;
-  });
-
-  if (q) {
-    filtered = filtered.filter(task => [task.title, task.note, formatTodoDueLabel(task)].join(" ").toLowerCase().includes(q));
-  }
-
-  filtered = sortedTasks(filtered);
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state">Geen taken gevonden.</div>`;
-    return;
-  }
-
-  list.innerHTML = "";
-  filtered.forEach(task => {
-    const card = document.createElement("div");
-    card.className = `todo-card${task.completed ? " is-completed" : ""}${isTodoOverdue(task) ? " is-overdue" : ""}`;
-    card.innerHTML = `
-      <button class="todo-check-btn" type="button" data-id="${task.id}" aria-label="${task.completed ? "Markeer als open" : "Markeer als afgewerkt"}">
-        <span aria-hidden="true">${task.completed ? "✓" : ""}</span>
-      </button>
-      <button class="todo-main-btn" type="button" data-id="${task.id}">
-        <div class="todo-title-row">
-          <div class="client-name todo-title">${escapeHtml(task.title)}</div>
-          ${isTodoOverdue(task) ? `<span class="todo-status-pill overdue">Te laat</span>` : task.completed ? `<span class="todo-status-pill done">Afgewerkt</span>` : ""}
-        </div>
-        <div class="meta">${escapeHtml(formatTodoDueLabel(task))}</div>
-        ${task.note ? `<div class="todo-note">${escapeHtml(task.note)}</div>` : ""}
-      </button>
-    `;
-
-    card.querySelector(".todo-main-btn")?.addEventListener("click", () => openEditTodoDialog(task.id));
-    card.querySelector(".todo-check-btn")?.addEventListener("click", event => {
-      event.stopPropagation();
-      toggleTodoCompleted(task.id);
-    });
-    list.appendChild(card);
-  });
-}
-
-function openNewTodoDialog() {
-  document.getElementById("todoModalTitle").textContent = "Nieuwe taak";
-  document.getElementById("todoId").value = "";
-  document.getElementById("todoTitle").value = "";
-  document.getElementById("todoDueDate").value = "";
-  document.getElementById("todoDueTime").value = "";
-  document.getElementById("todoNote").value = "";
-  document.getElementById("todoCompleted").checked = false;
-  document.getElementById("deleteTodoBtn").style.visibility = "hidden";
-  document.getElementById("todoDialog").showModal();
-}
-
-function openEditTodoDialog(id) {
-  const data = getData();
-  const task = (data.tasks || []).find(item => String(item.id) === String(id));
-  if (!task) return;
-
-  document.getElementById("todoModalTitle").textContent = "Taak bewerken";
-  document.getElementById("todoId").value = task.id;
-  document.getElementById("todoTitle").value = task.title || "";
-  document.getElementById("todoDueDate").value = task.dueDate || "";
-  document.getElementById("todoDueTime").value = task.dueTime || "";
-  document.getElementById("todoNote").value = task.note || "";
-  document.getElementById("todoCompleted").checked = Boolean(task.completed);
-  document.getElementById("deleteTodoBtn").style.visibility = "visible";
-  document.getElementById("todoDialog").showModal();
 }
 
 function openNewPaymentMethodDialog() {
@@ -3996,172 +3647,6 @@ function openEditServiceDialog(id) {
 /* =========================
    SAVE / DELETE
 ========================= */
-
-async function saveTodoFromForm(event) {
-  event.preventDefault();
-
-  const user = await getCurrentUser();
-  const data = getData();
-  const rawId = document.getElementById("todoId")?.value || "";
-  const id = rawId ? Number(rawId) : null;
-  const title = document.getElementById("todoTitle")?.value.trim() || "";
-  const dueDate = document.getElementById("todoDueDate")?.value || "";
-  const dueTime = document.getElementById("todoDueTime")?.value || "";
-  const note = document.getElementById("todoNote")?.value.trim() || "";
-  const completed = Boolean(document.getElementById("todoCompleted")?.checked);
-
-  if (!title) {
-    await appAlert("Geef een taak of herinnering in.", { title: "To Do", variant: "warning" });
-    return;
-  }
-
-  if (!user) {
-    const tasks = normalizeTasks(data.tasks || []);
-    const now = new Date().toISOString();
-    if (id) {
-      const existing = tasks.find(task => Number(task.id) === id);
-      if (existing) {
-        Object.assign(existing, {
-          title,
-          dueDate,
-          dueTime,
-          note,
-          completed,
-          completedAt: completed ? (existing.completedAt || now) : null,
-          updatedAt: now
-        });
-      }
-    } else {
-      tasks.push({
-        id: nextId(tasks),
-        title,
-        dueDate,
-        dueTime,
-        note,
-        completed,
-        completedAt: completed ? now : null,
-        createdAt: now,
-        updatedAt: now
-      });
-    }
-    data.tasks = tasks;
-    saveData(data);
-    closeDialog("todoDialog");
-    renderTodoList();
-    return;
-  }
-
-  const payload = {
-    user_id: user.id,
-    title,
-    due_date: dueDate || null,
-    due_time: dueTime || null,
-    note: note || null,
-    is_completed: completed,
-    completed_at: completed ? new Date().toISOString() : null,
-    updated_at: new Date().toISOString()
-  };
-
-  let error;
-  if (id) {
-    ({ error } = await supabaseClient
-      .from("tasks")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
-  } else {
-    ({ error } = await supabaseClient
-      .from("tasks")
-      .insert(payload));
-  }
-
-  if (error) {
-    await appAlert("Opslaan taak mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("todoDialog");
-  renderTodoList();
-}
-
-async function toggleTodoCompleted(id) {
-  const user = await getCurrentUser();
-  const data = getData();
-  const tasks = normalizeTasks(data.tasks || []);
-  const task = tasks.find(item => String(item.id) === String(id));
-  if (!task) return;
-
-  const nextCompleted = !task.completed;
-  const completedAt = nextCompleted ? new Date().toISOString() : null;
-
-  if (!user) {
-    task.completed = nextCompleted;
-    task.completedAt = completedAt;
-    task.updatedAt = new Date().toISOString();
-    data.tasks = tasks;
-    saveData(data);
-    renderTodoList();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("tasks")
-    .update({
-      is_completed: nextCompleted,
-      completed_at: completedAt,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("Taak aanpassen mislukt: " + error.message, { title: "Aanpassen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  renderTodoList();
-}
-
-async function deleteCurrentTodo() {
-  const id = document.getElementById("todoId")?.value;
-  if (!id) return;
-
-  const confirmed = await appConfirm("Deze taak wordt definitief verwijderd.", {
-    title: "Taak verwijderen",
-    confirmText: "Verwijderen",
-    cancelText: "Annuleren",
-    variant: "warning"
-  });
-  if (!confirmed) return;
-
-  const user = await getCurrentUser();
-  const data = getData();
-
-  if (!user) {
-    data.tasks = normalizeTasks(data.tasks || []).filter(task => String(task.id) !== String(id));
-    saveData(data);
-    closeDialog("todoDialog");
-    renderTodoList();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("tasks")
-    .delete()
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("Verwijderen taak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closeDialog("todoDialog");
-  renderTodoList();
-}
 
 async function savePaymentMethodFromForm(event) {
   event.preventDefault();
@@ -4455,10 +3940,6 @@ async function saveAppointmentFromForm(event) {
     if (id) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
       Object.assign(existingApp, localPayload);
-      if (localPayload.status === "no-show") {
-        existingApp.paid = false;
-        existingApp.paymentMethodName = null;
-      }
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
@@ -4481,9 +3962,8 @@ async function saveAppointmentFromForm(event) {
   }
 
   const existingApp = data.appointments.find(a => String(a.id) === String(id));
-  const localIsNoShow = localPayload.status === "no-show";
-  const isPaid = localIsNoShow ? false : (existingApp ? Boolean(existingApp.paid) : false);
-  const existingPaymentMethodName = localIsNoShow ? null : (paymentMethodNameForAppointment(existingApp, data) || null);
+  const isPaid = existingApp ? Boolean(existingApp.paid) : false;
+  const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
 
   const payload = {
     user_id: user.id,
@@ -4607,7 +4087,7 @@ async function confirmPaymentSelection(methodName) {
 
     appointment.paid = true;
     appointment.paymentMethodName = safeMethodName;
-    appointment.status = "afgerond";
+    if (appointment.status === "gepland") appointment.status = "afgerond";
 
     saveData(data);
     closePaymentPopover();
@@ -4635,45 +4115,6 @@ async function confirmPaymentSelection(methodName) {
   rerenderAll();
 }
 
-async function markNoShow() {
-  const id = document.getElementById("paymentAppointmentId").value;
-  const user = await getCurrentUser();
-
-  if (!user) {
-    const data = getData();
-    const appointment = data.appointments.find(a => String(a.id) === String(id));
-    if (!appointment) return;
-
-    appointment.paid = false;
-    appointment.paymentMethodName = null;
-    appointment.status = "no-show";
-
-    saveData(data);
-    closePaymentPopover();
-    rerenderAll();
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("appointments")
-    .update({
-      paid: false,
-      payment_method_label: null,
-      status: "no-show"
-    })
-    .eq("id", Number(id))
-    .eq("user_id", user.id);
-
-  if (error) {
-    await appAlert("No show opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  closePaymentPopover();
-  rerenderAll();
-}
-
 async function markUnpaid() {
   const id = document.getElementById("paymentAppointmentId").value;
   const user = await getCurrentUser();
@@ -4685,7 +4126,6 @@ async function markUnpaid() {
 
     appointment.paid = false;
     appointment.paymentMethodName = null;
-    if (isNoShowAppointment(appointment)) appointment.status = "gepland";
 
     saveData(data);
     closePaymentPopover();
@@ -4693,16 +4133,11 @@ async function markUnpaid() {
     return;
   }
 
-  const data = getData();
-  const appointment = data.appointments.find(a => String(a.id) === String(id));
-  const nextStatus = isNoShowAppointment(appointment) ? "gepland" : (appointment?.status || "gepland");
-
   const { error } = await supabaseClient
     .from("appointments")
     .update({
       paid: false,
-      payment_method_label: null,
-      status: nextStatus
+      payment_method_label: null
     })
     .eq("id", Number(id))
     .eq("user_id", user.id);
@@ -4754,421 +4189,6 @@ function closeDialog(id) {
   if (typeof dialog.close === "function") dialog.close();
 }
 
-function shiftCalendarMonth(step) {
-  // Enkel de zichtbare kalendermaand wijzigen.
-  // De geselecteerde afspraakdag blijft bewust actief totdat de gebruiker een dag aanklikt.
-  state.currentMonth += step;
-
-  if (state.currentMonth < 0) {
-    state.currentMonth = 11;
-    state.currentYear--;
-  }
-
-  if (state.currentMonth > 11) {
-    state.currentMonth = 0;
-    state.currentYear++;
-  }
-
-  renderCalendar();
-}
-
-function getSwipeMainScreens() {
-  return Array.from(document.querySelectorAll(".bottom-nav .nav-btn"))
-    .map(btn => ({
-      screen: btn.dataset.screen,
-      title: btn.dataset.title
-    }))
-    .filter(item => item.screen && item.title);
-}
-
-function isSwipeIgnoredTarget(target, mode = "screen") {
-  const selector = mode === "calendar"
-    ? [
-        "input",
-        "select",
-        "textarea",
-        "dialog",
-        ".modal",
-        ".payment-popover",
-        ".bottom-nav"
-      ].join(",")
-    : [
-        "dialog",
-        ".modal",
-        ".payment-popover",
-        ".calendar-panel",
-        ".revenue-bars",
-        ".revenue-period-strip",
-        ".bottom-nav",
-        ".alphabet-filter"
-      ].join(",");
-
-  return Boolean(target?.closest?.(selector));
-}
-
-function resetSwipeVisuals(container) {
-  if (!container) return;
-  container.classList.remove("is-swiping", "is-swipe-animating");
-  container.style.removeProperty("--swipe-x");
-  container.style.removeProperty("--swipe-preview-x");
-  container.style.removeProperty("--swipe-opacity");
-  container.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
-}
-
-function setSwipeVisuals(container, dx, direction, progress) {
-  if (!container) return;
-  const previewX = direction === "left" ? 100 + (dx / window.innerWidth) * 100 : -100 + (dx / window.innerWidth) * 100;
-  container.style.setProperty("--swipe-x", `${dx}px`);
-  container.style.setProperty("--swipe-preview-x", `${previewX}%`);
-  container.style.setProperty("--swipe-opacity", String(Math.min(1, 0.28 + progress * 0.72)));
-}
-
-function attachHorizontalSwipe(element, callbacks, options = {}) {
-  if (!element || element.dataset.swipeReady === "true") return;
-  element.dataset.swipeReady = "true";
-
-  const minDistance = Number(options.minDistance || 70);
-  const lockDistance = Number(options.lockDistance || 12);
-  const maxVerticalDistance = Number(options.maxVerticalDistance || 80);
-  const minHorizontalRatio = Number(options.minHorizontalRatio || 1.25);
-  const mode = options.mode || "screen";
-  const stopPropagation = Boolean(options.stopPropagation);
-  const onSwipe = typeof callbacks === "function" ? callbacks : callbacks?.onSwipe;
-  const onMove = typeof callbacks === "function" ? null : callbacks?.onMove;
-  const onStart = typeof callbacks === "function" ? null : callbacks?.onStart;
-  const onCancel = typeof callbacks === "function" ? null : callbacks?.onCancel;
-
-  let startX = 0;
-  let startY = 0;
-  let startTime = 0;
-  let tracking = false;
-  let locked = false;
-  let cancelled = false;
-  let activeDirection = null;
-
-  const finish = () => {
-    tracking = false;
-    locked = false;
-    cancelled = false;
-    activeDirection = null;
-  };
-
-  element.addEventListener("touchstart", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (event.touches.length !== 1) return;
-    if (options.ignoreInteractive !== false && isSwipeIgnoredTarget(event.target, mode)) return;
-
-    const touch = event.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    startTime = Date.now();
-    tracking = true;
-    locked = false;
-    cancelled = false;
-    activeDirection = null;
-    if (onStart) onStart(event);
-  }, { passive: true });
-
-  element.addEventListener("touchmove", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (!tracking || event.touches.length !== 1) return;
-
-    const touch = event.touches[0];
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
-    if (!locked) {
-      if (absX < lockDistance && absY < lockDistance) return;
-      if (absY > absX || absX < absY * minHorizontalRatio) {
-        cancelled = true;
-        if (onCancel) onCancel(event);
-        finish();
-        return;
-      }
-      locked = true;
-      activeDirection = dx > 0 ? "right" : "left";
-    }
-
-    if (!locked || cancelled) return;
-    if (event.cancelable) event.preventDefault();
-
-    const dampedDx = dx * 0.82;
-    const progress = Math.min(1, absX / Math.max(minDistance, window.innerWidth * 0.24));
-    if (onMove) onMove(dampedDx, activeDirection, progress, event);
-  }, { passive: false });
-
-  element.addEventListener("touchend", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (!tracking) return;
-
-    const touch = event.changedTouches[0];
-    if (!touch) {
-      if (onCancel) onCancel(event);
-      finish();
-      return;
-    }
-
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const elapsed = Date.now() - startTime;
-    const direction = dx > 0 ? "right" : "left";
-    const velocity = Math.abs(dx) / Math.max(elapsed, 1);
-    const qualifies =
-      locked &&
-      elapsed <= 1000 &&
-      Math.abs(dx) >= minDistance &&
-      Math.abs(dy) <= maxVerticalDistance &&
-      Math.abs(dx) >= Math.abs(dy) * minHorizontalRatio;
-
-    if (qualifies || (locked && Math.abs(dx) >= minDistance * 0.62 && velocity > 0.55)) {
-      if (onSwipe) onSwipe(direction, event, dx);
-    } else if (onCancel) {
-      onCancel(event);
-    }
-
-    finish();
-  }, { passive: true });
-
-  element.addEventListener("touchcancel", event => {
-    if (stopPropagation) event.stopPropagation();
-    if (tracking && onCancel) onCancel(event);
-    finish();
-  }, { passive: true });
-}
-
-function getAdjacentMainScreen(direction) {
-  if (state.currentScreen === "clientDetailScreen") return null;
-
-  const screens = getSwipeMainScreens();
-  const currentIndex = screens.findIndex(item => item.screen === state.currentScreen);
-  if (currentIndex < 0) return null;
-
-  const nextIndex = direction === "left" ? currentIndex + 1 : currentIndex - 1;
-  if (nextIndex < 0 || nextIndex >= screens.length) return null;
-  return screens[nextIndex];
-}
-
-function prepareScreenSwipePreview(direction) {
-  const main = document.querySelector(".main-layout");
-  if (!main) return null;
-
-  const next = getAdjacentMainScreen(direction);
-  main.querySelectorAll(".swipe-preview").forEach(el => el.classList.remove("swipe-preview"));
-
-  if (!next) {
-    main.classList.add("is-swiping");
-    return null;
-  }
-
-  const nextEl = document.getElementById(next.screen);
-  if (nextEl) nextEl.classList.add("swipe-preview");
-  scrollBottomNavButtonForScreen(next.screen, "smooth");
-  main.classList.add("is-swiping");
-  return next;
-}
-
-function animateScreenSwipeEnd(direction, shouldSwitch) {
-  const main = document.querySelector(".main-layout");
-  if (!main) return;
-
-  const next = getAdjacentMainScreen(direction);
-  main.classList.add("is-swipe-animating");
-
-  if (shouldSwitch && next) {
-    const endX = direction === "left" ? -window.innerWidth : window.innerWidth;
-    const endPreviewX = "0%";
-    main.style.setProperty("--swipe-x", `${endX}px`);
-    main.style.setProperty("--swipe-preview-x", endPreviewX);
-    main.style.setProperty("--swipe-opacity", "1");
-
-    window.setTimeout(() => {
-      resetSwipeVisuals(main);
-      switchScreen(next.screen, next.title);
-    }, 220);
-    return;
-  }
-
-  main.style.setProperty("--swipe-x", "0px");
-  main.style.setProperty("--swipe-preview-x", direction === "left" ? "100%" : "-100%");
-  main.style.setProperty("--swipe-opacity", "0");
-  window.setTimeout(() => {
-    resetSwipeVisuals(main);
-    scrollActiveBottomNavButton("smooth");
-  }, 220);
-}
-
-
-function todayIconButtonMarkup(idAttribute = "") {
-  const idPart = idAttribute ? ` id="${idAttribute}"` : "";
-  return `
-    <button class="today-icon-btn"${idPart} type="button" aria-label="Spring naar vandaag">
-      <svg class="today-icon" viewBox="0 0 26.5 26" aria-hidden="true">
-        <path
-          id="rect1"
-          style="baseline-shift:baseline;display:inline;overflow:visible;opacity:1;vector-effect:none;stroke-width:1.64079;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
-          d="M 8.3422089,0.9919416 A 1.0058012,1.0058012 0 0 0 7.3366004,1.9975501 V 2.9276955 H 4.574145 c -1.7239203,0 -3.1440102,1.4192417 -3.1440102,3.143162 V 21.857043 c 0,1.723921 1.4200899,3.140619 3.1440102,3.140619 h 17.342928 c 1.723921,0 3.144012,-1.416698 3.144012,-3.140619 V 6.0708575 c 0,-1.7239203 -1.420091,-3.143162 -3.144012,-3.143162 H 19.712536 V 1.9975501 A 1.0058012,1.0058012 0 0 0 18.706081,0.9919416 1.0058012,1.0058012 0 0 0 17.699623,1.9975501 V 2.9276955 H 9.3486654 V 1.9975501 A 1.0058012,1.0058012 0 0 0 8.3422089,0.9919416 Z M 4.574145,4.93976 H 7.3366004 V 6.3175963 A 1.0058012,1.0058012 0 0 0 8.3422089,7.3206609 1.0058012,1.0058012 0 0 0 9.3486654,6.3175963 V 4.93976 h 8.3509576 v 1.3778363 a 1.0058012,1.0058012 0 0 0 1.006458,1.0030646 1.0058012,1.0058012 0 0 0 1.006455,-1.0030646 V 4.93976 h 2.204537 c 0.64429,0 1.131946,0.4868097 1.131946,1.1310975 V 8.9138634 H 3.4421996 V 6.0708575 C 3.4421996,5.4265697 3.9298574,4.93976 4.574145,4.93976 Z M 3.4421996,9.6540796 H 23.049019 V 21.857043 c 0,0.64429 -0.487656,1.131099 -1.131946,1.131099 H 4.574145 c -0.6442876,0 -1.1319454,-0.486809 -1.1319454,-1.131099 z M 18.167664,17.156292 c -0.332408,0 -0.608791,0.279775 -0.608791,0.612182 v 2.031566 c 0,0.33241 0.276383,0.608793 0.608791,0.608793 h 2.230823 c 0.332408,0 0.612184,-0.276383 0.612184,-0.608793 v -2.031566 c 0,-0.332407 -0.279776,-0.612182 -0.612184,-0.612182 z m 0.06104,0.672383 h 2.112118 v 1.910317 h -2.112118 z" />
-      </svg>
-    </button>
-  `;
-}
-
-function renderCalendarMarkupFor(year, monthIndex) {
-  const data = getData();
-  const first = new Date(year, monthIndex, 1);
-  const last = new Date(year, monthIndex + 1, 0);
-  let weekday = first.getDay();
-  weekday = weekday === 0 ? 7 : weekday;
-
-  const cells = [];
-  for (let i = 1; i < weekday; i++) {
-    cells.push(`<div class="empty-cell"></div>`);
-  }
-
-  for (let day = 1; day <= last.getDate(); day++) {
-    const dateStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = data.appointments.filter(a => a.date === dateStr);
-    const isSelected = dateStr === state.selectedDate;
-    const isToday = dateStr === todayStr;
-
-    let dotsHtml = "";
-    if (appts.length) {
-      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
-      const visibleDots = Math.min(appts.length, maxVisibleDots);
-      dotsHtml = `
-        <div class="day-dots">
-          ${Array.from({ length: visibleDots }).map(() => `<i></i>`).join("")}
-          ${appts.length > visibleDots ? `<span class="day-dots-more">+</span>` : ""}
-        </div>
-      `;
-    }
-
-    cells.push(`
-      <div class="day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}">
-        <span class="day-number">${day}</span>
-        ${dotsHtml}
-      </div>
-    `);
-  }
-
-  return `
-    <div class="month-header">
-      <button class="icon-btn" type="button" aria-label="Vorige maand">‹</button>
-      <div class="month-title-actions">
-        <button class="month-title month-select-btn" type="button">${monthNames[monthIndex]} ${year}</button>
-        ${todayIconButtonMarkup()}
-      </div>
-      <button class="icon-btn" type="button" aria-label="Volgende maand">›</button>
-    </div>
-    <div class="weekday-row">
-      <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
-    </div>
-    <div class="calendar-grid">${cells.join("")}</div>
-  `;
-}
-
-function getCalendarPreviewDate(direction) {
-  const d = new Date(state.currentYear, state.currentMonth, 1);
-  d.setMonth(d.getMonth() + (direction === "left" ? 1 : -1));
-  return { year: d.getFullYear(), month: d.getMonth() };
-}
-
-function prepareCalendarSwipePreview(direction) {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return null;
-
-  const existing = calendar.querySelector(".calendar-swipe-preview");
-  if (existing && existing.dataset.direction === direction) return existing;
-  if (existing) existing.remove();
-
-  const previewDate = getCalendarPreviewDate(direction);
-  const preview = document.createElement("div");
-  preview.className = "calendar-swipe-preview";
-  preview.dataset.direction = direction;
-  preview.innerHTML = renderCalendarMarkupFor(previewDate.year, previewDate.month);
-  calendar.appendChild(preview);
-  return preview;
-}
-
-function resetCalendarSwipeVisuals() {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return;
-  calendar.classList.remove("is-swiping", "is-swipe-animating");
-  calendar.style.removeProperty("--calendar-current-x");
-  calendar.style.removeProperty("--calendar-preview-x");
-  calendar.style.removeProperty("--calendar-swipe-opacity");
-  calendar.querySelectorAll(".calendar-swipe-preview").forEach(el => el.remove());
-}
-
-function animateCalendarSwipe(direction, shouldSwitch) {
-  const calendar = document.querySelector(".calendar-panel");
-  if (!calendar) return;
-
-  const width = Math.max(calendar.clientWidth, window.innerWidth);
-  calendar.classList.add("is-swiping", "is-swipe-animating");
-  prepareCalendarSwipePreview(direction);
-
-  if (shouldSwitch) {
-    // De kalender volgt dezelfde richting als de vinger:
-    // De beweging blijft gelijk, maar de geladen maand wordt omgekeerd
-    // zodat de preview en de uiteindelijke kalender dezelfde maand tonen.
-    calendar.style.setProperty("--calendar-current-x", `${direction === "left" ? -width : width}px`);
-    calendar.style.setProperty("--calendar-preview-x", "0px");
-    calendar.style.setProperty("--calendar-swipe-opacity", "1");
-
-    window.setTimeout(() => {
-      shiftCalendarMonth(direction === "left" ? 1 : -1);
-      resetCalendarSwipeVisuals();
-    }, 230);
-    return;
-  }
-
-  calendar.style.setProperty("--calendar-current-x", "0px");
-  calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? width : -width}px`);
-  calendar.style.setProperty("--calendar-swipe-opacity", "0");
-  window.setTimeout(resetCalendarSwipeVisuals, 230);
-}
-function setupSwipeNavigation() {
-  attachHorizontalSwipe(document.querySelector(".calendar-panel"), {
-    onMove: (dx, direction) => {
-      const calendar = document.querySelector(".calendar-panel");
-      if (!calendar) return;
-      const width = Math.max(calendar.clientWidth, window.innerWidth);
-      prepareCalendarSwipePreview(direction);
-      calendar.classList.add("is-swiping");
-      const visualDx = dx;
-      calendar.style.setProperty("--calendar-current-x", `${visualDx}px`);
-      calendar.style.setProperty("--calendar-preview-x", `${direction === "left" ? (width + visualDx) : (-width + visualDx)}px`);
-      calendar.style.setProperty("--calendar-swipe-opacity", String(Math.min(1, 0.35 + Math.abs(dx) / Math.max(width, 1))));
-    },
-    onSwipe: direction => animateCalendarSwipe(direction, true),
-    onCancel: () => {
-      const calendar = document.querySelector(".calendar-panel");
-      const currentX = Number(String(calendar?.style.getPropertyValue("--calendar-current-x") || "0").replace("px", ""));
-      animateCalendarSwipe(currentX < 0 ? "left" : "right", false);
-    }
-  }, { ignoreInteractive: false, mode: "calendar", minDistance: 52, maxVerticalDistance: 90, minHorizontalRatio: 1.08, stopPropagation: true });
-
-  attachHorizontalSwipe(document.querySelector(".main-layout"), {
-    onMove: (dx, direction, progress) => {
-      const main = document.querySelector(".main-layout");
-      if (!main) return;
-      const next = prepareScreenSwipePreview(direction);
-      const edgeDampening = next ? 1 : 0.26;
-      setSwipeVisuals(main, dx * edgeDampening, direction, next ? progress : 0.22);
-    },
-    onSwipe: direction => {
-      const next = getAdjacentMainScreen(direction);
-      animateScreenSwipeEnd(direction, Boolean(next));
-    },
-    onCancel: () => {
-      const main = document.querySelector(".main-layout");
-      const currentX = Number(String(main?.style.getPropertyValue("--swipe-x") || "0").replace("px", ""));
-      animateScreenSwipeEnd(currentX < 0 ? "left" : "right", false);
-    }
-  }, { minDistance: 72, maxVerticalDistance: 86, minHorizontalRatio: 1.18 });
-}
 function rerenderAll() {
   renderAlphabetFilter();
   renderCalendar();
@@ -5176,7 +4196,6 @@ function rerenderAll() {
   renderClients();
   renderServices();
   renderPaymentMethods();
-  renderTodoList();
   renderStatistics();
   renderRevenue();
 
@@ -5192,20 +4211,39 @@ function rerenderAll() {
 ========================= */
 
 function registerEvents() {
-  document.getElementById("prevMonthBtn").addEventListener("click", () => shiftCalendarMonth(-1));
+  document.getElementById("prevMonthBtn").addEventListener("click", () => {
+    state.currentMonth--;
+    if (state.currentMonth < 0) {
+      state.currentMonth = 11;
+      state.currentYear--;
+    }
 
-  document.getElementById("nextMonthBtn").addEventListener("click", () => shiftCalendarMonth(1));
+    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+    renderCalendar();
+    renderAgendaList();
+    renderRevenue();
+  });
+
+  document.getElementById("nextMonthBtn").addEventListener("click", () => {
+    state.currentMonth++;
+    if (state.currentMonth > 11) {
+      state.currentMonth = 0;
+      state.currentYear++;
+    }
+
+    state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+    renderCalendar();
+    renderAgendaList();
+    renderRevenue();
+  });
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
-  document.getElementById("todayIconBtn")?.addEventListener("click", jumpToToday);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => switchScreen(btn.dataset.screen, btn.dataset.title));
   });
-
-  setupSwipeNavigation();
 
   document.getElementById("backBtn").addEventListener("click", () => {
     const map = {
@@ -5215,7 +4253,6 @@ function registerEvents() {
       paymentMethodsScreen: "Betaalwijze",
       statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
-      todoScreen: "To Do",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
     };
@@ -5249,16 +4286,6 @@ function registerEvents() {
 
   document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
   document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
-
-  document.getElementById("todoForm")?.addEventListener("submit", saveTodoFromForm);
-  document.getElementById("deleteTodoBtn")?.addEventListener("click", deleteCurrentTodo);
-  document.getElementById("todoSearch")?.addEventListener("input", renderTodoList);
-  document.querySelectorAll("[data-todo-filter]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.todoFilter = btn.dataset.todoFilter || "open";
-      renderTodoList();
-    });
-  });
 
   document.getElementById("paymentPopoverCloseBtn")?.addEventListener("click", closePaymentPopover);
 
@@ -5419,7 +4446,7 @@ function registerEvents() {
           state.currentYear = picked.getFullYear();
           state.currentMonth = picked.getMonth();
         }
-        switchScreen(event.data.screen || 'agendaScreen', screenTitleById(event.data.screen || 'agendaScreen'));
+        switchScreen(event.data.screen || 'agendaScreen', event.data.screen === 'statisticsScreen' ? 'Statistieken' : 'Agenda');
         rerenderAll();
       }
     });
@@ -5562,43 +4589,11 @@ async function loadAppointmentsFromSupabase() {
   }));
 }
 
-async function loadTasksFromSupabase() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const { data, error } = await supabaseClient
-    .from("tasks")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("is_completed", { ascending: true })
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("due_time", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Fout bij laden taken:", error.message);
-    return [];
-  }
-
-  return (data || []).map(item => ({
-    id: item.id,
-    title: item.title,
-    note: item.note || "",
-    dueDate: item.due_date || "",
-    dueTime: item.due_time ? String(item.due_time).slice(0, 5) : "",
-    completed: Boolean(item.is_completed),
-    completedAt: item.completed_at || null,
-    createdAt: item.created_at || null,
-    updatedAt: item.updated_at || null
-  }));
-}
-
 async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
   const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
-  const tasks = await loadTasksFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
@@ -5606,7 +4601,6 @@ async function loadAllDataFromSupabase() {
     services,
     paymentMethods,
     appointments,
-    tasks,
     settings
   });
 
