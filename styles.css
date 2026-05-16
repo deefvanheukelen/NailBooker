@@ -4066,6 +4066,9 @@ button {
 .calendar-panel {
   position: relative;
   overflow: hidden;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .calendar-panel.is-swiping > :not(.calendar-swipe-preview),

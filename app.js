@@ -1316,7 +1316,9 @@ function setupCalendarSwipeNavigation() {
   let lastX = 0;
   let tracking = false;
   let horizontal = false;
+  let suppressNextClick = false;
   const threshold = 44;
+  const intentThreshold = 10;
 
   const reset = () => {
     tracking = false;
@@ -1328,7 +1330,13 @@ function setupCalendarSwipeNavigation() {
 
   panel.addEventListener("touchstart", event => {
     if (event.touches.length !== 1) return;
-    if (event.target.closest("button, input, select, textarea, dialog")) return;
+
+    // Headerknoppen blijven gewone knoppen. De dagcellen mogen wél swipe-start zijn,
+    // anders start een iPhone-swipe meestal op de onzichtbare .day-button en gebeurt er niets.
+    const interactive = event.target.closest("input, select, textarea, dialog");
+    const headerButton = event.target.closest(".month-header button");
+    if (interactive || headerButton || panel.dataset.swipeAnimating === "true") return;
+
     tracking = true;
     horizontal = false;
     startX = event.touches[0].clientX;
@@ -1338,20 +1346,28 @@ function setupCalendarSwipeNavigation() {
 
   panel.addEventListener("touchmove", event => {
     if (!tracking || event.touches.length !== 1) return;
+
     const x = event.touches[0].clientX;
     const y = event.touches[0].clientY;
     const dx = x - startX;
     const dy = y - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
 
     if (!horizontal) {
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      if (Math.abs(dy) >= Math.abs(dx)) {
+      if (absX < intentThreshold && absY < intentThreshold) return;
+
+      // Verticale beweging wordt meteen losgelaten, zodat iPhone-scroll intact blijft.
+      if (absY > absX) {
         reset();
         return;
       }
+
       horizontal = true;
+      suppressNextClick = true;
     }
 
+    // Alleen bij duidelijke horizontale kalender-swipe blokkeren we de browser-scroll/click.
     event.preventDefault();
     lastX = x;
   }, { passive: false });
@@ -1366,10 +1382,19 @@ function setupCalendarSwipeNavigation() {
     reset();
 
     if (Math.abs(dx) < threshold) return;
+
+    // Links vegen = kalender schuift links = volgende maand. Rechts = vorige maand.
     animateCalendarMonth(dx < 0 ? 1 : -1);
   }, { passive: true });
 
   panel.addEventListener("touchcancel", reset, { passive: true });
+
+  panel.addEventListener("click", event => {
+    if (!suppressNextClick) return;
+    suppressNextClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
 }
 
 function renderAgendaList() {
