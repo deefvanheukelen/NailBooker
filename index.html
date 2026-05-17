@@ -625,70 +625,72 @@
 
       <input type="hidden" id="appointmentId" />
 
-      <label class="field-label" for="appointmentCustomerSearch">Klant</label>
-      <div class="appointment-customer-picker">
-        <input
-          id="appointmentCustomerSearch"
-          class="field appointment-customer-search"
-          type="search"
-          placeholder="Zoek op naam, telefoon of e-mail..."
-          autocomplete="off"
-          aria-controls="appointmentCustomerResults"
-          aria-expanded="false"
-        />
-        <div id="appointmentCustomerResults" class="appointment-customer-results hidden" role="listbox"></div>
-        <select id="appointmentCustomer" class="field appointment-customer-select-fallback" required aria-label="Klant kiezen"></select>
-      </div>
+      <div class="appointment-form-grid">
+        <div class="appointment-form-field appointment-form-field-wide">
+          <label class="field-label" for="appointmentCustomerSearch">Klant</label>
+          <div class="appointment-customer-picker">
+            <input
+              id="appointmentCustomerSearch"
+              class="field appointment-customer-search"
+              type="search"
+              placeholder="Zoek op naam, telefoon of e-mail..."
+              autocomplete="off"
+              aria-controls="appointmentCustomerResults"
+              aria-expanded="false"
+            />
+            <div id="appointmentCustomerResults" class="appointment-customer-results hidden" role="listbox"></div>
+            <select id="appointmentCustomer" class="field appointment-customer-select-fallback" required aria-label="Klant kiezen"></select>
+          </div>
+        </div>
 
-      <div class="field-row">
-        <div>
+        <div class="appointment-form-field">
           <label class="field-label" for="appointmentDate">Datum</label>
           <input id="appointmentDate" class="field" type="date" required />
         </div>
 
-        <div>
+        <div class="appointment-form-field">
           <label class="field-label" for="appointmentTime">Tijd</label>
           <input id="appointmentTime" class="field" type="time" required />
         </div>
-      </div>
 
-      <label class="field-label" for="appointmentServiceSearch">Dienst</label>
-      <div class="appointment-service-picker">
-        <input
-          id="appointmentServiceSearch"
-          class="field appointment-service-search"
-          type="search"
-          placeholder="Zoek dienst..."
-          autocomplete="off"
-          aria-controls="appointmentServiceResults"
-          aria-expanded="false"
-        />
-        <div id="appointmentServiceResults" class="appointment-service-results hidden" role="listbox"></div>
-        <select id="appointmentService" class="field appointment-service-select-fallback" required aria-label="Dienst kiezen"></select>
-      </div>
+        <div class="appointment-form-field appointment-form-field-wide">
+          <label class="field-label" for="appointmentServiceSearch">Dienst</label>
+          <div class="appointment-service-picker">
+            <input
+              id="appointmentServiceSearch"
+              class="field appointment-service-search"
+              type="search"
+              placeholder="Zoek dienst..."
+              autocomplete="off"
+              aria-controls="appointmentServiceResults"
+              aria-expanded="false"
+            />
+            <div id="appointmentServiceResults" class="appointment-service-results hidden" role="listbox"></div>
+            <select id="appointmentService" class="field appointment-service-select-fallback" required aria-label="Dienst kiezen"></select>
+          </div>
+        </div>
 
-      <div class="field-row">
-        <div>
+        <div class="appointment-form-field">
           <label class="field-label" for="appointmentDuration">Duur (min)</label>
           <input id="appointmentDuration" class="field" type="number" min="0" required />
         </div>
 
-        <div>
+        <div class="appointment-form-field">
           <label class="field-label" for="appointmentPrice">Prijs</label>
           <input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required />
         </div>
+
+        <div id="appointmentStatusWrap" class="appointment-form-field appointment-form-field-wide">
+          <label class="field-label" for="appointmentStatus">Status</label>
+          <select id="appointmentStatus" class="field">
+            <option value="gepland">Gepland</option>
+            <option value="afgerond">Afgerond</option>
+            <option value="no-show">No-show</option>
+          </select>
+        </div>
       </div>
 
-      <div id="appointmentStatusWrap">
-        <label class="field-label" for="appointmentStatus">Status</label>
-        <select id="appointmentStatus" class="field">
-          <option value="gepland">Gepland</option>
-          <option value="afgerond">Afgerond</option>
-          <option value="no-show">No-show</option>
-        </select>
-      </div>
-
-      <div class="modal-actions triple-actions">
+      <div class="modal-actions triple-actions appointment-actions-row">
         <button
           id="deleteAppointmentBtn"
           class="btn btn-danger action-btn"

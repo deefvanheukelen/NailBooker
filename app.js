@@ -414,6 +414,8 @@ function showAppDialog({
       if (!clickedInside && showCancel) cleanup(false);
     };
 
+    applyNavStyleActionButtons(dialog);
+
     dialog.addEventListener("cancel", onCancel);
     dialog.addEventListener("click", onBackdropClick);
     confirmBtn.addEventListener("click", onConfirm);
@@ -1085,6 +1087,7 @@ function switchScreen(screenId, title) {
   document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.screen === screenId);
   });
+  ensureActiveNavVisible();
 
   updateTopbar(screenId, title);
 
@@ -1114,6 +1117,11 @@ function switchScreen(screenId, title) {
   const activeClient = state.selectedClientId ? customerById(getData(), state.selectedClientId) : null;
   updateClientActionBar(activeClient);
   updateRevenueActionBar();
+}
+
+function panelIsCalendarSwiping() {
+  const panel = document.querySelector(".calendar-panel");
+  return panel?.dataset?.swipeAnimating === "true" || panel?.classList?.contains("is-swipe-animating");
 }
 
 function renderCalendar() {
@@ -1167,10 +1175,58 @@ function renderCalendar() {
       cell.appendChild(dots);
     }
 
-    cell.querySelector(".day-button").addEventListener("click", () => {
+    let dayTapStartX = 0;
+    let dayTapStartY = 0;
+    let dayTapMoved = false;
+    const dayTapMoveTolerance = 12;
+
+    const selectCalendarDate = (event = null) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       state.selectedDate = dateStr;
       renderCalendar();
       renderAgendaList();
+    };
+
+    const rememberDayTapStart = (x, y) => {
+      dayTapStartX = x;
+      dayTapStartY = y;
+      dayTapMoved = false;
+    };
+
+    const updateDayTapMove = (x, y) => {
+      if (Math.abs(x - dayTapStartX) > dayTapMoveTolerance || Math.abs(y - dayTapStartY) > dayTapMoveTolerance) {
+        dayTapMoved = true;
+      }
+    };
+
+    if (window.PointerEvent) {
+      cell.addEventListener("pointerdown", event => rememberDayTapStart(event.clientX, event.clientY));
+      cell.addEventListener("pointermove", event => updateDayTapMove(event.clientX, event.clientY));
+      cell.addEventListener("pointerup", event => {
+        if (dayTapMoved || panelIsCalendarSwiping()) return;
+        selectCalendarDate(event);
+      });
+    } else {
+      cell.addEventListener("touchstart", event => {
+        if (event.touches.length !== 1) return;
+        rememberDayTapStart(event.touches[0].clientX, event.touches[0].clientY);
+      }, { passive: true });
+      cell.addEventListener("touchmove", event => {
+        if (event.touches.length !== 1) return;
+        updateDayTapMove(event.touches[0].clientX, event.touches[0].clientY);
+      }, { passive: true });
+      cell.addEventListener("touchend", event => {
+        if (dayTapMoved || panelIsCalendarSwiping()) return;
+        selectCalendarDate(event);
+      }, { passive: false });
+    }
+
+    cell.addEventListener("click", event => {
+      if (dayTapMoved || panelIsCalendarSwiping()) return;
+      selectCalendarDate(event);
     });
 
     grid.appendChild(cell);
@@ -1185,12 +1241,14 @@ function shiftedCalendarMonth(year, month, step) {
 
 function setCalendarMonth(step) {
   const next = shiftedCalendarMonth(state.currentYear, state.currentMonth, step);
+
+  // Alleen de zichtbare kalendermaand wijzigen.
+  // De geselecteerde datum en de afsprakenlijst onder de kalender blijven behouden
+  // tot de gebruiker bewust een dag kiest of op het vandaag-icoontje klikt.
   state.currentYear = next.year;
   state.currentMonth = next.month;
-  state.selectedDate = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-01`;
+
   renderCalendar();
-  renderAgendaList();
-  renderRevenue();
 }
 
 function fillCalendarPreview(preview, year, month) {
@@ -1317,8 +1375,24 @@ function setupCalendarSwipeNavigation() {
   let tracking = false;
   let horizontal = false;
   let suppressNextClick = false;
+  let suppressClickTimer = null;
+  let dragPreview = null;
+  let dragStep = 0;
   const threshold = 44;
   const intentThreshold = 10;
+
+  const clearDragStyles = () => {
+    if (dragPreview) {
+      dragPreview.remove();
+      dragPreview = null;
+    }
+    dragStep = 0;
+    panel.classList.remove("is-swiping", "is-swipe-animating");
+    panel.style.removeProperty("--calendar-current-x");
+    panel.style.removeProperty("--calendar-preview-x");
+    panel.style.removeProperty("--calendar-swipe-opacity");
+    delete panel.dataset.swipeAnimating;
+  };
 
   const reset = () => {
     tracking = false;
@@ -1328,11 +1402,80 @@ function setupCalendarSwipeNavigation() {
     lastX = 0;
   };
 
+  const prepareDragPreview = dx => {
+    const step = dx < 0 ? 1 : -1;
+    if (dragPreview && dragStep === step) return true;
+
+    if (dragPreview) dragPreview.remove();
+    dragStep = step;
+
+    const target = shiftedCalendarMonth(state.currentYear, state.currentMonth, step);
+    dragPreview = document.createElement("div");
+    dragPreview.className = "calendar-swipe-preview";
+    fillCalendarPreview(dragPreview, target.year, target.month);
+    panel.appendChild(dragPreview);
+    panel.dataset.swipeAnimating = "true";
+    panel.classList.remove("is-swipe-animating");
+    panel.classList.add("is-swiping");
+    return true;
+  };
+
+  const updateDragPosition = dx => {
+    if (!prepareDragPreview(dx)) return false;
+    const width = panel.clientWidth || window.innerWidth || 360;
+    const limitedDx = Math.max(-width, Math.min(width, dx));
+    const previewStart = dragStep > 0 ? width : -width;
+    const progress = Math.min(1, Math.abs(limitedDx) / Math.max(width, 1));
+
+    panel.style.setProperty("--calendar-current-x", `${limitedDx}px`);
+    panel.style.setProperty("--calendar-preview-x", `${previewStart + limitedDx}px`);
+    panel.style.setProperty("--calendar-swipe-opacity", String(0.35 + (progress * 0.65)));
+    return true;
+  };
+
+  const finishInteractiveSwipe = commit => {
+    const step = dragStep;
+    const width = panel.clientWidth || window.innerWidth || 360;
+
+    if (!dragPreview || !step) {
+      clearDragStyles();
+      return;
+    }
+
+    panel.classList.remove("is-swiping");
+    panel.classList.add("is-swipe-animating");
+
+    if (commit) {
+      panel.style.setProperty("--calendar-current-x", `${step > 0 ? -width : width}px`);
+      panel.style.setProperty("--calendar-preview-x", "0px");
+      panel.style.setProperty("--calendar-swipe-opacity", "1");
+    } else {
+      panel.style.setProperty("--calendar-current-x", "0px");
+      panel.style.setProperty("--calendar-preview-x", `${step > 0 ? width : -width}px`);
+      panel.style.setProperty("--calendar-swipe-opacity", "0.35");
+    }
+
+    const finish = () => {
+      panel.removeEventListener("transitionend", onTransitionEnd);
+      if (commit) setCalendarMonth(step);
+      clearDragStyles();
+    };
+
+    const onTransitionEnd = event => {
+      if (event.target.closest(".calendar-panel") !== panel) return;
+      if (event.propertyName !== "transform") return;
+      finish();
+    };
+
+    panel.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(() => {
+      if (panel.dataset.swipeAnimating === "true") finish();
+    }, 360);
+  };
+
   panel.addEventListener("touchstart", event => {
     if (event.touches.length !== 1) return;
 
-    // Headerknoppen blijven gewone knoppen. De dagcellen mogen wél swipe-start zijn,
-    // anders start een iPhone-swipe meestal op de onzichtbare .day-button en gebeurt er niets.
     const interactive = event.target.closest("input, select, textarea, dialog");
     const headerButton = event.target.closest(".month-header button");
     if (interactive || headerButton || panel.dataset.swipeAnimating === "true") return;
@@ -1357,17 +1500,16 @@ function setupCalendarSwipeNavigation() {
     if (!horizontal) {
       if (absX < intentThreshold && absY < intentThreshold) return;
 
-      // Verticale beweging wordt meteen losgelaten, zodat iPhone-scroll intact blijft.
       if (absY > absX) {
         reset();
+        clearDragStyles();
         return;
       }
 
       horizontal = true;
-      suppressNextClick = true;
     }
 
-    // Alleen bij duidelijke horizontale kalender-swipe blokkeren we de browser-scroll/click.
+    if (!updateDragPosition(dx)) return;
     event.preventDefault();
     lastX = x;
   }, { passive: false });
@@ -1375,27 +1517,346 @@ function setupCalendarSwipeNavigation() {
   panel.addEventListener("touchend", () => {
     if (!tracking || !horizontal) {
       reset();
+      clearDragStyles();
       return;
     }
 
     const dx = lastX - startX;
+    const commit = Math.abs(dx) >= threshold;
     reset();
 
-    if (Math.abs(dx) < threshold) return;
-
-    // Links vegen = kalender schuift links = volgende maand. Rechts = vorige maand.
-    animateCalendarMonth(dx < 0 ? 1 : -1);
+    suppressNextClick = commit;
+    finishInteractiveSwipe(commit);
   }, { passive: true });
 
-  panel.addEventListener("touchcancel", reset, { passive: true });
+  panel.addEventListener("touchcancel", () => {
+    reset();
+    finishInteractiveSwipe(false);
+  }, { passive: true });
 
   panel.addEventListener("click", event => {
     if (!suppressNextClick) return;
+
+    if (event.target.closest(".month-header button")) {
+      suppressNextClick = false;
+      return;
+    }
+
     suppressNextClick = false;
     event.preventDefault();
     event.stopPropagation();
   }, true);
 }
+
+
+function getMainSwipeScreens() {
+  return Array.from(document.querySelectorAll(".bottom-nav .nav-btn"))
+    .map(btn => ({
+      screenId: btn.dataset.screen,
+      title: btn.dataset.title || btn.textContent.trim()
+    }))
+    .filter(item => item.screenId && document.getElementById(item.screenId));
+}
+
+function ensureActiveNavVisible() {
+  const nav = document.querySelector(".bottom-nav");
+  const activeBtn = nav?.querySelector(".nav-btn.active");
+  if (!nav || !activeBtn || typeof activeBtn.scrollIntoView !== "function") return;
+
+  window.requestAnimationFrame(() => {
+    try {
+      activeBtn.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest"
+      });
+    } catch (error) {
+      const navRect = nav.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      if (btnRect.left < navRect.left) {
+        nav.scrollLeft -= (navRect.left - btnRect.left) + 10;
+      } else if (btnRect.right > navRect.right) {
+        nav.scrollLeft += (btnRect.right - navRect.right) + 10;
+      }
+    }
+  });
+}
+
+function animateAppScreen(step) {
+  const layout = document.querySelector(".main-layout");
+  if (!layout || layout.dataset.pageSwipeAnimating === "true") return false;
+
+  const screens = getMainSwipeScreens();
+  const currentIndex = screens.findIndex(item => item.screenId === state.currentScreen);
+  const targetIndex = currentIndex + step;
+
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= screens.length) {
+    return false;
+  }
+
+  const currentScreen = document.getElementById(screens[currentIndex].screenId);
+  const targetScreen = document.getElementById(screens[targetIndex].screenId);
+  if (!currentScreen || !targetScreen || currentScreen === targetScreen) return false;
+
+  const width = layout.clientWidth || window.innerWidth || 360;
+  const target = screens[targetIndex];
+
+  layout.dataset.pageSwipeAnimating = "true";
+  targetScreen.classList.add("swipe-preview");
+  layout.classList.add("is-swiping");
+  layout.style.setProperty("--swipe-x", "0px");
+  layout.style.setProperty("--swipe-preview-x", `${step > 0 ? width : -width}px`);
+  layout.style.setProperty("--swipe-opacity", "0.72");
+
+  const cleanup = () => {
+    layout.removeEventListener("transitionend", onTransitionEnd);
+    targetScreen.classList.remove("swipe-preview");
+    layout.classList.remove("is-swiping", "is-swipe-animating");
+    layout.style.removeProperty("--swipe-x");
+    layout.style.removeProperty("--swipe-preview-x");
+    layout.style.removeProperty("--swipe-opacity");
+    delete layout.dataset.pageSwipeAnimating;
+  };
+
+  const finish = () => {
+    cleanup();
+    switchScreen(target.screenId, target.title);
+  };
+
+  const onTransitionEnd = event => {
+    if (event.target !== currentScreen || event.propertyName !== "transform") return;
+    finish();
+  };
+
+  layout.addEventListener("transitionend", onTransitionEnd);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      layout.classList.remove("is-swiping");
+      layout.classList.add("is-swipe-animating");
+      layout.style.setProperty("--swipe-x", `${step > 0 ? -width : width}px`);
+      layout.style.setProperty("--swipe-preview-x", "0px");
+      layout.style.setProperty("--swipe-opacity", "1");
+    });
+  });
+
+  window.setTimeout(() => {
+    if (layout.dataset.pageSwipeAnimating === "true") finish();
+  }, 380);
+
+  return true;
+}
+
+function setupAppPageSwipeNavigation() {
+  const layout = document.querySelector(".main-layout");
+  if (!layout || layout.dataset.pageSwipeReady === "true") return;
+  layout.dataset.pageSwipeReady = "true";
+
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let tracking = false;
+  let horizontal = false;
+  let suppressNextClick = false;
+  let suppressClickTimer = null;
+  let dragTargetScreen = null;
+  let dragTarget = null;
+  let dragStep = 0;
+  const threshold = 56;
+  const intentThreshold = 12;
+
+  const reset = () => {
+    tracking = false;
+    horizontal = false;
+    startX = 0;
+    startY = 0;
+    lastX = 0;
+  };
+
+  const clearDragStyles = () => {
+    if (dragTargetScreen) {
+      dragTargetScreen.classList.remove("swipe-preview");
+    }
+    dragTargetScreen = null;
+    dragTarget = null;
+    dragStep = 0;
+    layout.classList.remove("is-swiping", "is-swipe-animating");
+    layout.style.removeProperty("--swipe-x");
+    layout.style.removeProperty("--swipe-preview-x");
+    layout.style.removeProperty("--swipe-opacity");
+    delete layout.dataset.pageSwipeAnimating;
+  };
+
+  const preparePageDrag = dx => {
+    const step = dx < 0 ? 1 : -1;
+    if (dragTargetScreen && dragStep === step) return true;
+
+    const screens = getMainSwipeScreens();
+    const currentIndex = screens.findIndex(item => item.screenId === state.currentScreen);
+    const targetIndex = currentIndex + step;
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= screens.length) {
+      clearDragStyles();
+      return false;
+    }
+
+    const targetScreen = document.getElementById(screens[targetIndex].screenId);
+    if (!targetScreen) {
+      clearDragStyles();
+      return false;
+    }
+
+    if (dragTargetScreen) dragTargetScreen.classList.remove("swipe-preview");
+
+    dragStep = step;
+    dragTarget = screens[targetIndex];
+    dragTargetScreen = targetScreen;
+    dragTargetScreen.classList.add("swipe-preview");
+    layout.dataset.pageSwipeAnimating = "true";
+    layout.classList.remove("is-swipe-animating");
+    layout.classList.add("is-swiping");
+    return true;
+  };
+
+  const updatePageDragPosition = dx => {
+    if (!preparePageDrag(dx)) return false;
+
+    const width = layout.clientWidth || window.innerWidth || 360;
+    const limitedDx = Math.max(-width, Math.min(width, dx));
+    const previewStart = dragStep > 0 ? width : -width;
+    const progress = Math.min(1, Math.abs(limitedDx) / Math.max(width, 1));
+
+    layout.style.setProperty("--swipe-x", `${limitedDx}px`);
+    layout.style.setProperty("--swipe-preview-x", `${previewStart + limitedDx}px`);
+    layout.style.setProperty("--swipe-opacity", String(0.35 + (progress * 0.65)));
+    return true;
+  };
+
+  const finishPageDrag = commit => {
+    const currentScreen = document.getElementById(state.currentScreen);
+    const target = dragTarget;
+    const targetScreen = dragTargetScreen;
+    const step = dragStep;
+    const width = layout.clientWidth || window.innerWidth || 360;
+
+    if (!target || !targetScreen || !step || !currentScreen) {
+      clearDragStyles();
+      return false;
+    }
+
+    layout.classList.remove("is-swiping");
+    layout.classList.add("is-swipe-animating");
+
+    if (commit) {
+      layout.style.setProperty("--swipe-x", `${step > 0 ? -width : width}px`);
+      layout.style.setProperty("--swipe-preview-x", "0px");
+      layout.style.setProperty("--swipe-opacity", "1");
+    } else {
+      layout.style.setProperty("--swipe-x", "0px");
+      layout.style.setProperty("--swipe-preview-x", `${step > 0 ? width : -width}px`);
+      layout.style.setProperty("--swipe-opacity", "0.35");
+    }
+
+    const finish = () => {
+      layout.removeEventListener("transitionend", onTransitionEnd);
+      clearDragStyles();
+      if (commit) switchScreen(target.screenId, target.title);
+    };
+
+    const onTransitionEnd = event => {
+      if (event.target !== currentScreen || event.propertyName !== "transform") return;
+      finish();
+    };
+
+    layout.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(() => {
+      if (layout.dataset.pageSwipeAnimating === "true") finish();
+    }, 380);
+
+    return commit;
+  };
+
+  layout.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    if (layout.dataset.pageSwipeAnimating === "true") return;
+
+    const target = event.target;
+    if (target.closest("dialog, .modal, .payment-popover, .calendar-panel, .bottom-nav")) return;
+
+    tracking = true;
+    horizontal = false;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+    lastX = startX;
+  }, { passive: true });
+
+  layout.addEventListener("touchmove", event => {
+    if (!tracking || event.touches.length !== 1) return;
+
+    const x = event.touches[0].clientX;
+    const y = event.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (!horizontal) {
+      if (absX < intentThreshold && absY < intentThreshold) return;
+
+      if (absY > absX) {
+        reset();
+        clearDragStyles();
+        return;
+      }
+
+      horizontal = true;
+    }
+
+    if (!updatePageDragPosition(dx)) return;
+    event.preventDefault();
+    lastX = x;
+  }, { passive: false });
+
+  layout.addEventListener("touchend", () => {
+    if (!tracking || !horizontal) {
+      reset();
+      clearDragStyles();
+      return;
+    }
+
+    const dx = lastX - startX;
+    const commit = Math.abs(dx) >= threshold;
+    reset();
+
+    const didNavigate = finishPageDrag(commit);
+
+    // Na een echte swipe kan iOS/Chrome nog een synthetische click afvuren
+    // op het element waar de swipe begon. Die willen we kort blokkeren.
+    // Belangrijk: deze blokkering mag NIET blijven hangen tot de eerste
+    // echte tap op de nieuwe pagina, anders moet je daar 2 keer klikken.
+    suppressNextClick = Boolean(didNavigate);
+    window.clearTimeout(suppressClickTimer);
+    if (suppressNextClick) {
+      suppressClickTimer = window.setTimeout(() => {
+        suppressNextClick = false;
+      }, 300);
+    }
+  }, { passive: true });
+
+  layout.addEventListener("touchcancel", () => {
+    reset();
+    finishPageDrag(false);
+  }, { passive: true });
+
+  layout.addEventListener("click", event => {
+    if (!suppressNextClick) return;
+    suppressNextClick = false;
+    window.clearTimeout(suppressClickTimer);
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+}
+
 
 function renderAgendaList() {
   const data = getData();
@@ -3612,6 +4073,7 @@ function syncServiceDefaults() {
 function openNewAppointmentDialog(prefillCustomerId = null) {
   populateAppointmentForm(prefillCustomerId);
 
+  document.getElementById("appointmentForm")?.classList.remove("appointment-form-edit");
   document.getElementById("appointmentModalTitle").textContent = "Nieuwe afspraak";
   document.getElementById("appointmentId").value = "";
   document.getElementById("appointmentDate").value = state.selectedDate;
@@ -3636,6 +4098,7 @@ function openEditAppointmentDialog(id) {
 
   populateAppointmentForm(app.customerId);
 
+  document.getElementById("appointmentForm")?.classList.add("appointment-form-edit");
   document.getElementById("appointmentModalTitle").textContent = "Afspraak bewerken";
   document.getElementById("appointmentId").value = app.id;
   setAppointmentCustomer(app.customerId);
@@ -4424,19 +4887,80 @@ function rerenderAll() {
   }
 
   syncNotificationState();
+  applyNavStyleActionButtons();
 }
+
+
+function getActionButtonIconSvg(type) {
+  const icons = {
+    save: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="m 1.2487599,6.3350499 -0.09755,-0.067983 V 3.7370896 c 0,-1.9103368 0.012742,-2.5426364 0.052027,-2.58166 0.035778,-0.035538 0.252426,-0.051681 0.6936895,-0.051681 H 2.5385889 V 1.9651164 2.8264842 H 3.7742229 5.009857 V 1.9651173 1.1037498 H 5.3902354 5.7706138 L 6.1067451,1.4396243 6.4428764,1.7754988 6.4308947,4.021599 c -0.00945,1.7724982 -0.023861,2.2579 -0.068322,2.3020623 -0.044619,0.04432 -0.572285,0.058401 -2.5363015,0.067672 C 1.624705,6.4017253 1.3353593,6.3954233 1.24876,6.3350563 Z M 5.2892092,5.8747533 c 0.055268,-0.078383 0.067492,-0.2421888 0.067492,-0.9044356 0,-0.7512913 -0.00616,-0.8148317 -0.086711,-0.8948522 -0.083105,-0.082552 -0.1445187,-0.086135 -1.4769401,-0.086135 -0.8754091,0 -1.4212835,0.016507 -1.4740897,0.044588 -0.078777,0.041885 -0.083861,0.098794 -0.083861,0.9388902 0,0.6381478 0.014902,0.9091103 0.052027,0.9459891 0.038378,0.038125 0.4301191,0.05168 1.4933091,0.05168 1.4402317,0 1.4413315,-6.93e-5 1.508774,-0.09572 z M 4.0993893,1.9651155 V 1.2760213 H 4.4245562 4.7497231 V 1.9651155 2.65421 H 4.4245562 4.0993893 Z" /></svg>`,
+    cancel: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="M 3.7216875,1.0757028 A 2.6458266,2.6458266 0 0 0 1.0758545,3.721536 2.6458266,2.6458266 0 0 0 3.7216875,6.3673694 2.6458266,2.6458266 0 0 0 6.3675215,3.721536 2.6458266,2.6458266 0 0 0 3.7216875,1.0757028 Z m -0.82292,1.3657978 c 0.05451,0 0.138465,0.070411 0.447301,0.375477 l 0.380029,0.3754771 0.378179,-0.3754771 c 0.292326,-0.2902706 0.392113,-0.375477 0.439905,-0.375477 0.04347,0 0.107409,0.044353 0.215615,0.1494797 0.208329,0.2023863 0.245294,0.2617301 0.207508,0.3332359 -0.01611,0.030483 -0.188746,0.217296 -0.383726,0.4151581 l -0.35457,0.3598322 0.335512,0.333947 c 0.184481,0.1836653 0.357479,0.3692108 0.384437,0.4123137 0.04674,0.074724 0.04701,0.081153 0.0081,0.1405195 -0.08631,0.1317284 -0.351617,0.3670857 -0.413878,0.3670857 -0.0465,0 -0.150027,-0.088488 -0.439621,-0.376046 L 3.7248165,4.2009804 3.4082215,4.5137358 C 3.2340805,4.6857555 3.0594205,4.8549521 3.0200865,4.8897817 2.9045905,4.9920513 2.8540445,4.9753377 2.6447515,4.766045 2.5193755,4.6406693 2.4577245,4.5608493 2.4577245,4.5238338 c 0,-0.039229 0.110334,-0.1669151 0.381308,-0.4410433 L 3.2204835,3.6969309 2.8390325,3.3116402 c -0.271639,-0.2745061 -0.381308,-0.401336 -0.381308,-0.4407588 0,-0.085362 0.353348,-0.4293808 0.441043,-0.4293808 z" /></svg>`,
+    delete: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="m 2.2698341,6.1775822 c -0.1094284,-0.04971 -0.231493,-0.164087 -0.290851,-0.272533 -0.037167,-0.0679 -0.041899,-0.221644 -0.052699,-1.711931 L 1.9144211,2.5557908 1.7067886,2.5489308 1.4991566,2.5420708 V 2.3545326 2.1669857 l 0.1008498,-0.0073 0.1008498,-0.0073 0.013669,-0.1423763 c 0.01596,-0.1662368 0.034542,-0.2158412 0.089015,-0.2376519 0.02183,-0.00874 0.2399086,-0.021819 0.4846179,-0.029062 L 2.7330836,1.7301305 V 1.6192114 c 0,-0.3484396 0.3062313,-0.68698353 0.5910897,-0.68179893 0.077671,0.00141 0.1969862,-0.00708 0.4182785,-0.00708 h 0.4780034 c 0.3249416,0.00541 0.5533562,0.39764923 0.5533562,0.71128873 v 0.095511 l 0.3025494,0.00123 c 0.3906803,0.00158 0.6135415,0.026715 0.6614465,0.07462 0.023407,0.023407 0.042463,0.097122 0.050279,0.1944918 l 0.012586,0.1567987 h 0.091669 0.091669 V 2.3541076 2.543943 H 5.7823104 5.5806105 l -5.209e-4,1.6076662 c -5.104e-4,1.566046 -0.00177,1.61043 -0.048858,1.714448 -0.062582,0.138254 -0.1489784,0.227906 -0.2879761,0.29883 l -0.1119258,0.05711 -1.3830257,-5.24e-4 c -1.288121,-4.9e-4 -1.3895764,-0.0035 -1.4784713,-0.04388 z m 2.8347098,-0.400527 0.070458,-0.06526 0.00704,-1.578004 0.00704,-1.5780044 -1.4415606,-0.00612 -1.4415606,-0.00612 v 1.5800134 1.580014 l 0.069363,0.06936 0.069363,0.06936 H 3.7393895 5.0340922 Z M 2.7330841,4.1931182 V 2.9710547 h 0.2016996 0.2017 v 1.2220635 1.222064 h -0.2017 -0.2016996 z m 0.8067992,0 V 2.9710547 h 0.2017 0.2016996 v 1.2220635 1.222064 h -0.2016996 -0.2017 z m 0.8305286,0 V 2.9710547 H 4.560247 4.7500825 v 1.2220635 1.222064 H 4.560247 4.3704119 Z M 4.3466819,1.6275524 C 4.3525019,1.4948826 4.3066309,1.3905375 4.2264459,1.3628251 4.1044771,1.3096741 4.063522,1.3135821 3.7620234,1.3163031 3.4605248,1.3190231 3.3539331,1.3387671 3.2833638,1.3817941 3.1976948,1.4340251 3.136483,1.5521229 3.136483,1.6651764 v 0.07195 h 0.6050997 0.6050992 z" /></svg>`
+  };
+  return icons[type] || "";
+}
+
+function applyNavStyleActionButtons(root = document) {
+  const actionMap = [
+    { type: "save", label: "Opslaan", match: /^(instellingen\s+)?opslaan$/i },
+    { type: "cancel", label: "Annuleren", match: /^annuleren$/i },
+    { type: "delete", label: "Verwijderen", match: /^verwijderen$/i }
+  ];
+
+  root.querySelectorAll("button").forEach(button => {
+    if (button.classList.contains("nav-btn") || button.classList.contains("icon-btn") || button.classList.contains("fab")) return;
+
+    const plainText = (button.dataset.actionLabel || button.textContent || "").replace(/\s+/g, " ").trim();
+    const action = actionMap.find(item => item.match.test(plainText));
+    if (!action) return;
+
+    button.dataset.actionLabel = action.label;
+    button.dataset.actionType = action.type;
+    button.setAttribute("aria-label", action.label);
+    button.title = action.label;
+    button.classList.add("app-action-nav-btn");
+    button.innerHTML = `
+      <span class="app-action-nav-ico" aria-hidden="true">${getActionButtonIconSvg(action.type)}</span>
+      <span class="app-action-nav-label">${action.label}</span>
+    `;
+  });
+}
+
 
 /* =========================
    EVENTS
 ========================= */
 
 function registerEvents() {
+  applyNavStyleActionButtons();
+
   document.getElementById("prevMonthBtn").addEventListener("click", () => animateCalendarMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => animateCalendarMonth(1));
   setupCalendarSwipeNavigation();
+  setupAppPageSwipeNavigation();
+  ensureActiveNavVisible();
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
+  const todayIconBtn = document.getElementById("todayIconBtn");
+  if (todayIconBtn) {
+    const handleTodayIconTap = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      jumpToToday();
+    };
+
+    // Pointer/touch-start maakt het icoontje betrouwbaar op iPhone: de actie
+    // gebeurt meteen bij de tik en kan niet door swipe-click-suppressie worden
+    // tegengehouden. De click-listener blijft als fallback voor desktop.
+    if (window.PointerEvent) {
+      todayIconBtn.addEventListener("pointerup", handleTodayIconTap);
+    } else {
+      todayIconBtn.addEventListener("touchend", handleTodayIconTap, { passive: false });
+    }
+    todayIconBtn.addEventListener("click", handleTodayIconTap);
+  }
+
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
   document.querySelectorAll(".nav-btn").forEach(btn => {

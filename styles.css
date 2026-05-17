@@ -459,6 +459,8 @@ button {
   justify-content: flex-end;
   padding: 7px;
   position: relative;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .day-button {
@@ -472,6 +474,7 @@ button {
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
+  pointer-events: none;
 }
 
  .day-cell.selected {
@@ -490,6 +493,7 @@ button {
 
 .day-dots {
   position: absolute;
+  pointer-events: none;
   left: 7px;
   right: 7px;
   bottom: 7px;
@@ -4066,9 +4070,6 @@ button {
 .calendar-panel {
   position: relative;
   overflow: hidden;
-  touch-action: pan-y;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 .calendar-panel.is-swiping > :not(.calendar-swipe-preview),
@@ -4438,4 +4439,205 @@ button {
 .service-drag-handle:active span,
 .service-sort-card.is-dragging .service-drag-handle span {
   background: #fff;
+}
+
+/* =========================================================
+   AFSPRAAKMODAL: COMPACTE TABELVORM + SCROLLBAAR VENSTER
+   - Raakt swipe/klik-logica niet aan: enkel layout van de modal.
+========================================================= */
+#appointmentDialog.modal {
+  max-height: calc(100dvh - 20px);
+  overflow: hidden;
+}
+
+#appointmentForm.modal-card {
+  max-height: calc(100dvh - 20px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.appointment-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.appointment-form-field {
+  min-width: 0;
+}
+
+.appointment-form-field .field-label {
+  margin-top: 0;
+}
+
+#appointmentForm .appointment-actions-row {
+  flex: 0 0 auto;
+}
+
+#appointmentForm .appointment-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+#appointmentForm .appointment-form-field-wide {
+  grid-column: 1 / -1;
+}
+
+#appointmentForm .field {
+  min-height: 42px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+#appointmentForm .field-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+#appointmentForm .appointment-customer-picker,
+#appointmentForm .appointment-service-picker {
+  gap: 6px;
+}
+
+@media (max-width: 360px) {
+  #appointmentForm .appointment-form-grid {
+    gap: 8px;
+  }
+
+  #appointmentForm .field {
+    min-height: 40px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+
+/* =========================================================
+   GLOBALE ACTIEKNOPPEN - stijl zoals bottom menu
+   Wordt hergebruikt voor Opslaan / Annuleren / Verwijderen
+========================================================= */
+.app-action-nav-btn,
+.modal-actions .btn.app-action-nav-btn,
+.right-actions .btn.app-action-nav-btn,
+.payment-top-action .btn.app-action-nav-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 86px;
+  min-height: 68px;
+  width: auto;
+  border: none !important;
+  border-radius: 16px;
+  background: transparent !important;
+  color: var(--muted) !important;
+  display: grid !important;
+  grid-template-rows: 28px auto;
+  place-items: center;
+  align-content: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px !important;
+  box-shadow: none !important;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px !important;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-align: center !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-action-nav-btn:hover,
+.app-action-nav-btn:active,
+.modal-actions .btn.app-action-nav-btn:hover,
+.modal-actions .btn.app-action-nav-btn:active,
+.right-actions .btn.app-action-nav-btn:hover,
+.right-actions .btn.app-action-nav-btn:active {
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  transform: translateY(-1px);
+}
+
+.app-action-nav-btn:active,
+.modal-actions .btn.app-action-nav-btn:active,
+.right-actions .btn.app-action-nav-btn:active {
+  transform: translateY(0);
+}
+
+.app-action-nav-ico {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.app-action-nav-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+  fill: currentColor;
+}
+
+.app-action-nav-icon path {
+  fill: currentColor !important;
+  stroke-width: 0;
+}
+
+.app-action-nav-label {
+  display: block;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+.modal-actions.triple-actions {
+  align-items: stretch;
+}
+
+.modal-actions.triple-actions > .app-action-nav-btn {
+  flex: 1 1 0 !important;
+}
+
+.modal-actions.triple-actions > .right-actions {
+  flex: 2 1 0 !important;
+  margin-left: 0;
+}
+
+.modal-actions.triple-actions .right-actions > .app-action-nav-btn {
+  flex: 1 1 0 !important;
+}
+
+.modal-actions.end-only .app-action-nav-btn,
+.modal-actions.two-buttons .app-action-nav-btn,
+.payment-bottom-actions .app-action-nav-btn {
+  flex: 1 1 0;
+}
+
+@media (max-width: 420px) {
+  .app-action-nav-btn,
+  .modal-actions .btn.app-action-nav-btn,
+  .right-actions .btn.app-action-nav-btn,
+  .payment-top-action .btn.app-action-nav-btn {
+    min-width: 0;
+    min-height: 64px;
+    grid-template-rows: 26px auto;
+    padding: 7px 6px !important;
+    font-size: clamp(11px, 3.2vw, 14px) !important;
+  }
+
+  .app-action-nav-ico {
+    width: 26px;
+    height: 26px;
+  }
+
+  .app-action-nav-icon {
+    width: 24px;
+    height: 24px;
+  }
 }
