@@ -7,6 +7,319 @@ function formatDateInput(d) {
 
 const todayStr = formatDateInput(today);
 
+
+const SUPPORTED_LANGUAGES = [
+  { code: "nl-BE", label: "Nederlands" },
+  { code: "en-GB", label: "English" },
+  { code: "fr-FR", label: "Français" }
+];
+
+const SUPPORTED_CURRENCIES = [
+  { code: "EUR", label: "Euro", symbol: "€" },
+  { code: "USD", label: "Dollar", symbol: "$" },
+  { code: "GBP", label: "Britse pond", symbol: "£" }
+];
+
+const DEFAULT_LANGUAGE = "nl-BE";
+const DEFAULT_CURRENCY = "EUR";
+
+const i18n = {
+  "nl-BE": {
+    agenda: "Agenda", revenue: "Omzet", clients: "Klanten", services: "Diensten", paymentMethods: "Betaalwijze", statistics: "Statistieken", settings: "Instellingen", account: "Account",
+    save: "Opslaan", cancel: "Annuleren", register: "Registreren", login: "Inloggen", logout: "Uitloggen", editProfile: "Gegevens wijzigen", changePassword: "Wachtwoord wijzigen",
+    language: "Taal", currency: "Valuta", appPreferences: "App-voorkeuren", currencyChangeWarning: "Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.",
+    firstName: "Voornaam", lastName: "Naam", salonName: "Salonnaam", vatNumber: "BTW-nummer", email: "E-mail", password: "Wachtwoord", confirmPassword: "Bevestig wachtwoord", optional: "optioneel",
+    noRevenueForSelection: "Geen omzetgegevens voor deze selectie.", paid: "Betaald", unpaid: "Onbetaald", paymentMethod: "Betaalwijze", unknown: "Onbekend", settingsSaved: "Instellingen opgeslagen.", settingsSavedDevice: "Instellingen opgeslagen op dit toestel.", saveSettings: "Instellingen opslaan", ok: "OK", confirmTitle: "Bevestiging", confirm: "Bevestigen"
+  },
+  "en-GB": {
+    agenda: "Agenda", revenue: "Revenue", clients: "Clients", services: "Services", paymentMethods: "Payment methods", statistics: "Statistics", settings: "Settings", account: "Account",
+    save: "Save", cancel: "Cancel", register: "Register", login: "Log in", logout: "Log out", editProfile: "Edit details", changePassword: "Change password",
+    language: "Language", currency: "Currency", appPreferences: "App preferences", currencyChangeWarning: "New appointments will use this currency from now on. Existing appointments and revenue remain in their original currency and are not converted.",
+    firstName: "First name", lastName: "Last name", salonName: "Salon name", vatNumber: "VAT number", email: "Email", password: "Password", confirmPassword: "Confirm password", optional: "optional",
+    noRevenueForSelection: "No revenue data for this selection.", paid: "Paid", unpaid: "Unpaid", paymentMethod: "Payment method", unknown: "Unknown", settingsSaved: "Settings saved.", settingsSavedDevice: "Settings saved on this device.", saveSettings: "Save settings", ok: "OK", confirmTitle: "Confirmation", confirm: "Confirm"
+  },
+  "fr-FR": {
+    agenda: "Agenda", revenue: "Chiffre d’affaires", clients: "Clients", services: "Services", paymentMethods: "Modes de paiement", statistics: "Statistiques", settings: "Paramètres", account: "Compte",
+    save: "Enregistrer", cancel: "Annuler", register: "S’inscrire", login: "Connexion", logout: "Déconnexion", editProfile: "Modifier les données", changePassword: "Modifier le mot de passe",
+    language: "Langue", currency: "Devise", appPreferences: "Préférences de l’application", currencyChangeWarning: "Les nouveaux rendez-vous utiliseront désormais cette devise. Les rendez-vous et revenus existants restent dans leur devise d’origine et ne sont pas convertis.",
+    firstName: "Prénom", lastName: "Nom", salonName: "Nom du salon", vatNumber: "Numéro de TVA", email: "E-mail", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", optional: "optionnel",
+    noRevenueForSelection: "Aucune donnée de chiffre d’affaires pour cette sélection.", paid: "Payé", unpaid: "Impayé", paymentMethod: "Mode de paiement", unknown: "Inconnu", settingsSaved: "Paramètres enregistrés.", settingsSavedDevice: "Paramètres enregistrés sur cet appareil.", saveSettings: "Enregistrer les paramètres", ok: "OK", confirmTitle: "Confirmation", confirm: "Confirmer"
+  }
+};
+
+const i18nExtra = {
+  "nl-BE": {
+    planning: "Planning", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Maand kiezen", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
+  },
+  "en-GB": {
+    planning: "Planning", notifications: "Notifications", extras: "Useful extras", defaultBreak: "Default break between 2 appointments (min)", overlapWarnings: "Overlap warnings", overlapWarningsHint: "Warn when an appointment overlaps with an existing appointment, taking duration and break time into account.", enableNotifications: "Enable notifications", enableNotificationsHint: "Prepared for appointment reminders in the app.", reminderBefore: "Reminder before appointment", savePending: "Saving settings...", notificationsOff: "Notifications are disabled.", notificationsActive: "Notifications are active on this device while the browser or app supports notifications.", notificationsBlocked: "Notifications are blocked in your browser settings.", notificationsUnsupported: "This browser does not support web notifications.", notificationsPermissionHint: "Enable notifications and allow permission to show reminders.", appointmentsOn: "Appointments on", noAppointmentsOnDay: "No appointments on this day.", noClientsFound: "No clients found.", noPhone: "No mobile", appointmentSingular: "appointment", appointmentPlural: "appointments", noActiveServices: "No active services yet.", inactive: "inactive", showInactiveServices: "Show inactive services", allPaymentMethods: "All payment methods", allStatuses: "All statuses", day: "Day", week: "Week", month: "Month", year: "Year", today: "Today", total: "Total", revenueOn: "Revenue on", revenueReport: "Revenue report", paymentMethodTitle: "Payment method", unknownCustomer: "Unknown client", chooseMonth: "Choose month", choose: "Choose", newAppointment: "New appointment", editAppointment: "Edit appointment", customer: "Client", date: "Date", time: "Time", service: "Service", duration: "Duration (min)", price: "Price", status: "Status", planned: "Planned", completed: "Completed", newClient: "New client", phone: "Phone", note: "Note", appointmentRemarks: "Remarks", newService: "New service", serviceName: "Service name", newPaymentMethod: "New payment method", paymentMethodName: "Payment method name", editProfileTitle: "Edit profile", currentPassword: "Current password", newPassword: "New password", message: "Message", registerHere: "No account yet? Register here"
+  },
+  "fr-FR": {
+    planning: "Planning", notifications: "Notifications", extras: "Extras utiles", defaultBreak: "Pause standard entre 2 rendez-vous (min)", overlapWarnings: "Avertissements de chevauchement", overlapWarningsHint: "Avertir lorsqu’un rendez-vous chevauche un rendez-vous existant, en tenant compte de la durée et de la pause.", enableNotifications: "Activer les notifications", enableNotificationsHint: "Prévu pour les rappels de rendez-vous dans l’application.", reminderBefore: "Rappel avant le rendez-vous", savePending: "Enregistrement des paramètres...", notificationsOff: "Les notifications sont désactivées.", notificationsActive: "Les notifications sont actives sur cet appareil tant que le navigateur ou l’application les prend en charge.", notificationsBlocked: "Les notifications sont bloquées dans les paramètres de votre navigateur.", notificationsUnsupported: "Ce navigateur ne prend pas en charge les notifications web.", notificationsPermissionHint: "Activez les notifications et autorisez-les pour afficher les rappels.", appointmentsOn: "Rendez-vous le", noAppointmentsOnDay: "Aucun rendez-vous ce jour-là.", noClientsFound: "Aucun client trouvé.", noPhone: "Pas de GSM", appointmentSingular: "rendez-vous", appointmentPlural: "rendez-vous", noActiveServices: "Aucun service actif pour le moment.", inactive: "inactif", showInactiveServices: "Afficher les services inactifs", allPaymentMethods: "Tous les modes de paiement", allStatuses: "Tous les statuts", day: "Jour", week: "Semaine", month: "Mois", year: "Année", today: "Aujourd’hui", total: "Total", revenueOn: "Chiffre d’affaires le", revenueReport: "Rapport du chiffre d’affaires", paymentMethodTitle: "Mode de paiement", unknownCustomer: "Client inconnu", chooseMonth: "Choisir le mois", choose: "Choisir", newAppointment: "Nouveau rendez-vous", editAppointment: "Modifier le rendez-vous", customer: "Client", date: "Date", time: "Heure", service: "Service", duration: "Durée (min)", price: "Prix", status: "Statut", planned: "Planifié", completed: "Terminé", newClient: "Nouveau client", phone: "Téléphone", note: "Note", appointmentRemarks: "Remarques", newService: "Nouveau service", serviceName: "Nom du service", newPaymentMethod: "Nouveau mode de paiement", paymentMethodName: "Nom du mode de paiement", editProfileTitle: "Modifier le profil", currentPassword: "Mot de passe actuel", newPassword: "Nouveau mot de passe", message: "Message", registerHere: "Pas encore de compte ? Inscrivez-vous ici"
+  }
+};
+Object.keys(i18nExtra).forEach(lang => Object.assign(i18n[lang], i18nExtra[lang]));
+
+const i18nMore = {
+  "nl-BE": {
+    mondayShort:"Ma", tuesdayShort:"Di", wednesdayShort:"Wo", thursdayShort:"Do", fridayShort:"Vr", saturdayShort:"Za", sundayShort:"Zo",
+    searchClientPlaceholder:"Zoek klant...", searchAppointmentCustomerPlaceholder:"Zoek op naam, telefoon of e-mail...", searchServicePlaceholder:"Zoek dienst...",
+    delete:"Verwijderen", edit:"Bewerk", editClient:"Klant bewerken", editService:"Dienst bewerken", editPaymentMethod:"Betaalwijze bewerken", reactivateService:"Dienst opnieuw actief zetten", reactivateServiceHint:"De dienst verschijnt opnieuw in de actieve dienstenlijst en bij nieuwe afspraken.",
+    customerNumber:"Klantnummer", appointments:"Afspraken", totalLower:"totaal", noAppointmentsYet:"Nog geen afspraken.", noPaymentMethods:"Nog geen betaalwijzen.", paymentSingular:"betaling", paymentPlural:"betalingen",
+    customerCount:"Aantal klanten", pastAppointments:"Afgeronde afspraken", futureAppointments:"Geplande afspraken", totalRevenueUntilToday:"Totale omzet tot vandaag", chosenServices:"Gekozen behandelingen", revenueByService:"Omzet per behandeling", chosenPaymentMethod:"Gekozen betaalwijze", topCustomers:"Top klanten", all:"Alle", noCustomerStats:"Nog geen klantgegevens beschikbaar.", more:"Meer...", less:"Minder",
+    serviceNameRequired:"Geef een naam voor de dienst in.", duplicateServiceTitle:"Dubbele dienstnaam", saveAnyway:"Toch opslaan", saveFailed:"Opslaan mislukt", duplicateServiceMessage:"Er bestaat al een dienst met de naam \"{name}\".\n\nWil je toch opslaan? Dan wordt deze dienst opgeslagen als \"{uniqueName}\".", chooseDate:"Kies datum", chooseTime:"Kies tijd", chooseCustomer:"Kies een klant...", chooseService:"Kies een dienst...", choosePaymentMethod:"Kies een betaalwijze...", chooseConfirm:"Kies"
+  },
+  "en-GB": {
+    mondayShort:"Mon", tuesdayShort:"Tue", wednesdayShort:"Wed", thursdayShort:"Thu", fridayShort:"Fri", saturdayShort:"Sat", sundayShort:"Sun",
+    searchClientPlaceholder:"Search client...", searchAppointmentCustomerPlaceholder:"Search by name, phone or email...", searchServicePlaceholder:"Search service...",
+    delete:"Delete", edit:"Edit", editClient:"Edit client", editService:"Edit service", editPaymentMethod:"Edit payment method", reactivateService:"Reactivate service", reactivateServiceHint:"The service will appear again in the active services list and for new appointments.",
+    customerNumber:"Client number", appointments:"Appointments", totalLower:"total", noAppointmentsYet:"No appointments yet.", noPaymentMethods:"No payment methods yet.", paymentSingular:"payment", paymentPlural:"payments",
+    customerCount:"Number of clients", pastAppointments:"Completed appointments", futureAppointments:"Planned appointments", totalRevenueUntilToday:"Total revenue until today", chosenServices:"Selected services", revenueByService:"Revenue per service", chosenPaymentMethod:"Selected payment method", topCustomers:"Top clients", all:"All", noCustomerStats:"No client data available yet.", more:"More...", less:"Less",
+    serviceNameRequired:"Enter a service name.", duplicateServiceTitle:"Duplicate service name", saveAnyway:"Save anyway", saveFailed:"Save failed", duplicateServiceMessage:"A service named \"{name}\" already exists.\n\nDo you still want to save it? This service will be saved as \"{uniqueName}\".", chooseDate:"Choose date", chooseTime:"Choose time", chooseCustomer:"Choose a client...", chooseService:"Choose a service...", choosePaymentMethod:"Choose a payment method...", chooseConfirm:"Choose"
+  },
+  "fr-FR": {
+    mondayShort:"Lu", tuesdayShort:"Ma", wednesdayShort:"Me", thursdayShort:"Je", fridayShort:"Ve", saturdayShort:"Sa", sundayShort:"Di",
+    searchClientPlaceholder:"Rechercher un client...", searchAppointmentCustomerPlaceholder:"Rechercher par nom, téléphone ou e-mail...", searchServicePlaceholder:"Rechercher un service...",
+    delete:"Supprimer", edit:"Modifier", editClient:"Modifier le client", editService:"Modifier le service", editPaymentMethod:"Modifier le mode de paiement", reactivateService:"Réactiver le service", reactivateServiceHint:"Le service réapparaîtra dans la liste des services actifs et pour les nouveaux rendez-vous.",
+    customerNumber:"Numéro client", appointments:"Rendez-vous", totalLower:"au total", noAppointmentsYet:"Pas encore de rendez-vous.", noPaymentMethods:"Aucun mode de paiement pour le moment.", paymentSingular:"paiement", paymentPlural:"paiements",
+    customerCount:"Nombre de clients", pastAppointments:"Rendez-vous terminés", futureAppointments:"Rendez-vous planifiés", totalRevenueUntilToday:"Chiffre d’affaires total jusqu’à aujourd’hui", chosenServices:"Soins choisis", revenueByService:"Chiffre d’affaires par soin", chosenPaymentMethod:"Mode de paiement choisi", topCustomers:"Meilleurs clients", all:"Tous", noCustomerStats:"Aucune donnée client disponible pour le moment.", more:"Plus...", less:"Moins",
+    serviceNameRequired:"Indiquez un nom de service.", duplicateServiceTitle:"Nom de service en double", saveAnyway:"Enregistrer quand même", saveFailed:"Échec de l’enregistrement", duplicateServiceMessage:"Un service nommé \"{name}\" existe déjà.\n\nVoulez-vous quand même l’enregistrer ? Ce service sera enregistré sous \"{uniqueName}\".", chooseDate:"Choisir la date", chooseTime:"Choisir l’heure", chooseCustomer:"Choisir un client...", chooseService:"Choisir un service...", choosePaymentMethod:"Choisir un mode de paiement...", chooseConfirm:"Choisir"
+  }
+};
+Object.keys(i18nMore).forEach(lang => Object.assign(i18n[lang], i18nMore[lang]));
+
+const i18nTodo = {
+  "nl-BE": { todo: "To Do", newTodo: "Nieuwe taak", editTodo: "Taak bewerken", todoTitle: "Titel", todoDescription: "Omschrijving", addBullet: "Bullet toevoegen", noTodos: "Nog geen taken.", markDone: "Afvinken", markOpen: "Terug openzetten", completed: "Afgewerkt", open: "Open" },
+  "en-GB": { todo: "To Do", newTodo: "New task", editTodo: "Edit task", todoTitle: "Title", todoDescription: "Description", addBullet: "Add bullet", noTodos: "No tasks yet.", markDone: "Mark done", markOpen: "Reopen", completed: "Done", open: "Open" },
+  "fr-FR": { todo: "To Do", newTodo: "Nouvelle tâche", editTodo: "Modifier la tâche", todoTitle: "Titre", todoDescription: "Description", addBullet: "Ajouter une puce", noTodos: "Aucune tâche pour le moment.", markDone: "Terminer", markOpen: "Rouvrir", completed: "Terminée", open: "Ouverte" }
+};
+Object.keys(i18nTodo).forEach(lang => Object.assign(i18n[lang], i18nTodo[lang]));
+
+
+let currentProfilePreferences = { language: DEFAULT_LANGUAGE, currency: DEFAULT_CURRENCY };
+
+function normalizeLanguage(code) {
+  return SUPPORTED_LANGUAGES.some(item => item.code === code) ? code : DEFAULT_LANGUAGE;
+}
+
+function normalizeCurrency(code) {
+  return SUPPORTED_CURRENCIES.some(item => item.code === code) ? code : DEFAULT_CURRENCY;
+}
+
+function getCurrentLanguage() {
+  return normalizeLanguage(currentProfilePreferences.language || getData()?.settings?.language || DEFAULT_LANGUAGE);
+}
+
+function getCurrentCurrency() {
+  return normalizeCurrency(currentProfilePreferences.currency || getData()?.settings?.currency || DEFAULT_CURRENCY);
+}
+
+function t(key) {
+  const lang = getCurrentLanguage();
+  return i18n[lang]?.[key] || i18n[DEFAULT_LANGUAGE]?.[key] || key;
+}
+
+function getCurrencyLabel(code) {
+  const currency = SUPPORTED_CURRENCIES.find(item => item.code === normalizeCurrency(code));
+  return currency ? `${currency.label} (${currency.code})` : code;
+}
+
+function buildLanguageOptions(selected = DEFAULT_LANGUAGE) {
+  const safe = normalizeLanguage(selected);
+  return SUPPORTED_LANGUAGES.map(item => `<option value="${item.code}"${item.code === safe ? " selected" : ""}>${item.label}</option>`).join("");
+}
+
+function buildCurrencyOptions(selected = DEFAULT_CURRENCY) {
+  const safe = normalizeCurrency(selected);
+  return SUPPORTED_CURRENCIES.map(item => `<option value="${item.code}"${item.code === safe ? " selected" : ""}>${item.label} (${item.symbol})</option>`).join("");
+}
+
+function updateStaticI18n() {
+  document.documentElement.lang = getCurrentLanguage().slice(0, 2);
+
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  });
+
+  const setText = (selector, key) => {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = t(key);
+  };
+  const setHtml = (selector, html) => {
+    const el = document.querySelector(selector);
+    if (el) el.innerHTML = html;
+  };
+
+  const selectorMap = [
+    ["#jumpToTodayBtn", "today"],
+    ['label[for="settingsDefaultBreakMinutes"]', "defaultBreak"],
+    ['label[for="settingsReminderMinutes"]', "reminderBefore"],
+    ['label[for="loginEmail"]', "email"],
+    ['label[for="loginPassword"]', "password"],
+    ['#openRegisterDialogBtn', "registerHere"],
+    ['#monthPickerDialog h3', "chooseMonth"],
+    ['label[for="monthSelect"]', "month"],
+    ['label[for="yearSelect"]', "year"],
+    ['label[for="appointmentCustomerSearch"]', "customer"],
+    ['label[for="appointmentDate"]', "date"],
+    ['label[for="appointmentTime"]', "time"],
+    ['label[for="appointmentServiceSearch"]', "service"],
+    ['label[for="appointmentDuration"]', "duration"],
+    ['label[for="appointmentPrice"]', "price"],
+    ['label[for="appointmentStatus"]', "status"],
+    ['label[for="appointmentRemarks"]', "appointmentRemarks"],
+    ['label[for="clientFirstName"]', "firstName"],
+    ['label[for="clientLastName"]', "lastName"],
+    ['label[for="clientPhone"]', "phone"],
+    ['label[for="clientEmail"]', "email"],
+    ['label[for="clientNote"]', "note"],
+    ['label[for="serviceName"]', "serviceName"],
+    ['label[for="serviceDuration"]', "duration"],
+    ['label[for="servicePrice"]', "price"],
+    ['label[for="paymentMethodName"]', "paymentMethodName"],
+    ['label[for="registerFirstName"]', "firstName"],
+    ['label[for="registerLastName"]', "lastName"],
+    ['label[for="registerEmail"]', "email"],
+    ['label[for="registerPassword"]', "password"],
+    ['label[for="registerPasswordConfirm"]', "confirmPassword"],
+    ['label[for="editFirstName"]', "firstName"],
+    ['label[for="editLastName"]', "lastName"],
+    ['label[for="currentPassword"]', "currentPassword"],
+    ['label[for="newPassword"]', "newPassword"],
+    ['label[for="confirmPassword"]', "confirmPassword"],
+    ['#passwordDialog h3', "changePassword"],
+    ['#appMessageDialogTitle', "message"],
+    ['#appointmentWheelPickerTitle', "choose"],
+    ['#revenueWheelPickerTitle', "choose"]
+  ];
+  selectorMap.forEach(([selector, key]) => setText(selector, key));
+
+  setHtml('label[for="registerSalonName"]', `${t("salonName")} <span class="optional-label">${t("optional")}</span>`);
+  setHtml('label[for="registerVatNumber"]', `${t("vatNumber")} <span class="optional-label">${t("optional")}</span>`);
+  setHtml('label[for="editSalonName"]', `${t("salonName")} <span class="optional-label">${t("optional")}</span>`);
+  setHtml('label[for="editVatNumber"]', `${t("vatNumber")} <span class="optional-label">${t("optional")}</span>`);
+
+  document.querySelectorAll(".account-data-label").forEach(el => {
+    const text = el.textContent.trim().toLowerCase();
+    const map = {
+      "voornaam": "firstName", "first name": "firstName", "prénom": "firstName",
+      "familienaam": "lastName", "naam": "lastName", "last name": "lastName", "nom": "lastName",
+      "salonnaam": "salonName", "salon name": "salonName", "nom du salon": "salonName",
+      "btw-nummer": "vatNumber", "vat number": "vatNumber", "numéro de tva": "vatNumber",
+      "e-mail": "email", "email": "email",
+      "wachtwoord": "password", "password": "password", "mot de passe": "password"
+    };
+    const key = map[text];
+    if (key) el.textContent = t(key);
+  });
+
+  renderServiceAlphabetFilter();
+
+  const revenuePeriodKeys = ["day", "week", "month", "year"];
+  document.querySelectorAll(".revenue-period-title").forEach((el, index) => {
+    const key = revenuePeriodKeys[index];
+    if (key) el.textContent = t(key);
+  });
+
+  const revenueMainKeys = ["total", "paid", "unpaid"];
+  document.querySelectorAll(".revenue-main-label").forEach((el, index) => {
+    const key = revenueMainKeys[index];
+    if (key) el.textContent = t(key);
+  });
+
+  const settingsLabels = document.querySelectorAll("#settingsScreen .detail-label");
+  [[0, "planning"], [1, "notifications"], [3, "extras"]].forEach(([index, key]) => {
+    if (settingsLabels[index]) settingsLabels[index].textContent = t(key);
+  });
+
+  const authLabel = document.querySelector("#accountGuestView .detail-label");
+  if (authLabel) authLabel.textContent = t("login");
+
+  const statusFilter = document.getElementById("revenuePaymentStatusFilter");
+  if (statusFilter) {
+    const currentValue = statusFilter.value;
+    statusFilter.innerHTML = `
+      <option value="">${t("allStatuses")}</option>
+      <option value="paid">${t("paid")}</option>
+      <option value="unpaid">${t("unpaid")}</option>
+    `;
+    statusFilter.value = currentValue;
+  }
+
+  const periodType = document.getElementById("revenuePeriodType");
+  if (periodType) {
+    const currentValue = periodType.value;
+    periodType.innerHTML = `
+      <option value="day">${t("day")}</option>
+      <option value="week">${t("week")}</option>
+      <option value="month">${t("month")}</option>
+      <option value="year">${t("year")}</option>
+    `;
+    periodType.value = currentValue;
+  }
+
+  const appointmentStatus = document.getElementById("appointmentStatus");
+  if (appointmentStatus) {
+    const currentValue = appointmentStatus.value;
+    appointmentStatus.innerHTML = `
+      <option value="gepland">${t("planned")}</option>
+      <option value="afgerond">${t("completed")}</option>
+      <option value="no-show">No-show</option>
+    `;
+    appointmentStatus.value = currentValue;
+  }
+
+  const weekdayKeys = ["mondayShort", "tuesdayShort", "wednesdayShort", "thursdayShort", "fridayShort", "saturdayShort", "sundayShort"];
+  document.querySelectorAll(".weekday-row span").forEach((el, index) => {
+    if (weekdayKeys[index]) el.textContent = t(weekdayKeys[index]);
+  });
+
+  [["#clientSearch", "searchClientPlaceholder"], ["#serviceSearch", "searchServicePlaceholder"], ["#appointmentCustomerSearch", "searchAppointmentCustomerPlaceholder"], ["#appointmentServiceSearch", "searchServicePlaceholder"]].forEach(([selector, key]) => {
+    const el = document.querySelector(selector);
+    if (el) el.setAttribute("placeholder", t(key));
+  });
+
+  [["#loginBtn", "login"], ["#logoutBtn", "logout"], ["#editProfileBtn", "editProfile"], ["#changePasswordBtn", "changePassword"], ["#deleteAppointmentBtn", "delete"], ["#deleteServiceBtn", "delete"], ["#deletePaymentMethodBtn", "delete"], ["#appointmentDateDisplayBtn", "chooseDate"], ["#appointmentTimeDisplayBtn", "chooseTime"]].forEach(([selector, key]) => setText(selector, key));
+
+  document.querySelectorAll('button[data-close="appointmentDialog"], button[data-close="clientDialog"], button[data-close="serviceDialog"], button[data-close="paymentMethodDialog"], button[data-close="passwordDialog"], button[data-close="editProfileDialog"]').forEach(btn => {
+    if (!btn.classList.contains("icon-btn")) btn.textContent = t("cancel");
+  });
+  document.querySelectorAll('#appointmentForm button[type="submit"], #clientForm button[type="submit"], #serviceForm button[type="submit"], #paymentMethodForm button[type="submit"], #passwordForm button[type="submit"], #editProfileForm button[type="submit"]').forEach(btn => {
+    btn.textContent = t("save");
+  });
+
+  const overlapLabel = document.querySelector('label[for="settingsOverlapWarningsEnabled"]');
+  if (overlapLabel) {
+    const strong = overlapLabel.querySelector('strong');
+    const small = overlapLabel.querySelector('small');
+    if (strong) strong.textContent = t("overlapWarnings");
+    if (small) small.textContent = t("overlapWarningsHint");
+  }
+  const notificationLabel = document.querySelector('label[for="settingsNotificationsEnabled"]');
+  if (notificationLabel) {
+    const strong = notificationLabel.querySelector('strong');
+    const small = notificationLabel.querySelector('small');
+    if (strong) strong.textContent = t("enableNotifications");
+    if (small) small.textContent = t("enableNotificationsHint");
+  }
+  const serviceReactivate = document.querySelector('#serviceReactivateWrap');
+  if (serviceReactivate) {
+    const strong = serviceReactivate.querySelector('strong');
+    const small = serviceReactivate.querySelector('small');
+    if (strong) strong.textContent = t("reactivateService");
+    if (small) small.textContent = t("reactivateServiceHint");
+  }
+
+  const screenTitle = document.getElementById("screenTitle");
+  if (screenTitle) screenTitle.textContent = getScreenTitle(state.currentScreen, screenTitle.textContent);
+
+  applyNavStyleActionButtons();
+}
+
 const state = {
   currentScreen: "agendaScreen",
   currentYear: today.getFullYear(),
@@ -15,8 +328,17 @@ const state = {
   selectedClientId: null,
   previousMainScreen: "clientsScreen",
   clientLetter: "",
+  serviceLetter: "",
   settingsSavePending: false,
-  statsTopCustomersVisible: 10
+  statsTopCustomersVisible: 10,
+  revenueInitialized: false,
+  revenueSelectedDateSynced: null,
+  revenueSyncSelectedDateOnOpen: true,
+  revenueLastRenderSignature: "",
+  showInactiveServices: false,
+  todoFilter: "all",
+  appNavigationReady: false,
+  appNavigationLastScreen: null
 };
 
 const monthNames = [
@@ -29,13 +351,26 @@ const longMonthNames = [
   "juli", "augustus", "september", "oktober", "november", "december"
 ];
 
+function getMonthNameLong(monthIndex) {
+  const d = new Date(2026, Number(monthIndex) || 0, 1);
+  return new Intl.DateTimeFormat(getCurrentLanguage(), { month: "long" }).format(d);
+}
+
+function getMonthNameUpper(monthIndex) {
+  return getMonthNameLong(monthIndex).toLocaleUpperCase(getCurrentLanguage());
+}
+
+function capitalizeFirst(value) {
+  const text = String(value || "");
+  return text ? text.charAt(0).toLocaleUpperCase(getCurrentLanguage()) + text.slice(1) : text;
+}
+
 const defaultPaymentMethods = [
   { id: 1, name: "Cash", sortOrder: 1 },
-  { id: 2, name: "Payconiq", sortOrder: 2 },
-  { id: 3, name: "Bancontact", sortOrder: 3 },
-  { id: 4, name: "Kaart", sortOrder: 4 },
-  { id: 5, name: "Overschrijving", sortOrder: 5 },
-  { id: 6, name: "Andere", sortOrder: 6 }
+  { id: 2, name: "Bancontact", sortOrder: 2 },
+  { id: 3, name: "Kaart", sortOrder: 3 },
+  { id: 4, name: "Overschrijving", sortOrder: 4 },
+  { id: 5, name: "Andere", sortOrder: 5 }
 ];
 
 const revenuePickerState = {
@@ -52,6 +387,11 @@ const paymentPopoverState = {
   anchorRect: null
 };
 
+const appointmentActionPopoverState = {
+  appointmentId: null,
+  anchorRect: null
+};
+
 
 function addDaysStr(dateStr, days) {
   const d = new Date(dateStr + "T00:00:00");
@@ -64,7 +404,13 @@ function getDefaultSettings() {
     defaultBreakMinutes: 10,
     notificationsEnabled: false,
     reminderMinutes: 30,
-    overlapWarningsEnabled: true
+    overlapWarningsEnabled: true,
+    language: DEFAULT_LANGUAGE,
+    currency: DEFAULT_CURRENCY,
+    paymentBeneficiaryName: "",
+    paymentIban: "",
+    paymentBic: "",
+    paymentReferencePrefix: "Idle & Ease"
   };
 }
 
@@ -81,14 +427,29 @@ function normalizeData(data) {
 
     return {
       ...appointment,
-      paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null
+      paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null,
+      currency: normalizeCurrency(appointment?.currency || safe.settings?.currency || DEFAULT_CURRENCY),
+      remarks: String(appointment?.remarks || appointment?.note || appointment?.appointment_remarks || "").trim()
     };
   }) : [];
 
+  const todos = Array.isArray(safe.todos) ? safe.todos.map(todo => ({
+    id: todo?.id,
+    title: String(todo?.title || "").trim(),
+    description: String(todo?.description || todo?.note || "").trim(),
+    completed: Boolean(todo?.completed ?? todo?.isCompleted ?? todo?.is_completed),
+    createdAt: todo?.createdAt || todo?.created_at || null,
+    updatedAt: todo?.updatedAt || todo?.updated_at || null
+  })).filter(todo => todo.title || todo.description) : [];
+
   return {
     customers: Array.isArray(safe.customers) ? safe.customers : [],
-    services: Array.isArray(safe.services) ? safe.services : [],
+    services: Array.isArray(safe.services) ? safe.services.map(service => ({
+      ...service,
+      isActive: service?.isActive !== false
+    })) : [],
     appointments,
+    todos,
     paymentMethods,
     settings: {
       ...defaults,
@@ -121,7 +482,8 @@ function normalizePaymentMethods(items) {
       const id = Number(item?.id);
       const sortOrder = Number(item?.sortOrder ?? item?.sort_order ?? index + 1);
       const name = String(item?.name || item?.label || "").trim();
-      if (!name) return null;
+      const legacyPaymentName = "pay" + "coniq";
+      if (!name || name.toLowerCase() === legacyPaymentName) return null;
       return {
         id: Number.isFinite(id) ? id : index + 1,
         name,
@@ -166,21 +528,21 @@ function getRevenuePaymentFilterOptions(data = getData()) {
   return Array.from(names).sort((a, b) => a.localeCompare(b, "nl-BE"));
 }
 
-function euro(value) {
-  return new Intl.NumberFormat("nl-BE", {
+function euro(value, currency = getCurrentCurrency()) {
+  return new Intl.NumberFormat(getCurrentLanguage(), {
     style: "currency",
-    currency: "EUR"
+    currency: normalizeCurrency(currency)
   }).format(Number(value || 0));
 }
 
 function formatLongDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  return `${d.getDate()} ${longMonthNames[d.getMonth()]} ${d.getFullYear()}`;
+  return new Intl.DateTimeFormat(getCurrentLanguage(), { day: "numeric", month: "long", year: "numeric" }).format(d);
 }
 
 function formatShortDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  return `${d.getDate()} ${longMonthNames[d.getMonth()]}`;
+  return new Intl.DateTimeFormat(getCurrentLanguage(), { day: "numeric", month: "long" }).format(d);
 }
 
 function nextId(items) {
@@ -197,6 +559,99 @@ function serviceById(data, id) {
 
 function fullName(customer) {
   return [customer.firstName || "", customer.lastName || ""].join(" ").trim();
+}
+
+function customerNumber(customer) {
+  const raw = customer?.customerNumber ?? customer?.customer_number ?? customer?.id ?? "";
+  const value = String(raw).trim();
+  if (!value) return "-";
+
+  if (/^\d+$/.test(value)) {
+    return `K${value.padStart(5, "0")}`;
+  }
+
+  return value.startsWith("K") ? value : `K${value}`;
+}
+
+
+function normalizePhoneNumber(value, defaultCountryCode = "32") {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  let compact = raw.replace(/[\s().\-/]/g, "");
+  compact = compact.replace(/[^+\d]/g, "");
+
+  if (compact.startsWith("00")) compact = `+${compact.slice(2)}`;
+  if (compact.startsWith("+")) {
+    const digits = compact.slice(1).replace(/\D/g, "");
+    return digits ? `+${digits}` : "";
+  }
+
+  let digits = compact.replace(/\D/g, "");
+  if (!digits) return "";
+
+  if (digits.startsWith(defaultCountryCode)) return `+${digits}`;
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return `+${defaultCountryCode}${digits}`;
+}
+
+function phoneSearchKey(value) {
+  return normalizePhoneNumber(value).replace(/\D/g, "");
+}
+
+function normalizeEmailForDuplicateCheck(value) {
+  return String(value || "").trim().toLocaleLowerCase();
+}
+
+function nextCustomerNumber(data) {
+  const numbers = (data.customers || [])
+    .map(customer => customer?.customerNumber ?? customer?.customer_number)
+    .map(value => String(value || "").replace(/\D/g, ""))
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value > 0);
+  return numbers.length ? Math.max(...numbers) + 1 : 1;
+}
+
+function findDuplicateCustomer(data, payload, excludeId = null) {
+  const phoneKey = phoneSearchKey(payload.phone);
+  const emailKey = normalizeEmailForDuplicateCheck(payload.email);
+
+  if (!phoneKey && !emailKey) return null;
+
+  return (data.customers || []).find(customer => {
+    if (String(customer.id) === String(excludeId || "")) return false;
+    const samePhone = phoneKey && phoneSearchKey(customer.phone) === phoneKey;
+    const sameEmail = emailKey && normalizeEmailForDuplicateCheck(customer.email) === emailKey;
+    return samePhone || sameEmail;
+  }) || null;
+}
+
+function buildDuplicateCustomerMessage(duplicate, payload) {
+  const parts = [];
+  if (payload.phone && phoneSearchKey(payload.phone) === phoneSearchKey(duplicate.phone)) parts.push("telefoonnummer");
+  if (payload.email && normalizeEmailForDuplicateCheck(payload.email) === normalizeEmailForDuplicateCheck(duplicate.email)) parts.push("e-mail");
+
+  return [
+    `Er bestaat al een klant met hetzelfde ${parts.join(" en ") || "telefoonnummer/e-mail"}.`,
+    "",
+    `${fullName(duplicate) || "Onbekende klant"} · ${customerNumber(duplicate)}`,
+    duplicate.phone ? `Tel: ${duplicate.phone}` : "",
+    duplicate.email ? `E-mail: ${duplicate.email}` : "",
+    "",
+    "Wil je deze klant toch opslaan?"
+  ].filter(line => line !== "").join("\n");
+}
+
+function customerSearchText(customer) {
+  return [
+    fullName(customer),
+    customer.firstName,
+    customer.lastName,
+    customer.phone,
+    String(customer.phone || "").replace(/\D/g, ""),
+    customer.email,
+    customerNumber(customer)
+  ].join(" ").toLowerCase();
 }
 
 function weekBounds(dateStr) {
@@ -319,7 +774,153 @@ function buildPastAppointmentMessage(payload) {
   ].join("\n");
 }
 
+
+/* =========================
+   KALENDEREXPORT (.ICS)
+   Simpele koppeling: app -> Google/Apple/Outlook via importbestand
+========================= */
+
+function padIcs(value) {
+  return String(value).padStart(2, "0");
+}
+
+function formatIcsDateTimeLocal(date) {
+  return [
+    date.getFullYear(),
+    padIcs(date.getMonth() + 1),
+    padIcs(date.getDate()),
+    "T",
+    padIcs(date.getHours()),
+    padIcs(date.getMinutes()),
+    "00"
+  ].join("");
+}
+
+function formatIcsDateTimeUtc(date = new Date()) {
+  return [
+    date.getUTCFullYear(),
+    padIcs(date.getUTCMonth() + 1),
+    padIcs(date.getUTCDate()),
+    "T",
+    padIcs(date.getUTCHours()),
+    padIcs(date.getUTCMinutes()),
+    padIcs(date.getUTCSeconds()),
+    "Z"
+  ].join("");
+}
+
+function escapeIcsText(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
+}
+
+function foldIcsLine(line) {
+  const safeLine = String(line || "");
+  if (safeLine.length <= 74) return safeLine;
+
+  const chunks = [];
+  let remaining = safeLine;
+  while (remaining.length > 74) {
+    chunks.push(remaining.slice(0, 74));
+    remaining = remaining.slice(74);
+  }
+  chunks.push(remaining);
+  return chunks.join("\r\n ");
+}
+
+function buildIcsAppointmentEvent(appointment, data) {
+  const customer = customerById(data, appointment.customerId);
+  const service = serviceById(data, appointment.serviceId);
+  const start = new Date(`${appointment.date}T${appointment.time || "00:00"}:00`);
+  const duration = Math.max(1, Number(appointment.duration || service?.duration || 60));
+  const end = new Date(start.getTime() + duration * 60000);
+  const customerName = customer ? fullName(customer) : t("unknownCustomer");
+  const serviceName = service?.name || t("service");
+  const status = String(appointment.status || "").trim();
+  const paidText = appointment.paid ? t("paid") : t("unpaid");
+  const paymentMethod = paymentMethodNameForAppointment(appointment, data);
+  const currency = appointment.currency || getCurrentCurrency();
+
+  const description = [
+    `${t("customer")}: ${customerName}`,
+    customer?.phone ? `${t("phone")}: ${customer.phone}` : "",
+    customer?.email ? `${t("email")}: ${customer.email}` : "",
+    `${t("service")}: ${serviceName}`,
+    `${t("duration")}: ${duration} min`,
+    `${t("price")}: ${euro(appointment.price, currency)}`,
+    `${t("paymentMethod")}: ${paidText}${paymentMethod ? ` (${paymentMethod})` : ""}`,
+    status ? `${t("status")}: ${status}` : "",
+    appointment.remarks ? `${t("appointmentRemarks")}: ${appointment.remarks}` : "",
+    "",
+    "Aangemaakt vanuit NailBooker."
+  ].filter(Boolean).join("\n");
+
+  const uidSource = `${appointment.id || `${appointment.date}-${appointment.time}-${customerName}-${serviceName}`}@nailbooker`;
+
+  return [
+    "BEGIN:VEVENT",
+    `UID:${escapeIcsText(uidSource)}`,
+    `DTSTAMP:${formatIcsDateTimeUtc(new Date())}`,
+    `DTSTART:${formatIcsDateTimeLocal(start)}`,
+    `DTEND:${formatIcsDateTimeLocal(end)}`,
+    `SUMMARY:${escapeIcsText(`${customerName} - ${serviceName}`)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
+    `CATEGORIES:${escapeIcsText("NailBooker")}`,
+    "END:VEVENT"
+  ].map(foldIcsLine).join("\r\n");
+}
+
+function buildAppointmentsIcs(data = getData()) {
+  const appointments = (data.appointments || [])
+    .filter(appointment => appointment?.date && appointment?.time)
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+  const events = appointments.map(appointment => buildIcsAppointmentEvent(appointment, data));
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//NailBooker//Calendar Export//NL",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-CALNAME:NailBooker afspraken",
+    "X-WR-TIMEZONE:Europe/Brussels",
+    ...events,
+    "END:VCALENDAR"
+  ].join("\r\n");
+}
+
+function downloadAppointmentsIcs() {
+  const data = getData();
+  const appointments = (data.appointments || []).filter(appointment => appointment?.date && appointment?.time);
+  if (!appointments.length) {
+    appAlert("Er zijn nog geen afspraken om te exporteren.", { title: "Kalender exporteren", variant: "warning" });
+    return;
+  }
+
+  const ics = buildAppointmentsIcs(data);
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `nailbooker-afspraken-${formatDateInput(new Date())}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function openGoogleCalendarImportPage() {
+  window.open("https://calendar.google.com/calendar/u/0/r/settings/import", "_blank", "noopener,noreferrer");
+}
+
 function jumpToToday() {
+  if (state.selectedDate !== todayStr) {
+    state.revenueSyncSelectedDateOnOpen = true;
+  }
   state.selectedDate = todayStr;
   state.currentYear = today.getFullYear();
   state.currentMonth = today.getMonth();
@@ -352,10 +953,10 @@ function closeStyledDialog(dialog) {
 }
 
 function showAppDialog({
-  title = "Melding",
+  title = t("message"),
   message = "",
-  confirmText = "OK",
-  cancelText = "Annuleren",
+  confirmText = t("ok") || "OK",
+  cancelText = t("cancel"),
   showCancel = false,
   variant = "info"
 } = {}) {
@@ -427,9 +1028,9 @@ function showAppDialog({
 
 async function appAlert(message, options = {}) {
   await showAppDialog({
-    title: options.title || "Melding",
+    title: options.title || t("message"),
     message,
-    confirmText: options.confirmText || "OK",
+    confirmText: options.confirmText || (t("ok") || "OK"),
     showCancel: false,
     variant: options.variant || "info"
   });
@@ -437,10 +1038,10 @@ async function appAlert(message, options = {}) {
 
 async function appConfirm(message, options = {}) {
   return showAppDialog({
-    title: options.title || "Bevestiging",
+    title: options.title || t("confirmTitle"),
     message,
-    confirmText: options.confirmText || "Bevestigen",
-    cancelText: options.cancelText || "Annuleren",
+    confirmText: options.confirmText || t("confirm"),
+    cancelText: options.cancelText || t("cancel"),
     showCancel: true,
     variant: options.variant || "warning"
   });
@@ -463,7 +1064,7 @@ async function getCurrentProfile() {
 
     const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("first_name, last_name, avatar_url")
+        .select("first_name, last_name, salon_name, vat_number, language, currency, terms_accepted, terms_accepted_at")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -489,24 +1090,29 @@ function extractFirstNameFromUser(user, profile = null) {
 }
 
 function buildHeaderAccountIcon(profile = null) {
-  if (profile?.avatar_url) {
-    return `<img src="${profile.avatar_url}" alt="Profielfoto" />`;
-  }
   return `
-  <svg
-	width="28"
-	height="28"
-	viewBox="0 0 7.4083331 7.4083333"
-	version="1.1"
-	id="svg-login"
-	<g>
-		<path style="fill:#df9db3;fill-opacity:1;stroke-width:0" 
-		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
-		id="path-login" />
-	</g>
+  <svg width="28" height="28" viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-login" aria-hidden="true" focusable="false">
+    <path id="path2" style="fill:currentColor;stroke-width:1" d="M 1.8124886,6.9333659 C 1.7864235,6.7804715 1.7675079,6.6355105 1.7704544,6.6112293 1.7743344,6.5791763 3.2588613,4.9500562 3.6672626,4.5296574 3.6940726,4.5020544 3.6817556,4.4755334 3.6188266,4.425408 3.5724096,4.388429 3.5335256,4.344646 3.5324256,4.328105 3.5313256,4.311564 3.5784656,4.24943 3.6371651,4.190023 L 3.743907,4.0820167 3.6711381,3.8171814 C 3.5432433,3.3517168 3.5840966,2.9635266 3.8048285,2.5468598 3.9526753,2.2677754 4.1120754,2.0888386 4.369907,1.9125214 4.6988872,1.6875506 5.174746,1.5806658 5.5623491,1.6446829 5.9455505,1.7079728 6.4213255,1.954885 6.385528,2.0718868 6.3560867,2.1681128 6.2487288,2.2797964 6.1129319,2.3554651 6.0094977,2.413101 5.9644173,2.4204328 5.9054735,2.3892065 5.808312,2.3377351 5.6135914,2.3202589 5.4920442,2.3521006 5.1460796,2.442733 4.9278982,2.9089857 5.0917653,3.2074952 5.2806656,3.5516062 5.6895166,3.6612769 5.9957466,3.4499807 6.0421964,3.4179296 6.1840751,3.3540262 6.3110328,3.3079697 6.4382469,3.2618206 6.6381177,3.1540276 6.7562874,3.0678378 L 6.9707089,2.9114445 6.9939334,3.0735519 C 7.0862544,3.7179479 6.8127652,4.3503043 6.2714299,4.7441086 5.914249,5.0039462 5.2762027,5.1209502 4.8933961,4.99681 4.722491,4.9413899 4.6931818,4.9477209 4.5685144,5.067006 4.4838016,5.1480612 4.4422798,5.1679996 4.4022548,5.1468401 4.3565878,5.1226989 4.3099551,5.1606477 4.078425,5.4103609 3.8295073,5.6788283 3.8015789,5.7004845 3.7281058,5.6820133 3.594652,5.6484652 3.4958483,5.6715865 3.4273062,5.7524076 c -0.057393,0.067676 -0.059392,0.091231 -0.016618,0.195882 0.042422,0.1037917 0.040434,0.1292321 -0.015596,0.1995756 -0.055858,0.070129 -0.084479,0.077642 -0.219925,0.057742 C 3.0361147,6.1851726 3.011994,6.192098 2.9496638,6.2703521 2.888426,6.3472338 2.8845914,6.3742424 2.9183956,6.4906524 2.9676806,6.6603784 2.9117465,6.7212636 2.712942,6.714319 l -0.1461225,-0.0051 0.02626,0.1371901 c 0.025352,0.132446 0.022775,0.1410274 -0.074519,0.2481344 -0.097084,0.1068766 -0.1110022,0.1110506 -0.3797304,0.1138782 l -0.2789518,0.00293 z M 0.09960021,5.0870474 0.11589215,4.7646101 1.3278707,3.9098107 c 0.666588,-0.4701393 1.218946,-0.8679514 1.2274616,-0.884026 0.00852,-0.016072 -0.00559,-0.05068 -0.031333,-0.076906 C 2.472748,2.8966862 2.5091547,2.8303121 2.6557246,2.7087317 2.7306989,2.6465361 2.7314386,2.6299145 2.6809931,2.1401865 2.6524125,1.862725 2.6407297,1.5926531 2.6550305,1.5400279 2.7663945,1.1302263 3.6377145,0.59092624 4.173342,0.60027388 c 0.1849952,0.003229 0.2622435,0.0686643 0.482957,0.40909022 0.1135274,0.175104 0.201693,0.3272804 0.1959249,0.3381686 -0.00577,0.010894 -0.057456,0.032381 -0.1148583,0.047752 C 4.4180462,1.4808097 3.9677633,1.7800491 3.7305645,2.0643631 3.4185721,2.4383276 3.2858035,3.0129759 3.3569496,3.6814435 3.3751936,3.852863 3.3694166,3.8865005 3.3144696,3.928804 3.2648716,3.966987 3.2398666,3.966848 3.200867,3.9281568 3.173367,3.9008678 3.135841,3.8677158 3.117484,3.8544798 3.097962,3.8403988 2.9354725,3.9319018 2.7259976,4.0749347 L 2.3678889,4.3194562 2.2230535,4.2720535 C 2.1027543,4.232676 2.0617043,4.2349153 1.9807172,4.2852716 l -0.097502,0.060623 0.022417,0.135099 c 0.021597,0.1301522 0.019205,0.1374826 -0.06535,0.2002618 -0.07645,0.05676 -0.1059088,0.058432 -0.2284586,0.012964 -0.12352,-0.045829 -0.1517074,-0.044023 -0.230969,0.014827 -0.086495,0.064221 -0.08997,0.073126 -0.082915,0.2125912 0.0089,0.1759408 -0.052824,0.2349933 -0.199976,0.1913195 -0.21334754,-0.063321 -0.20352337,-0.067493 -0.20591318,0.087464 l -0.00214,0.139313 -0.12557933,0.094597 C 0.63898081,5.5287487 0.63821642,5.528815 0.36102383,5.4692058 L 0.08330531,5.409483 Z M 5.3265891,3.0592103 C 5.3010296,3.0092112 5.3036646,2.958744 5.3348832,2.9004991 5.3922039,2.7935457 5.4165768,2.7813191 5.5913626,2.7718554 5.816862,2.7596463 6.1922715,2.6417936 6.3438787,2.5356152 6.5451665,2.3946435 6.7113544,2.1144278 6.743435,1.861909 6.7761353,1.6045091 6.6791806,1.2535598 6.5112082,1.0213137 6.3972027,0.86368469 6.3555062,0.82842208 6.1635999,0.72734506 5.8105691,0.54137617 5.5164609,0.55837155 5.1160516,0.78780471 4.8952048,0.91434919 4.8088969,0.92769622 4.7213306,0.84884547 4.5882933,0.72904661 4.6614868,0.58222964 4.9275521,0.43519154 5.5919044,0.06804531 6.2583927,0.15465655 6.7434354,0.67116792 7.0723054,1.0213743 7.2205795,1.5762025 7.1118315,2.0496729 7.0641943,2.2570766 6.9022819,2.5557179 6.756509,2.7050549 6.5001169,2.9677084 6.0480675,3.1526559 5.6291733,3.1662813 5.4129289,3.1733146 5.3787404,3.1612174 5.3265888,3.0592066 Z" />
   </svg>
   `;
 }
+
+
+function setAuthLocked(isLocked) {
+  document.body.classList.toggle("auth-locked", Boolean(isLocked));
+
+  document.querySelectorAll(".bottom-nav .nav-btn").forEach(button => {
+    const isAccountButton = button.dataset.screen === "accountScreen";
+    button.disabled = Boolean(isLocked && !isAccountButton);
+    button.setAttribute("aria-disabled", String(Boolean(isLocked && !isAccountButton)));
+    button.tabIndex = isLocked && !isAccountButton ? -1 : 0;
+  });
+}
+
+function isAuthLocked() {
+  return document.body.classList.contains("auth-locked");
+}
+
 
 function buildAccountAvatar(profile = null) {
   if (profile?.avatar_url) {
@@ -552,7 +1158,12 @@ async function upsertProfile(userId, values) {
     id: userId,
     first_name: values.first_name || "",
     last_name: values.last_name || "",
-    avatar_url: values.avatar_url || null
+    salon_name: values.salon_name || null,
+    vat_number: values.vat_number || null,
+    language: normalizeLanguage(values.language || DEFAULT_LANGUAGE),
+    currency: normalizeCurrency(values.currency || DEFAULT_CURRENCY),
+    terms_accepted: Boolean(values.terms_accepted),
+    terms_accepted_at: values.terms_accepted_at || null
   };
 
   const { error } = await supabaseClient
@@ -565,6 +1176,13 @@ async function upsertProfile(userId, values) {
 async function syncAuthUI() {
 	const { data: { user } } = await supabaseClient.auth.getUser();
 	const profile = await getCurrentProfile();
+  currentProfilePreferences = {
+    language: normalizeLanguage(profile?.language || user?.user_metadata?.language || getData()?.settings?.language || DEFAULT_LANGUAGE),
+    currency: normalizeCurrency(profile?.currency || user?.user_metadata?.currency || getData()?.settings?.currency || DEFAULT_CURRENCY)
+  };
+  updateStaticI18n();
+
+  setAuthLocked(!user);
 
   const headerUserName = document.getElementById("headerUserName");
   const headerAccountIcon = document.querySelector("#headerAccountBtn .header-account-icon");
@@ -576,7 +1194,10 @@ async function syncAuthUI() {
   const accountProfileEmail = document.getElementById("accountProfileEmail");
   const accountProfileFirstName = document.getElementById("accountProfileFirstName");
   const accountProfileLastName = document.getElementById("accountProfileLastName");
-  const accountAvatar = document.getElementById("accountAvatar");
+  const accountProfileSalonName = document.getElementById("accountProfileSalonName");
+  const accountProfileVatNumber = document.getElementById("accountProfileVatNumber");
+  const accountProfileLanguage = document.getElementById("accountProfileLanguage");
+  const accountProfileCurrency = document.getElementById("accountProfileCurrency");
 
   if (headerUserName) {
     headerUserName.textContent = user ? extractFirstNameFromUser(user, profile) : "log in";
@@ -608,7 +1229,10 @@ async function syncAuthUI() {
   if (accountProfileEmail) accountProfileEmail.textContent = user.email || "-";
   if (accountProfileFirstName) accountProfileFirstName.textContent = firstName || "-";
   if (accountProfileLastName) accountProfileLastName.textContent = lastName || "-";
-  if (accountAvatar) accountAvatar.innerHTML = buildAccountAvatar(profile);
+  if (accountProfileSalonName) accountProfileSalonName.textContent = profile?.salon_name?.trim() || "-";
+  if (accountProfileVatNumber) accountProfileVatNumber.textContent = profile?.vat_number?.trim() || "-";
+  if (accountProfileLanguage) accountProfileLanguage.textContent = SUPPORTED_LANGUAGES.find(item => item.code === getCurrentLanguage())?.label || "-";
+  if (accountProfileCurrency) accountProfileCurrency.textContent = getCurrencyLabel(getCurrentCurrency());
 
   if (guestView) guestView.classList.add("hidden");
   if (loggedInView) loggedInView.classList.remove("hidden");
@@ -729,7 +1353,12 @@ async function openEditProfileDialog() {
   const profile = await getCurrentProfile();
   document.getElementById("editFirstName").value = profile?.first_name || user.user_metadata?.first_name || "";
   document.getElementById("editLastName").value = profile?.last_name || user.user_metadata?.last_name || "";
-  document.getElementById("editAvatar").value = "";
+  document.getElementById("editSalonName").value = profile?.salon_name || "";
+  document.getElementById("editVatNumber").value = profile?.vat_number || "";
+  const editLanguage = document.getElementById("editLanguage");
+  const editCurrency = document.getElementById("editCurrency");
+  if (editLanguage) editLanguage.innerHTML = buildLanguageOptions(profile?.language || getCurrentLanguage());
+  if (editCurrency) editCurrency.innerHTML = buildCurrencyOptions(profile?.currency || getCurrentCurrency());
   document.getElementById("editProfileDialog").showModal();
 }
 
@@ -738,7 +1367,10 @@ async function saveProfileFromForm(event) {
 
   const firstName = document.getElementById("editFirstName")?.value.trim();
   const lastName = document.getElementById("editLastName")?.value.trim();
-  const avatarFile = document.getElementById("editAvatar")?.files?.[0] || null;
+  const salonName = document.getElementById("editSalonName")?.value.trim() || "";
+  const vatNumber = document.getElementById("editVatNumber")?.value.trim() || "";
+  const language = normalizeLanguage(document.getElementById("editLanguage")?.value || getCurrentLanguage());
+  const currency = normalizeCurrency(document.getElementById("editCurrency")?.value || getCurrentCurrency());
 
   if (!firstName || !lastName) {
     await appAlert("Vul voornaam en naam in.", { title: "Profiel", variant: "warning" });
@@ -755,16 +1387,16 @@ async function saveProfileFromForm(event) {
   try {
     await ensureActiveAuthSession();
 
-    let avatarUrl = (await getCurrentProfile())?.avatar_url || null;
-    if (avatarFile) {
-      avatarUrl = await uploadAvatar(user.id, avatarFile);
-    }
-
     const { error: updateUserError } = await supabaseClient.auth.updateUser({
       data: {
         first_name: firstName,
         last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim()
+        full_name: `${firstName} ${lastName}`.trim(),
+        salon_name: salonName,
+        vat_number: vatNumber,
+        language,
+        currency,
+        terms_accepted: true
       }
     });
 
@@ -775,7 +1407,12 @@ async function saveProfileFromForm(event) {
     await upsertProfile(user.id, {
       first_name: firstName,
       last_name: lastName,
-      avatar_url: avatarUrl
+      salon_name: salonName,
+      vat_number: vatNumber,
+      language,
+      currency,
+      terms_accepted: true,
+      terms_accepted_at: (await getCurrentProfile())?.terms_accepted_at || new Date().toISOString()
     });
 
     closeDialog("editProfileDialog");
@@ -932,13 +1569,22 @@ async function registerAccount(event) {
 
   const firstName = document.getElementById("registerFirstName").value.trim();
   const lastName = document.getElementById("registerLastName").value.trim();
+  const salonName = document.getElementById("registerSalonName")?.value.trim() || "";
+  const vatNumber = document.getElementById("registerVatNumber")?.value.trim() || "";
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
   const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
-  const photoFile = document.getElementById("registerPhoto").files?.[0] || null;
+  const language = normalizeLanguage(document.getElementById("registerLanguage")?.value || DEFAULT_LANGUAGE);
+  const currency = normalizeCurrency(document.getElementById("registerCurrency")?.value || DEFAULT_CURRENCY);
+  const termsAccepted = Boolean(document.getElementById("registerTermsAccepted")?.checked);
 
   if (!firstName || !lastName || !email || !password || !passwordConfirm) {
     await appAlert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
+    return;
+  }
+
+  if (!termsAccepted) {
+    await appAlert("Je moet akkoord gaan met de gebruiksvoorwaarden om te registreren.");
     return;
   }
 
@@ -954,7 +1600,12 @@ async function registerAccount(event) {
       data: {
         first_name: firstName,
         last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim()
+        full_name: `${firstName} ${lastName}`.trim(),
+        salon_name: salonName,
+        vat_number: vatNumber,
+        language,
+        currency,
+        terms_accepted: true
       }
     }
   });
@@ -965,22 +1616,21 @@ async function registerAccount(event) {
   }
 
   try {
-    let avatarUrl = null;
-
-    if (photoFile && data.user && data.session) {
-      avatarUrl = await uploadAvatar(data.user.id, photoFile);
-    }
-
     if (data.user && data.session) {
       await upsertProfile(data.user.id, {
         first_name: firstName,
         last_name: lastName,
-        avatar_url: avatarUrl
+        salon_name: salonName,
+        vat_number: vatNumber,
+        language,
+        currency,
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString()
       });
     }
   } catch (profileError) {
     console.error("Profiel opslaan mislukt:", profileError.message);
-    await appAlert("Je account is aangemaakt, maar de profielfoto of profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
+    await appAlert("Je account is aangemaakt, maar de profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
   }
 
   document.getElementById("registerForm").reset();
@@ -992,11 +1642,11 @@ async function registerAccount(event) {
     await loadAllDataFromSupabase();
     rerenderAll();
     await syncAuthUI();
-    switchScreen("agendaScreen", "Agenda");
+    switchScreen("agendaScreen", t("agenda"));
     await appAlert("Registratie gelukt. Je bent nu ingelogd.", { title: "Registratie gelukt", variant: "success" });
   } else {
     await syncAuthUI();
-    switchScreen("accountScreen", "Account");
+    switchScreen("accountScreen", t("account"));
     await appAlert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.", { title: "Registratie gelukt", variant: "success" });
   }
 }
@@ -1021,7 +1671,7 @@ async function loginAccount() {
   await loadAllDataFromSupabase();
   rerenderAll();
   await syncAuthUI();
-  switchScreen("agendaScreen", "Agenda");
+  switchScreen("agendaScreen", t("agenda"));
 }
 
 async function logoutAccount() {
@@ -1040,15 +1690,32 @@ async function logoutAccount() {
   seedData();
   rerenderAll();
   await syncAuthUI();
-  switchScreen("accountScreen", "Account");
+  switchScreen("accountScreen", t("account"));
 }
 
 /* =========================
    UI
 ========================= */
 
+
+function getScreenTitle(screenId, fallback = "") {
+  const map = {
+    agendaScreen: "agenda",
+    revenueScreen: "revenue",
+    todoScreen: "todo",
+    clientsScreen: "clients",
+    servicesScreen: "services",
+    paymentMethodsScreen: "paymentMethods",
+    statisticsScreen: "statistics",
+    settingsScreen: "settings",
+    accountScreen: "account"
+  };
+  const key = map[screenId];
+  return key ? t(key) : fallback;
+}
+
 function updateTopbar(screenId, title) {
-  document.getElementById("screenTitle").textContent = title;
+  document.getElementById("screenTitle").textContent = getScreenTitle(screenId, title);
 
   const backBtn = document.getElementById("backBtn");
   const fab = document.getElementById("floatingAddBtn");
@@ -1057,6 +1724,9 @@ function updateTopbar(screenId, title) {
 
   if (screenId === "agendaScreen") {
     fab.onclick = () => openNewAppointmentDialog();
+    fab.style.display = "block";
+  } else if (screenId === "todoScreen") {
+    fab.onclick = openNewTodoDialog;
     fab.style.display = "block";
   } else if (screenId === "clientsScreen") {
     fab.onclick = openNewClientDialog;
@@ -1072,10 +1742,17 @@ function updateTopbar(screenId, title) {
   }
 }
 
-function switchScreen(screenId, title) {
+function switchScreen(screenId, title, options = {}) {
+  const previousScreen = state.currentScreen;
+
+  if (isAuthLocked() && screenId !== "accountScreen") {
+    screenId = "accountScreen";
+    title = "Account";
+  }
+
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "revenueScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -1092,7 +1769,15 @@ function switchScreen(screenId, title) {
   updateTopbar(screenId, title);
 
   if (screenId === "revenueScreen") {
-    setRevenuePeriod("day", state.selectedDate || todayStr);
+    const beforeSignature = state.revenueLastRenderSignature;
+    syncRevenueToSelectedDateBeforePreview();
+    if (state.revenueLastRenderSignature === beforeSignature) {
+      renderRevenue();
+    }
+  }
+
+  if (screenId === "todoScreen") {
+    renderTodos();
   }
 
   if (screenId === "statisticsScreen") {
@@ -1117,6 +1802,12 @@ function switchScreen(screenId, title) {
   const activeClient = state.selectedClientId ? customerById(getData(), state.selectedClientId) : null;
   updateClientActionBar(activeClient);
   updateRevenueActionBar();
+
+  syncAppBrowserHistory(screenId, title, {
+    replace: Boolean(options.replaceHistory),
+    skip: Boolean(options.skipHistory),
+    previousScreen
+  });
 }
 
 function panelIsCalendarSwiping() {
@@ -1129,7 +1820,7 @@ function renderCalendar() {
   const grid = document.getElementById("calendarGrid");
 
   grid.innerHTML = "";
-  document.getElementById("monthPickerBtn").textContent = `${monthNames[state.currentMonth]} ${state.currentYear}`;
+  document.getElementById("monthPickerBtn").textContent = `${getMonthNameUpper(state.currentMonth)} ${state.currentYear}`;
 
   const first = new Date(state.currentYear, state.currentMonth, 1);
   const last = new Date(state.currentYear, state.currentMonth + 1, 0);
@@ -1184,6 +1875,9 @@ function renderCalendar() {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
+      }
+      if (state.selectedDate !== dateStr) {
+        state.revenueSyncSelectedDateOnOpen = true;
       }
       state.selectedDate = dateStr;
       renderCalendar();
@@ -1267,7 +1961,7 @@ function fillCalendarPreview(preview, year, month) {
   const grid = preview.querySelector(".calendar-grid");
   if (!title || !grid) return;
 
-  title.textContent = `${monthNames[month]} ${year}`;
+  title.textContent = `${getMonthNameUpper(month)} ${year}`;
   grid.innerHTML = "";
 
   const first = new Date(year, month, 1);
@@ -1555,7 +2249,8 @@ function getMainSwipeScreens() {
       screenId: btn.dataset.screen,
       title: btn.dataset.title || btn.textContent.trim()
     }))
-    .filter(item => item.screenId && document.getElementById(item.screenId));
+    .filter(item => item.screenId && document.getElementById(item.screenId))
+    .filter(item => !isAuthLocked() || item.screenId === "accountScreen");
 }
 
 function ensureActiveNavVisible() {
@@ -1600,6 +2295,10 @@ function animateAppScreen(step) {
 
   const width = layout.clientWidth || window.innerWidth || 360;
   const target = screens[targetIndex];
+
+  if (target.screenId === "revenueScreen") {
+    syncRevenueToSelectedDateBeforePreview();
+  }
 
   layout.dataset.pageSwipeAnimating = "true";
   targetScreen.classList.add("swipe-preview");
@@ -1711,6 +2410,9 @@ function setupAppPageSwipeNavigation() {
     dragStep = step;
     dragTarget = screens[targetIndex];
     dragTargetScreen = targetScreen;
+    if (dragTarget.screenId === "revenueScreen") {
+      syncRevenueToSelectedDateBeforePreview();
+    }
     dragTargetScreen.classList.add("swipe-preview");
     layout.dataset.pageSwipeAnimating = "true";
     layout.classList.remove("is-swipe-animating");
@@ -1862,7 +2564,7 @@ function renderAgendaList() {
   const data = getData();
   const list = document.getElementById("agendaList");
 
-  document.getElementById("agendaListTitle").textContent = `Afspraken op ${formatLongDate(state.selectedDate)}`;
+  document.getElementById("agendaListTitle").textContent = `${t("appointmentsOn")} ${formatLongDate(state.selectedDate)}`;
   const jumpBtn = document.getElementById("jumpToTodayBtn");
   if (jumpBtn) {
     jumpBtn.classList.toggle("hidden", state.selectedDate === todayStr);
@@ -1873,7 +2575,7 @@ function renderAgendaList() {
     .sort((a, b) => a.time.localeCompare(b.time));
 
   if (!appts.length) {
-    list.innerHTML = `<div class="empty-state">Geen afspraken op deze dag.</div>`;
+    list.innerHTML = `<div class="empty-state">${t("noAppointmentsOnDay")}</div>`;
     return;
   }
 
@@ -1906,15 +2608,15 @@ function renderAgendaList() {
         <div class="time-end">tot ${endTime}</div>
       </div>
       <div>
-        <div class="main-name">${customer ? fullName(customer) : "Onbekend"}</div>
+        <div class="main-name appointment-main-name">${customer ? fullName(customer) : "Onbekend"}${String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : ""}</div>
         <div class="meta">${appointmentMetaParts.join(" · ")}</div>
       </div>
-      <button class="price-chip ${app.paid ? "paid" : ""}" data-id="${app.id}" type="button">${euro(app.price)}</button>
+      <button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>
     `;
 
     row.addEventListener("click", (e) => {
       if (e.target.closest(".price-chip")) return;
-      openEditAppointmentDialog(app.id);
+      openAppointmentActionPopover(app.id, row);
     });
 
     card.appendChild(row);
@@ -1944,7 +2646,7 @@ function renderAlphabetFilter() {
 
   const allBtn = document.createElement("button");
   allBtn.className = "alphabet-btn all-btn" + (!state.clientLetter ? " active" : "");
-  allBtn.textContent = "Alle";
+  allBtn.textContent = t("all");
   allBtn.onclick = () => {
     state.clientLetter = "";
     renderAlphabetFilter();
@@ -1972,9 +2674,12 @@ function renderClients() {
   const q = document.getElementById("clientSearch").value.trim().toLowerCase();
   const list = document.getElementById("clientsList");
 
-  let clients = data.customers.filter(c =>
-    [fullName(c), c.phone, c.email].join(" ").toLowerCase().includes(q)
-  );
+  const compactQuery = q.replace(/\D/g, "");
+  let clients = data.customers.filter(c => {
+    const haystack = customerSearchText(c);
+    const phoneDigits = String(c.phone || "").replace(/\D/g, "");
+    return haystack.includes(q) || (compactQuery && phoneDigits.includes(compactQuery));
+  });
 
   if (state.clientLetter) {
     clients = clients.filter(c => (c.firstName || "").toUpperCase().startsWith(state.clientLetter));
@@ -1983,7 +2688,7 @@ function renderClients() {
   clients.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || ""));
 
   if (!clients.length) {
-    list.innerHTML = `<div class="empty-state">Geen klanten gevonden.</div>`;
+    list.innerHTML = `<div class="empty-state">${t("noClientsFound")}</div>`;
     return;
   }
 
@@ -1991,13 +2696,14 @@ function renderClients() {
 
   clients.forEach(client => {
     const count = data.appointments.filter(a => String(a.customerId) === String(client.id)).length;
+    const phone = String(client.phone || "").trim();
     const card = document.createElement("div");
     card.className = "client-card";
 
     card.innerHTML = `
       <button type="button" data-id="${client.id}">
-        <div class="client-name">${fullName(client)}</div>
-        <div class="meta">${client.phone || "Geen telefoon"} · ${count} afspraken</div>
+        <div class="client-name">${escapeHtml(fullName(client) || "Naamloos")}</div>
+        <div class="meta">${escapeHtml(phone || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</div>
       </button>
     `;
 
@@ -2006,31 +2712,120 @@ function renderClients() {
   });
 }
 
+
+function renderServiceAlphabetFilter() {
+  const wrap = document.getElementById("serviceAlphabetFilter");
+  if (!wrap) return;
+
+  const data = getData();
+  const services = Array.isArray(data.services) ? data.services : [];
+  const letters = [...new Set(
+    services
+      .filter(service => state.showInactiveServices || service.isActive !== false)
+      .map(service => String(service.name || "").trim().charAt(0).toUpperCase())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, getCurrentLanguage()));
+
+  if (state.serviceLetter && !letters.includes(state.serviceLetter)) {
+    state.serviceLetter = "";
+  }
+
+  wrap.innerHTML = "";
+
+  const allBtn = document.createElement("button");
+  allBtn.className = "alphabet-btn all-btn" + (!state.serviceLetter ? " active" : "");
+  allBtn.type = "button";
+  allBtn.textContent = t("all");
+  allBtn.onclick = () => {
+    state.serviceLetter = "";
+    renderServiceAlphabetFilter();
+    renderServices();
+  };
+  wrap.appendChild(allBtn);
+
+  letters.forEach(letter => {
+    const btn = document.createElement("button");
+    btn.className = "alphabet-btn" + (state.serviceLetter === letter ? " active" : "");
+    btn.type = "button";
+    btn.textContent = letter;
+
+    btn.onclick = () => {
+      state.serviceLetter = letter;
+      renderServiceAlphabetFilter();
+      renderServices();
+    };
+
+    wrap.appendChild(btn);
+  });
+}
+
 function renderServices() {
   const data = getData();
   const list = document.getElementById("servicesList");
+  if (!list) return;
 
-  if (!data.services.length) {
-    list.innerHTML = `<div class="empty-state">Nog geen diensten.</div>`;
-    return;
-  }
+  const services = Array.isArray(data.services) ? data.services : [];
+  const searchInput = document.getElementById("serviceSearch");
+  const q = String(searchInput?.value || "").trim().toLowerCase();
+  const matchesSearch = service => !q || [service.name, service.duration, service.price]
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
+  const matchesLetter = service => !state.serviceLetter || String(service.name || "").trim().toUpperCase().startsWith(state.serviceLetter);
+
+  renderServiceAlphabetFilter();
+
+  const activeServices = services
+    .filter(service => service.isActive !== false)
+    .filter(matchesSearch)
+    .filter(matchesLetter)
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
+  const inactiveServices = services
+    .filter(service => service.isActive === false)
+    .filter(matchesSearch)
+    .filter(matchesLetter)
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
+  const visibleServices = state.showInactiveServices
+    ? [...activeServices, ...inactiveServices]
+    : activeServices;
 
   list.innerHTML = "";
 
-  data.services.forEach(service => {
-    const card = document.createElement("div");
-    card.className = "service-card";
+  if (!visibleServices.length) {
+    list.innerHTML = `<div class="empty-state">${t("noActiveServices")}</div>`;
+  } else {
+    visibleServices.forEach(service => {
+      const isInactive = service.isActive === false;
+      const card = document.createElement("div");
+      card.className = `service-card${isInactive ? " service-card-inactive" : ""}`;
 
-    card.innerHTML = `
-      <button type="button" data-id="${service.id}">
-        <div class="client-name">${service.name}</div>
-        <div class="meta">${service.duration} min · ${euro(service.price)}</div>
-      </button>
+      card.innerHTML = `
+        <button type="button" data-id="${service.id}">
+          <div class="client-name">${escapeHtml(service.name || "Naamloze dienst")}</div>
+          <div class="meta">${service.duration} min · ${euro(service.price)}${isInactive ? ` · ${t("inactive")}` : ""}</div>
+        </button>
+      `;
+
+      card.querySelector("button").addEventListener("click", () => openEditServiceDialog(service.id));
+      list.appendChild(card);
+    });
+  }
+
+  if (inactiveServices.length) {
+    const toggleWrap = document.createElement("label");
+    toggleWrap.className = "inactive-services-toggle";
+    toggleWrap.innerHTML = `
+      <input id="showInactiveServices" type="checkbox" ${state.showInactiveServices ? "checked" : ""} />
+      <span>${t("showInactiveServices")}</span>
     `;
 
-    card.querySelector("button").addEventListener("click", () => openEditServiceDialog(service.id));
-    list.appendChild(card);
-  });
+    toggleWrap.querySelector("input").addEventListener("change", event => {
+      state.showInactiveServices = event.target.checked;
+      renderServices();
+    });
+
+    list.appendChild(toggleWrap);
+  }
 }
 
 
@@ -2042,8 +2837,26 @@ function paymentMethodLabel(value) {
 
 function formatRevenueDayChip(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  const days = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
-  return `${days[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const day = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "short" }).format(d);
+  return `${capitalizeFirst(day)} ${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatRevenueDayTile(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "long" }).format(d);
+  return `${capitalizeFirst(day)}<br>${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function formatRevenueWeekTile(dateStr) {
+  const bounds = weekBounds(dateStr);
+  const start = new Date(bounds.start + "T00:00:00");
+  const end = new Date(bounds.end + "T00:00:00");
+  return `${String(start.getDate()).padStart(2, "0")}-${String(start.getMonth() + 1).padStart(2, "0")}-${start.getFullYear()}<br>${String(end.getDate()).padStart(2, "0")}-${String(end.getMonth() + 1).padStart(2, "0")}-${end.getFullYear()}`;
+}
+
+function formatRevenueMonthTile(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${capitalizeFirst(getMonthNameLong(d.getMonth()))}<br>${d.getFullYear()}`;
 }
 
 function shiftRevenueDate(baseDateStr, mode, step) {
@@ -2059,8 +2872,56 @@ function shiftRevenueDate(baseDateStr, mode, step) {
     return formatDateInput(d);
   }
 
+  if (mode === "week") {
+    d.setDate(d.getDate() + (step * 7));
+    return formatDateInput(d);
+  }
+
   d.setDate(d.getDate() + step);
   return formatDateInput(d);
+}
+
+function getRevenueRenderSignature() {
+  const data = getData();
+  const type = document.getElementById("revenuePeriodType")?.value || "day";
+  const anchor = document.getElementById("revenueDate")?.value || todayStr;
+  const paymentFilter = document.getElementById("revenuePaymentFilter")?.value || "";
+  const statusFilter = document.getElementById("revenuePaymentStatusFilter")?.value || "";
+  const appointmentSignature = (data.appointments || [])
+    .map(a => [
+      a.id,
+      a.date,
+      a.time,
+      a.price,
+      a.paid ? 1 : 0,
+      a.paymentMethodName || "",
+      a.currency || ""
+    ].join(":"))
+    .join("|");
+
+  return [type, anchor, paymentFilter, statusFilter, appointmentSignature].join("||");
+}
+
+function syncRevenueToSelectedDateBeforePreview() {
+  const selectedDate = state.selectedDate || todayStr;
+  const periodType = document.getElementById("revenuePeriodType");
+  const dateInput = document.getElementById("revenueDate");
+  if (!periodType || !dateInput) return;
+
+  // De gekozen kalenderdag blijft de ankerdatum voor Omzet,
+  // maar het laatst gekozen omzettype (dag/week/maand/jaar) blijft behouden.
+  const needsSync = !state.revenueInitialized
+    || state.revenueSyncSelectedDateOnOpen
+    || state.revenueSelectedDateSynced !== selectedDate
+    || dateInput.value !== selectedDate;
+
+  if (!needsSync) return;
+
+  dateInput.value = selectedDate;
+  state.revenueInitialized = true;
+  state.revenueSelectedDateSynced = selectedDate;
+  state.revenueSyncSelectedDateOnOpen = false;
+  renderRevenue();
 }
 
 function setRevenuePeriod(type, dateStr) {
@@ -2071,6 +2932,12 @@ function setRevenuePeriod(type, dateStr) {
   if (periodType) periodType.value = type;
   if (dateInput) dateInput.value = safeDate;
 
+  if (type === "day") {
+    state.revenueInitialized = true;
+    state.revenueSelectedDateSynced = safeDate;
+    state.revenueSyncSelectedDateOnOpen = false;
+  }
+
   renderRevenue();
 }
 
@@ -2079,29 +2946,25 @@ function syncRevenuePeriodChips() {
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const anchorDate = new Date(anchor + "T00:00:00");
 
-  const yearChip = document.getElementById("revenueYearChip");
-  const monthChip = document.getElementById("revenueMonthChip");
-  const dayChip = document.getElementById("revenueDayChip");
+  const yearBtn = document.getElementById("revenueYearBtn");
+  const monthBtn = document.getElementById("revenueMonthBtn");
+  const weekBtn = document.getElementById("revenueWeekBtn");
+  const dayBtn = document.getElementById("revenueDayBtn");
 
   const yearLabel = document.getElementById("revenueYearLabel");
   const monthLabel = document.getElementById("revenueMonthLabel");
+  const weekLabel = document.getElementById("revenueWeekLabel");
   const dayLabel = document.getElementById("revenueDayLabel");
 
-  if (yearLabel) {
-    yearLabel.textContent = String(anchorDate.getFullYear());
-  }
+  if (yearLabel) yearLabel.textContent = String(anchorDate.getFullYear());
+  if (monthLabel) monthLabel.innerHTML = formatRevenueMonthTile(anchor);
+  if (weekLabel) weekLabel.innerHTML = formatRevenueWeekTile(anchor);
+  if (dayLabel) dayLabel.innerHTML = formatRevenueDayTile(anchor);
 
-  if (monthLabel) {
-    monthLabel.textContent = longMonthNames[anchorDate.getMonth()].charAt(0).toUpperCase() + longMonthNames[anchorDate.getMonth()].slice(1);
-  }
-
-  if (dayLabel) {
-    dayLabel.textContent = formatRevenueDayChip(anchor);
-  }
-
-  if (yearChip) yearChip.classList.toggle("active", type === "year");
-  if (monthChip) monthChip.classList.toggle("active", type === "month");
-  if (dayChip) dayChip.classList.toggle("active", type === "day");
+  if (yearBtn) yearBtn.classList.toggle("active", type === "year");
+  if (monthBtn) monthBtn.classList.toggle("active", type === "month");
+  if (weekBtn) weekBtn.classList.toggle("active", type === "week");
+  if (dayBtn) dayBtn.classList.toggle("active", type === "day");
 }
 
 function revenueFilteredAppointments() {
@@ -2115,6 +2978,9 @@ function revenueFilteredAppointments() {
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
+  } else if (type === "week") {
+    const bounds = weekBounds(anchor);
+    filtered = filtered.filter(a => a.date >= bounds.start && a.date <= bounds.end);
   } else if (type === "month") {
     const prefix = anchor.slice(0, 7);
     filtered = filtered.filter(a => a.date.startsWith(prefix));
@@ -2137,7 +3003,7 @@ function renderRevenueFilters() {
 
   if (paymentSel) {
     paymentSel.innerHTML =
-      `<option value="">Alle betaalwijzen</option>` +
+      `<option value="">${t("allPaymentMethods")}</option>` +
       getRevenuePaymentFilterOptions(data).map(name => `<option value="${name}">${name}</option>`).join("");
     paymentSel.value = existingPayment;
   }
@@ -2165,7 +3031,10 @@ function getRevenueDataYears() {
 
 function centerRevenueWheelColumn(column, value, behavior = "auto") {
   if (!column) return;
-  const option = column.querySelector(`.revenue-wheel-option[data-value="${value}"]`);
+  const selector = column.dataset.looping === "true"
+    ? `.revenue-wheel-option[data-value="${value}"][data-loop-anchor="true"]`
+    : `.revenue-wheel-option[data-value="${value}"]`;
+  const option = column.querySelector(selector) || column.querySelector(`.revenue-wheel-option[data-value="${value}"]`);
   if (!option) return;
   const target = option.offsetTop - (column.clientHeight / 2) + (option.offsetHeight / 2);
   if (behavior === "smooth") {
@@ -2206,8 +3075,9 @@ function attachRevenueWheelColumnEvents(column, key) {
   const finish = (behavior = "smooth") => {
     const value = updateRevenueWheelColumnSelection(column);
     if (value != null) {
-      revenuePickerState.selected[key] = value;
-      centerRevenueWheelColumn(column, value, behavior);
+      const pickerState = column.closest("#appointmentWheelColumns") ? appointmentPickerState : revenuePickerState;
+      pickerState.selected[key] = value;
+      centerRevenueWheelColumn(column, value, column.dataset.looping === "true" ? "auto" : behavior);
     }
   };
 
@@ -2230,64 +3100,515 @@ function attachRevenueWheelColumnEvents(column, key) {
 
   column.querySelectorAll(".revenue-wheel-option").forEach(option => {
     option.addEventListener("click", () => {
-      revenuePickerState.selected[key] = option.dataset.value;
+      const pickerState = column.closest("#appointmentWheelColumns") ? appointmentPickerState : revenuePickerState;
+      pickerState.selected[key] = option.dataset.value;
       centerRevenueWheelColumn(column, option.dataset.value, "smooth");
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => finish("smooth"), 130);
     });
   });
 
-  finish("auto");
+  // Niet meteen finish("auto") uitvoeren: vóór het openen van de dialog
+  // hebben de wielkolommen nog geen betrouwbare hoogte. Daardoor werd de
+  // eerste optie (bv. 01 / Januari / 2024) als actief opgeslagen vóór we
+  // konden centreren op de datum die in Omzet actief is.
 }
 
-function buildRevenueWheelColumn(key, values, formatter = value => value) {
+function buildRevenueWheelColumn(key, values, formatter = value => value, options = {}) {
+  const loopCount = options.loop ? 7 : 1;
+  const middleLoopIndex = Math.floor(loopCount / 2);
+  const repeatedValues = Array.from({ length: loopCount }, (_, loopIndex) =>
+    values.map(value => ({ value, loopIndex }))
+  ).flat();
+
   return `
-    <div class="revenue-wheel-column" data-key="${key}">
-      ${values.map(value => `<div class="revenue-wheel-option" data-value="${value}">${formatter(value)}</div>`).join("")}
+    <div class="revenue-wheel-column" data-key="${key}"${options.loop ? ' data-looping="true"' : ""}>
+      ${repeatedValues.map(({ value, loopIndex }) => `<div class="revenue-wheel-option" data-value="${value}"${loopIndex === middleLoopIndex ? ' data-loop-anchor="true"' : ""}>${formatter(value)}</div>`).join("")}
     </div>
   `;
+}
+
+
+
+
+const appointmentPickerState = {
+  mode: "date",
+  selected: {}
+};
+
+function formatAppointmentDateLabel(dateStr) {
+  if (!dateStr) return t("chooseDate");
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return t("chooseDate");
+  const dayNames = [t("sundayShort"), t("mondayShort"), t("tuesdayShort"), t("wednesdayShort"), t("thursdayShort"), t("fridayShort"), t("saturdayShort")];
+  return `${dayNames[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
+
+function formatAppointmentTimeLabel(timeStr) {
+  if (!timeStr) return t("chooseTime");
+  const [h = "00", m = "00"] = String(timeStr).split(":");
+  return `${String(Number(h) || 0).padStart(2, "0")}:${String(Number(m) || 0).padStart(2, "0")}`;
+}
+
+function syncAppointmentDateTimeDisplays() {
+  const dateInput = document.getElementById("appointmentDate");
+  const timeInput = document.getElementById("appointmentTime");
+  const dateBtn = document.getElementById("appointmentDateDisplayBtn");
+  const timeBtn = document.getElementById("appointmentTimeDisplayBtn");
+
+  if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value);
+  if (timeBtn && timeInput) timeBtn.textContent = formatAppointmentTimeLabel(timeInput.value);
+}
+
+function getAppointmentPickerYears(selectedYear) {
+  const data = getData();
+  const appointmentYears = (data.appointments || [])
+    .map(a => Number(String(a.date || "").slice(0, 4)))
+    .filter(Boolean);
+  const currentYear = Number(selectedYear) || today.getFullYear();
+  const minYear = appointmentYears.length ? Math.min(...appointmentYears, currentYear) : currentYear - 3;
+  const maxYear = appointmentYears.length ? Math.max(...appointmentYears, currentYear) : currentYear + 3;
+  return Array.from({ length: (maxYear - minYear + 7) }, (_, i) => minYear - 3 + i);
+}
+
+function openAppointmentWheelPicker(mode) {
+  const dialog = document.getElementById("appointmentWheelPickerDialog");
+  const title = document.getElementById("appointmentWheelPickerTitle");
+  const columnsWrap = document.getElementById("appointmentWheelColumns");
+  if (!dialog || !title || !columnsWrap) return;
+
+  const dateValue = document.getElementById("appointmentDate")?.value || state.selectedDate || todayStr;
+  const timeValue = document.getElementById("appointmentTime")?.value || "10:00";
+  const date = new Date(dateValue + "T00:00:00");
+  const selectedYear = date.getFullYear();
+  const selectedMonthIndex = date.getMonth();
+  const selectedDay = date.getDate();
+  const [rawHour = "10", rawMinute = "00"] = timeValue.split(":");
+  const selectedHour = Math.max(0, Math.min(23, Number(rawHour) || 0));
+  const selectedMinute = Math.max(0, Math.min(59, Number(rawMinute) || 0));
+
+  appointmentPickerState.mode = mode;
+  appointmentPickerState.selected = {};
+
+  const shell = dialog.querySelector(".revenue-wheel-shell");
+
+  if (mode === "time") {
+    title.textContent = t("chooseTime");
+    if (shell) shell.classList.remove("revenue-calendar-shell");
+    columnsWrap.className = "revenue-wheel-columns two-cols";
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    columnsWrap.innerHTML =
+      buildRevenueWheelColumn("hour", hours, value => String(value).padStart(2, "0"), { loop: true }) +
+      buildRevenueWheelColumn("minute", minutes, value => String(value).padStart(2, "0"), { loop: true });
+    appointmentPickerState.selected.hour = String(selectedHour);
+    appointmentPickerState.selected.minute = String(selectedMinute);
+  } else {
+    title.textContent = "Kies dag";
+    if (shell) shell.classList.add("revenue-calendar-shell");
+    appointmentPickerState.selected.date = dateValue;
+    renderAppointmentCalendarPicker(selectedYear, selectedMonthIndex, dateValue);
+  }
+
+  const columns = Array.from(columnsWrap.querySelectorAll(".revenue-wheel-column"));
+  columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
+
+  const centerActiveValues = (behavior = "auto") => {
+    Object.entries(appointmentPickerState.selected).forEach(([key, value]) => {
+      centerRevenueWheelColumn(columnsWrap.querySelector(`[data-key="${key}"]`), value, behavior);
+    });
+  };
+
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "open");
+
+  if (mode === "time") {
+    requestAnimationFrame(() => {
+      centerActiveValues("auto");
+      requestAnimationFrame(() => centerActiveValues("auto"));
+    });
+  }
+}
+
+function applyAppointmentWheelPickerSelection() {
+  if (appointmentPickerState.mode === "time") {
+    const hour = Math.max(0, Math.min(23, Number(appointmentPickerState.selected.hour) || 0));
+    const minute = Math.max(0, Math.min(59, Number(appointmentPickerState.selected.minute) || 0));
+    const timeInput = document.getElementById("appointmentTime");
+    if (timeInput) timeInput.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    syncAppointmentDateTimeDisplays();
+    return;
+  }
+
+  const dateInput = document.getElementById("appointmentDate");
+  if (dateInput) dateInput.value = appointmentPickerState.selected.date || dateInput.value || state.selectedDate || todayStr;
+  syncAppointmentDateTimeDisplays();
+}
+
+function getRevenueMonthWeekStart(year, monthIndex) {
+  const firstOfMonth = new Date(year, monthIndex, 1);
+  const mondayIndex = (firstOfMonth.getDay() + 6) % 7;
+  const start = new Date(firstOfMonth);
+  start.setDate(firstOfMonth.getDate() - mondayIndex);
+  return start;
+}
+
+function getRevenueWeeksInMonth(year, monthIndex) {
+  const firstOfMonth = new Date(year, monthIndex, 1);
+  const lastOfMonth = new Date(year, monthIndex + 1, 0);
+  const start = getRevenueMonthWeekStart(year, monthIndex);
+  const mondayIndexLast = (lastOfMonth.getDay() + 6) % 7;
+  const end = new Date(lastOfMonth);
+  end.setDate(lastOfMonth.getDate() + (6 - mondayIndexLast));
+  return Math.max(4, Math.round((end - start) / (7 * 24 * 60 * 60 * 1000)) + 1);
+}
+
+function getRevenueWeekOfMonth(date) {
+  const year = date.getFullYear();
+  const monthIndex = date.getMonth();
+  const start = getRevenueMonthWeekStart(year, monthIndex);
+  const diffDays = Math.floor((new Date(year, monthIndex, date.getDate()) - start) / (24 * 60 * 60 * 1000));
+  const maxWeeks = getRevenueWeeksInMonth(year, monthIndex);
+  return Math.min(maxWeeks, Math.max(1, Math.floor(diffDays / 7) + 1));
+}
+
+function dateFromRevenueWeekOfMonth(year, monthIndex, weekNumber) {
+  const maxWeeks = getRevenueWeeksInMonth(year, monthIndex);
+  const safeWeek = Math.min(maxWeeks, Math.max(1, Number(weekNumber) || 1));
+  const start = getRevenueMonthWeekStart(year, monthIndex);
+  const date = new Date(start);
+  date.setDate(start.getDate() + ((safeWeek - 1) * 7));
+  return date;
+}
+
+function revenuePickerDateValue(year, monthIndex, day) {
+  return formatDateInput(new Date(year, monthIndex, day));
+}
+
+function buildCalendarPickerDayButton({ date, visibleMonthIndex, selectedDateStr, selectedBounds = null, mode = "day", datasetName = "revenuePickerDay" }) {
+  const value = formatDateInput(date);
+  const isOtherMonth = date.getMonth() !== visibleMonthIndex;
+  const isSelectedDay = mode === "day" && value === selectedDateStr;
+  const isSelectedWeek = mode === "week" && selectedBounds && value >= selectedBounds.start && value <= selectedBounds.end;
+  const appointmentCount = (getData().appointments || []).filter(appointment => appointment.date === value).length;
+  const maxDots = 4;
+  const dots = appointmentCount
+    ? `<span class="revenue-calendar-dots" aria-hidden="true">${Array.from({ length: Math.min(appointmentCount, maxDots) }, () => "<i></i>").join("")}${appointmentCount > maxDots ? '<em>+</em>' : ''}</span>`
+    : "";
+
+  return `<button class="revenue-calendar-day${isOtherMonth ? " is-other-month" : ""}${isSelectedDay ? " selected" : ""}${isSelectedWeek ? " selected-week" : ""}" type="button" data-${datasetName}="${value}"><span class="revenue-calendar-day-number">${date.getDate()}</span>${dots}</button>`;
+}
+
+function attachCalendarPickerSwipe(picker, goToMonth) {
+  if (!picker || picker.dataset.calendarPickerSwipeReady === "true") return;
+  picker.dataset.calendarPickerSwipeReady = "true";
+
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let tracking = false;
+  let horizontal = false;
+  let swiped = false;
+  const threshold = 44;
+  const intentThreshold = 10;
+
+  picker.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    tracking = true;
+    horizontal = false;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+    lastX = startX;
+  }, { passive: true });
+
+  picker.addEventListener("touchmove", event => {
+    if (!tracking || event.touches.length !== 1) return;
+    const x = event.touches[0].clientX;
+    const y = event.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (!horizontal) {
+      if (absX < intentThreshold && absY < intentThreshold) return;
+      if (absY > absX) {
+        tracking = false;
+        return;
+      }
+      horizontal = true;
+      swiped = true;
+      picker.classList.add("is-swiping");
+    }
+
+    const limitedDx = Math.max(-90, Math.min(90, dx));
+    picker.style.setProperty("--picker-swipe-x", `${limitedDx}px`);
+    event.preventDefault();
+    lastX = x;
+  }, { passive: false });
+
+  const finish = () => {
+    if (!tracking || !horizontal) {
+      tracking = false;
+      horizontal = false;
+      picker.classList.remove("is-swiping");
+      picker.style.removeProperty("--picker-swipe-x");
+      return;
+    }
+
+    const dx = lastX - startX;
+    tracking = false;
+    horizontal = false;
+    picker.classList.remove("is-swiping");
+    picker.style.removeProperty("--picker-swipe-x");
+
+    if (Math.abs(dx) >= threshold) {
+      goToMonth(dx < 0 ? 1 : -1);
+    }
+  };
+
+  picker.addEventListener("touchend", finish, { passive: true });
+  picker.addEventListener("touchcancel", finish, { passive: true });
+  picker.addEventListener("click", event => {
+    if (!swiped) return;
+    swiped = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+}
+
+function renderSharedCalendarPicker({
+  columnsWrapId,
+  pickerState,
+  mode,
+  year,
+  monthIndex,
+  selectedDateStr,
+  datasetName,
+  prevAttr,
+  nextAttr,
+  onMonthChange,
+  onDaySelect
+}) {
+  const columnsWrap = document.getElementById(columnsWrapId);
+  if (!columnsWrap) return;
+
+  const first = new Date(year, monthIndex, 1);
+  const last = new Date(year, monthIndex + 1, 0);
+  const firstWeekdayIndex = (first.getDay() + 6) % 7;
+  const gridStart = new Date(first);
+  gridStart.setDate(first.getDate() - firstWeekdayIndex);
+  const lastWeekdayIndex = (last.getDay() + 6) % 7;
+  const gridEnd = new Date(last);
+  gridEnd.setDate(last.getDate() + (6 - lastWeekdayIndex));
+
+  const selectedBounds = mode === "week" ? weekBounds(selectedDateStr) : null;
+  const monthLabel = `${capitalizeFirst(getMonthNameLong(monthIndex))} ${year}`;
+  const weekdayKeys = ["mondayShort", "tuesdayShort", "wednesdayShort", "thursdayShort", "fridayShort", "saturdayShort", "sundayShort"];
+
+  let html = `
+    <div class="revenue-calendar-picker" data-mode="${mode}" data-year="${year}" data-month="${monthIndex}">
+      <div class="revenue-calendar-picker-head">
+        <button class="icon-btn revenue-calendar-nav" type="button" ${prevAttr} aria-label="Vorige maand">‹</button>
+        <strong>${monthLabel}</strong>
+        <button class="icon-btn revenue-calendar-nav" type="button" ${nextAttr} aria-label="Volgende maand">›</button>
+      </div>
+      <div class="revenue-calendar-weekdays">
+        ${weekdayKeys.map(key => `<span>${t(key)}</span>`).join("")}
+      </div>
+      <div class="revenue-calendar-grid">
+  `;
+
+  const cursor = new Date(gridStart);
+  while (cursor <= gridEnd) {
+    html += buildCalendarPickerDayButton({
+      date: cursor,
+      visibleMonthIndex: monthIndex,
+      selectedDateStr,
+      selectedBounds,
+      mode,
+      datasetName
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
+  columnsWrap.innerHTML = html;
+
+  const picker = columnsWrap.querySelector(".revenue-calendar-picker");
+  const goToMonth = (delta) => {
+    const next = new Date(year, monthIndex + delta, 1);
+    onMonthChange(next.getFullYear(), next.getMonth(), pickerState.selected.date || selectedDateStr);
+  };
+
+  picker?.querySelector(`[${prevAttr}]`)?.addEventListener("click", () => goToMonth(-1));
+  picker?.querySelector(`[${nextAttr}]`)?.addEventListener("click", () => goToMonth(1));
+  attachCalendarPickerSwipe(picker, goToMonth);
+
+  picker?.querySelectorAll(`[data-${datasetName}]`).forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.getAttribute(`data-${datasetName}`);
+      if (!value) return;
+
+      pickerState.selected.date = value;
+      if (typeof onDaySelect === "function") onDaySelect(value);
+
+      if (mode === "week") {
+        const bounds = weekBounds(value);
+        picker.querySelectorAll(".revenue-calendar-day").forEach(dayButton => {
+          const dayValue = dayButton.getAttribute(`data-${datasetName}`) || "";
+          dayButton.classList.toggle("selected-week", dayValue >= bounds.start && dayValue <= bounds.end);
+          dayButton.classList.remove("selected");
+        });
+        return;
+      }
+
+      picker.querySelectorAll(".revenue-calendar-day").forEach(dayButton => {
+        dayButton.classList.toggle("selected", dayButton.getAttribute(`data-${datasetName}`) === value);
+        dayButton.classList.remove("selected-week");
+      });
+    });
+  });
+}
+
+function renderRevenueCalendarPicker(mode, year, monthIndex, selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) {
+  renderSharedCalendarPicker({
+    columnsWrapId: "revenueWheelColumns",
+    pickerState: revenuePickerState,
+    mode,
+    year,
+    monthIndex,
+    selectedDateStr,
+    datasetName: "revenuePickerDay",
+    prevAttr: "data-revenue-picker-prev",
+    nextAttr: "data-revenue-picker-next",
+    onMonthChange: (nextYear, nextMonth, selectedDate) => renderRevenueCalendarPicker(mode, nextYear, nextMonth, selectedDate)
+  });
+}
+
+function renderAppointmentCalendarPicker(year, monthIndex, selectedDateStr = appointmentPickerState.selected.date || document.getElementById("appointmentDate")?.value || state.selectedDate || todayStr) {
+  renderSharedCalendarPicker({
+    columnsWrapId: "appointmentWheelColumns",
+    pickerState: appointmentPickerState,
+    mode: "day",
+    year,
+    monthIndex,
+    selectedDateStr,
+    datasetName: "appointmentPickerDay",
+    prevAttr: "data-appointment-picker-prev",
+    nextAttr: "data-appointment-picker-next",
+    onMonthChange: (nextYear, nextMonth, selectedDate) => renderAppointmentCalendarPicker(nextYear, nextMonth, selectedDate)
+  });
+}
+
+function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getMonth()) {
+  const columnsWrap = document.getElementById("revenueWheelColumns");
+  if (!columnsWrap) return;
+
+  const selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr;
+  const selectedDate = new Date(selectedDateStr + "T00:00:00");
+  const selectedYear = selectedDate.getFullYear();
+  const currentMonthIndex = selectedDate.getMonth();
+
+  columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
+  columnsWrap.innerHTML = `
+    <div class="revenue-month-picker" data-year="${year}">
+      <div class="revenue-calendar-picker-head">
+        <button class="icon-btn revenue-calendar-nav" type="button" data-revenue-month-prev aria-label="Vorig jaar">‹</button>
+        <strong>${year}</strong>
+        <button class="icon-btn revenue-calendar-nav" type="button" data-revenue-month-next aria-label="Volgend jaar">›</button>
+      </div>
+      <div class="revenue-month-grid">
+        ${Array.from({ length: 12 }, (_, index) => `
+          <button class="revenue-month-option${year === selectedYear && index === currentMonthIndex ? " selected" : ""}" type="button" data-revenue-picker-month="${index}">
+            ${capitalizeFirst(getMonthNameLong(index))}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  const picker = columnsWrap.querySelector(".revenue-month-picker");
+  picker?.querySelector("[data-revenue-month-prev]")?.addEventListener("click", () => renderRevenueMonthPicker(year - 1, selectedMonthIndex));
+  picker?.querySelector("[data-revenue-month-next]")?.addEventListener("click", () => renderRevenueMonthPicker(year + 1, selectedMonthIndex));
+
+  picker?.querySelectorAll("[data-revenue-picker-month]").forEach(button => {
+    button.addEventListener("click", () => {
+      const monthIndex = Number(button.dataset.revenuePickerMonth || 0);
+      const currentDay = selectedDate.getDate();
+      const day = clampRevenueDay(year, monthIndex, currentDay);
+      revenuePickerState.selected.date = formatDateInput(new Date(year, monthIndex, day));
+      picker.querySelectorAll(".revenue-month-option").forEach(monthButton => {
+        monthButton.classList.toggle("selected", monthButton === button);
+      });
+    });
+  });
 }
 
 function openRevenueWheelPicker(mode) {
   const dialog = document.getElementById("revenueWheelPickerDialog");
   const title = document.getElementById("revenueWheelPickerTitle");
   const columnsWrap = document.getElementById("revenueWheelColumns");
+  const shell = dialog?.querySelector(".revenue-wheel-shell");
+  const confirmBtn = document.getElementById("revenueWheelConfirmBtn");
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const anchorDate = new Date(anchor + "T00:00:00");
   const selectedYear = anchorDate.getFullYear();
   const selectedMonthIndex = anchorDate.getMonth();
 
+  if (!dialog || !title || !columnsWrap) return;
+
   revenuePickerState.mode = mode;
   revenuePickerState.columns = [];
-  revenuePickerState.selected = {};
+  revenuePickerState.selected = { date: anchor };
 
-  if (mode === "year") {
+  if (shell) shell.classList.toggle("revenue-calendar-shell", mode !== "year");
+  if (confirmBtn) confirmBtn.classList.remove("hidden");
+
+  if (mode === "day") {
+    title.textContent = "Kies dag";
+    renderRevenueCalendarPicker("day", selectedYear, selectedMonthIndex, anchor);
+  } else if (mode === "week") {
+    title.textContent = "Kies week";
+    renderRevenueCalendarPicker("week", selectedYear, selectedMonthIndex, anchor);
+  } else if (mode === "month") {
+    title.textContent = "Kies maand";
+    renderRevenueMonthPicker(selectedYear, selectedMonthIndex);
+  } else {
+    if (shell) shell.classList.remove("revenue-calendar-shell");
     title.textContent = "Kies jaar";
     columnsWrap.className = "revenue-wheel-columns";
     const years = getRevenueDataYears();
     columnsWrap.innerHTML = buildRevenueWheelColumn("year", years, value => value);
-  } else {
-    title.textContent = "Kies maand";
-    columnsWrap.className = "revenue-wheel-columns";
-    const months = Array.from({ length: 12 }, (_, i) => i);
-    columnsWrap.innerHTML =
-      buildRevenueWheelColumn("monthIndex", months, value => longMonthNames[value].charAt(0).toUpperCase() + longMonthNames[value].slice(1));
+    revenuePickerState.selected.year = String(selectedYear);
+    const columns = Array.from(columnsWrap.querySelectorAll(".revenue-wheel-column"));
+    revenuePickerState.columns = columns;
+    columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
   }
 
-  const columns = Array.from(columnsWrap.querySelectorAll(".revenue-wheel-column"));
-  revenuePickerState.columns = columns;
-
-  columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "open");
+  }
 
   if (mode === "year") {
-    centerRevenueWheelColumn(columnsWrap.querySelector('[data-key="year"]'), selectedYear);
-    revenuePickerState.selected.year = String(selectedYear);
-  } else {
-    centerRevenueWheelColumn(columnsWrap.querySelector('[data-key="monthIndex"]'), selectedMonthIndex);
-    revenuePickerState.selected.monthIndex = String(selectedMonthIndex);
-  }
+    const centerActiveRevenuePickerValues = (behavior = "auto") => {
+      Object.entries(revenuePickerState.selected).forEach(([key, value]) => {
+        centerRevenueWheelColumn(columnsWrap.querySelector(`[data-key="${key}"]`), value, behavior);
+      });
+    };
 
-  if (typeof dialog.showModal === "function") dialog.showModal();
+    requestAnimationFrame(() => {
+      centerActiveRevenuePickerValues("auto");
+      requestAnimationFrame(() => centerActiveRevenuePickerValues("auto"));
+    });
+  }
 }
 
 function applyRevenueWheelPickerSelection() {
@@ -2303,21 +3624,30 @@ function applyRevenueWheelPickerSelection() {
     return;
   }
 
-  const year = anchorDate.getFullYear();
-  const monthIndex = Number(revenuePickerState.selected.monthIndex || anchorDate.getMonth());
-  const day = clampRevenueDay(year, monthIndex, currentDay);
-  setRevenuePeriod("month", formatDateInput(new Date(year, monthIndex, day)));
+  if (revenuePickerState.mode === "month") {
+    const selectedDate = new Date((revenuePickerState.selected.date || anchor) + "T00:00:00");
+    setRevenuePeriod("month", formatDateInput(selectedDate));
+    return;
+  }
+
+  if (revenuePickerState.mode === "week") {
+    setRevenuePeriod("week", revenuePickerState.selected.date || anchor);
+    return;
+  }
+
+  setRevenuePeriod("day", revenuePickerState.selected.date || anchor);
 }
 
-function openRevenueDayPicker() {
+function openRevenueDatePicker(mode = "day") {
   const nativeInput = document.getElementById("revenueNativeDatePicker");
   const revenueDate = document.getElementById("revenueDate").value || todayStr;
 
   if (!nativeInput) {
-    setRevenuePeriod("day", revenueDate);
+    setRevenuePeriod(mode, revenueDate);
     return;
   }
 
+  nativeInput.dataset.mode = mode;
   nativeInput.value = revenueDate;
 
   if (typeof nativeInput.showPicker === "function") {
@@ -2325,6 +3655,10 @@ function openRevenueDayPicker() {
   } else {
     nativeInput.click();
   }
+}
+
+function openRevenueDayPicker() {
+  openRevenueDatePicker("day");
 }
 
 
@@ -2336,6 +3670,22 @@ function buildRevenueChartData(filtered, type, anchor) {
       const items = filtered.filter(a => a.date.startsWith(prefix));
       return {
         label: String(index + 1),
+        paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
+        unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
+      };
+    });
+  }
+
+  if (type === "week") {
+    const bounds = weekBounds(anchor);
+    const weekdayKeys = ["mondayShort", "tuesdayShort", "wednesdayShort", "thursdayShort", "fridayShort", "saturdayShort", "sundayShort"];
+    return Array.from({ length: 7 }, (_, index) => {
+      const d = new Date(bounds.start + "T00:00:00");
+      d.setDate(d.getDate() + index);
+      const key = formatDateInput(d);
+      const items = filtered.filter(a => a.date === key);
+      return {
+        label: String(t(weekdayKeys[index]) || "").toLocaleLowerCase(getCurrentLanguage()),
         paid: items.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0),
         unpaid: items.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0)
       };
@@ -2369,50 +3719,76 @@ function buildRevenueChartData(filtered, type, anchor) {
 
 function renderRevenueChart(filtered, type, anchor) {
   const chartWrap = document.getElementById("revenueChart");
-  const subtitle = document.getElementById("revenueChartSubtitle");
-
   if (!chartWrap) return;
 
   const chartData = buildRevenueChartData(filtered, type, anchor);
   const visibleData = chartData.filter(item => item.paid > 0 || item.unpaid > 0);
-  const dataToRender = visibleData.length ? visibleData : chartData;
+  const isMonthChart = type === "month";
+  const useFullPeriodWidth = ["week", "month", "year"].includes(type);
+  const dataToRender = useFullPeriodWidth ? chartData : (visibleData.length ? visibleData : chartData);
   const maxValue = Math.max(...dataToRender.map(item => item.paid + item.unpaid), 0);
-
-  if (subtitle) {
-    subtitle.textContent =
-      type === "year" ? "Jaaromzet" :
-      type === "month" ? "Maandomzet" :
-      "Dagomzet";
-  }
-
-  if (!dataToRender.length || maxValue === 0) {
-    chartWrap.innerHTML = `<div class="empty-state">Geen omzetgegevens voor deze selectie.</div>`;
-    return;
-  }
+  const scaleMax = maxValue > 0 ? maxValue : 1;
+  const chartHeight = 220;
+  const isDayChart = type === "day";
+  const renderedBarCount = Math.max(dataToRender.length, 1);
+  const chartAvailableWidth = chartWrap.clientWidth || 320;
+  const dayGap = Math.max(6, Math.min(14, Math.round(chartAvailableWidth * 0.02)));
+  const calculatedDayColumnWidth = isDayChart
+    ? Math.max(32, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * dayGap) - 16) / renderedBarCount))
+    : null;
+  const dayColumnMinWidth = isDayChart
+    ? Math.max(32, Math.min(92, calculatedDayColumnWidth))
+    : null;
+  const dayStackWidth = isDayChart
+    ? Math.max(8, Math.min(48, Math.round(dayColumnMinWidth * 0.48)))
+    : null;
+  const formatAxisAmount = value => new Intl.NumberFormat(getCurrentLanguage(), {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0
+  }).format(Math.round(Number(value || 0)));
+  const axisValues = [1, 0.75, 0.5, 0.25, 0].map(step => scaleMax * step);
+  const axisLabels = axisValues.map(value => formatAxisAmount(value));
+  const longestAxisLabel = axisLabels.reduce((longest, label) => Math.max(longest, String(label).length), 1);
+  const axisWidth = Math.max(18, Math.min(64, Math.ceil(longestAxisLabel * 6.2) + 4));
 
   chartWrap.innerHTML = `
-    <div class="revenue-bars">
-      ${dataToRender.map(item => {
-        const total = item.paid + item.unpaid;
-        const totalHeight = Math.max(8, (total / maxValue) * 220);
-        const paidHeight = total > 0 ? (item.paid / total) * totalHeight : 0;
-        const unpaidHeight = totalHeight - paidHeight;
+    <div class="revenue-chart-plot" style="--revenue-chart-height:${chartHeight}px;--revenue-y-axis-width:${axisWidth}px;">
+      <div class="revenue-y-axis" aria-hidden="true">
+        ${axisLabels.map(label => `<span>${label}</span>`).join("")}
+      </div>
+      <div class="revenue-chart-area">
+        <div class="revenue-y-axis-line" aria-hidden="true"></div>
+        <div class="revenue-x-axis-line" aria-hidden="true"></div>
+        <div class="revenue-bars ${useFullPeriodWidth ? `revenue-bars-even revenue-bars-${type}` : (isDayChart ? "revenue-bars-day-dynamic" : "")}" style="--revenue-bar-count:${renderedBarCount};${isDayChart ? `--revenue-day-gap:${dayGap}px;--revenue-day-col-width:${dayColumnMinWidth}px;--revenue-day-stack-width:${dayStackWidth}px;` : ""}">
+          ${dataToRender.map(item => {
+            const total = item.paid + item.unpaid;
+            const hasRevenue = total > 0;
+            const totalHeight = hasRevenue ? Math.max(8, (total / scaleMax) * chartHeight) : 0;
+            const paidHeight = hasRevenue ? (item.paid / total) * totalHeight : 0;
+            const unpaidHeight = hasRevenue ? totalHeight - paidHeight : 0;
+            const title = hasRevenue ? `${item.label} · ${euro(total)}` : "";
 
-        return `
-          <div class="revenue-bar-col" title="${item.label} · ${euro(total)}">
-            <div class="revenue-bar-stack" style="height:${totalHeight}px">
-              ${unpaidHeight > 0 ? `<span class="revenue-bar-segment unpaid" style="height:${unpaidHeight}px"></span>` : ""}
-              ${paidHeight > 0 ? `<span class="revenue-bar-segment paid" style="height:${paidHeight}px"></span>` : ""}
-            </div>
-            <span class="revenue-bar-label">${item.label}</span>
-          </div>
-        `;
-      }).join("")}
+            return `
+              <div class="revenue-bar-col${hasRevenue ? "" : " is-empty"}" title="${title}">
+                ${hasRevenue ? `
+                  <div class="revenue-bar-stack" style="height:${totalHeight}px">
+                    ${unpaidHeight > 0 ? `<span class="revenue-bar-segment unpaid" style="height:${unpaidHeight}px"></span>` : ""}
+                    ${paidHeight > 0 ? `<span class="revenue-bar-segment paid" style="height:${paidHeight}px"></span>` : ""}
+                  </div>
+                ` : `<div class="revenue-bar-stack revenue-bar-stack-empty" aria-hidden="true"></div>`}
+                <span class="revenue-bar-label">${hasRevenue ? item.label : ""}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
     </div>
-    <div class="revenue-chart-legend">
-      <span><i class="paid"></i> Betaald</span>
-      <span><i class="unpaid"></i> Onbetaald</span>
-    </div>
+    ${maxValue > 0 ? `
+      <div class="revenue-chart-legend">
+        <span><i class="paid"></i> ${t("paid")}</span>
+        <span><i class="unpaid"></i> ${t("unpaid")}</span>
+      </div>
+    ` : ""}
   `;
 
   const bars = chartWrap.querySelector('.revenue-bars');
@@ -2444,6 +3820,10 @@ function getRevenueExportTitle() {
 
   if (type === 'year') return `omzet_${anchor.slice(0, 4)}`;
   if (type === 'month') return `omzet_${anchor.slice(0, 7)}`;
+  if (type === 'week') {
+    const bounds = weekBounds(anchor);
+    return `omzet_week_${bounds.start}_tot_${bounds.end}`;
+  }
   return `omzet_${anchor}`;
 }
 
@@ -2524,8 +3904,8 @@ function downloadRevenueCsv() {
     if (periodType === 'year') {
       key = String(app.date || '').slice(0, 7);
       const monthNumber = Number(key.slice(5, 7));
-      label = monthNumber ? `${longMonthNames[monthNumber - 1]} ${key.slice(0, 4)}` : key;
-    } else if (periodType === 'month') {
+      label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
+    } else if (periodType === 'month' || periodType === 'week') {
       label = app.date ? formatLongDate(app.date) : '';
     } else {
       label = app.time || app.date || '';
@@ -2542,11 +3922,12 @@ function downloadRevenueCsv() {
   const periodOverviewTitle =
     periodType === 'year' ? 'TOTALEN PER MAAND' :
     periodType === 'month' ? 'TOTALEN PER DAG' :
+    periodType === 'week' ? 'TOTALEN PER DAG' :
     'TOTALEN PER AFSPRAAKMOMENT';
 
   rows.push([periodOverviewTitle]);
   rows.push([
-    periodType === 'year' ? 'Maand' : periodType === 'month' ? 'Datum' : 'Tijd',
+    periodType === 'year' ? 'Maand' : (periodType === 'month' || periodType === 'week') ? 'Datum' : 'Tijd',
     'Aantal afspraken',
     'Totaal',
     'Betaald',
@@ -2647,8 +4028,8 @@ function getRevenueReportData() {
     if (periodType === 'year') {
       key = String(app.date || '').slice(0, 7);
       const monthNumber = Number(key.slice(5, 7));
-      label = monthNumber ? `${longMonthNames[monthNumber - 1]} ${key.slice(0, 4)}` : key;
-    } else if (periodType === 'month') {
+      label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
+    } else if (periodType === 'month' || periodType === 'week') {
       label = app.date ? formatLongDate(app.date) : '';
     } else {
       label = app.time || app.date || '';
@@ -2665,18 +4046,23 @@ function getRevenueReportData() {
   const periodTitle =
     periodType === 'year' ? 'Totalen per maand' :
     periodType === 'month' ? 'Totalen per dag' :
+    periodType === 'week' ? 'Totalen per dag' :
     'Totalen per afspraakmoment';
 
   const periodColumnTitle =
     periodType === 'year' ? 'Maand' :
-    periodType === 'month' ? 'Datum' :
+    (periodType === 'month' || periodType === 'week') ? 'Datum' :
     'Tijd';
 
   let reportTitle = 'Omzetrapport';
   if (periodType === 'day') reportTitle = `Omzetrapport · ${formatLongDate(periodDate)}`;
+  if (periodType === 'week') {
+    const bounds = weekBounds(periodDate);
+    reportTitle = `Omzetrapport · week ${formatLongDate(bounds.start)} t.e.m. ${formatLongDate(bounds.end)}`;
+  }
   if (periodType === 'month') {
     const d = new Date(periodDate + 'T00:00:00');
-    reportTitle = `Omzetrapport · ${longMonthNames[d.getMonth()]} ${d.getFullYear()}`;
+    reportTitle = `Omzetrapport · ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
   }
   if (periodType === 'year') reportTitle = `Omzetrapport · ${periodDate.slice(0, 4)}`;
 
@@ -3157,9 +4543,31 @@ function downloadRevenueStyledReport() {
   URL.revokeObjectURL(url);
 }
 
+
+function groupRevenueByCurrency(items, predicate = () => true) {
+  return items.filter(predicate).reduce((map, app) => {
+    const currency = normalizeCurrency(app.currency || getCurrentCurrency());
+    map[currency] = (map[currency] || 0) + Number(app.price || 0);
+    return map;
+  }, {});
+}
+
+function formatCurrencyTotals(totals) {
+  const entries = Object.entries(totals || {}).filter(([, value]) => Number(value || 0) !== 0);
+  if (!entries.length) return euro(0);
+  return entries.map(([currency, value]) => euro(value, currency)).join(" + ");
+}
+
 function renderRevenue() {
   renderRevenueFilters();
   syncRevenuePeriodChips();
+
+  const renderSignature = getRevenueRenderSignature();
+  const chartWrapForSignature = document.getElementById("revenueChart");
+  if (renderSignature && state.revenueLastRenderSignature === renderSignature && chartWrapForSignature?.children?.length) {
+    return;
+  }
+  state.revenueLastRenderSignature = renderSignature;
 
   const data = getData();
   const methodList = document.getElementById("paymentMethodList");
@@ -3167,41 +4575,51 @@ function renderRevenue() {
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const filtered = revenueFilteredAppointments();
 
-  let title = "Omzet";
-  if (type === "day") title = `Omzet op ${formatLongDate(anchor)}`;
+  let title = t("revenue");
+  if (type === "day") title = `${t("revenueOn")} ${formatLongDate(anchor)}`;
+  if (type === "week") {
+    const bounds = weekBounds(anchor);
+    title = `${t("revenue")} ${formatLongDate(bounds.start)} - ${formatLongDate(bounds.end)}`;
+  }
   if (type === "month") {
     const d = new Date(anchor + "T00:00:00");
-    title = `Omzet ${longMonthNames[d.getMonth()]} ${d.getFullYear()}`;
+    title = `${t("revenue")} ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
   }
-  if (type === "year") title = `Omzet ${anchor.slice(0, 4)}`;
+  if (type === "year") title = `${t("revenue")} ${anchor.slice(0, 4)}`;
 
   const titleEl = document.getElementById("revenueTitle");
   if (titleEl) titleEl.textContent = title;
 
-  const paid = filtered.filter(a => a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const total = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
-  const open = filtered.filter(a => !a.paid).reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const paid = groupRevenueByCurrency(filtered, a => a.paid);
+  const total = groupRevenueByCurrency(filtered);
+  const open = groupRevenueByCurrency(filtered, a => !a.paid);
+  const totalNumeric = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-  document.getElementById("plannedRevenue").textContent = euro(total);
-  document.getElementById("paidRevenue").textContent = euro(paid);
-  document.getElementById("openRevenue").textContent = euro(open);
+  document.getElementById("plannedRevenue").textContent = formatCurrencyTotals(total);
+  document.getElementById("paidRevenue").textContent = formatCurrencyTotals(paid);
+  document.getElementById("openRevenue").textContent = formatCurrencyTotals(open);
 
   const byMethod = {};
   filtered.filter(a => a.paid).forEach(a => {
-    const key = paymentMethodNameForAppointment(a, data) || "Onbekend";
-    byMethod[key] = (byMethod[key] || 0) + Number(a.price || 0);
+    const key = paymentMethodNameForAppointment(a, data) || t("unknown");
+    const currency = normalizeCurrency(a.currency || getCurrentCurrency());
+    byMethod[key] = byMethod[key] || {};
+    byMethod[key][currency] = (byMethod[key][currency] || 0) + Number(a.price || 0);
   });
 
   if (methodList) {
-    const methodNames = Object.keys(byMethod).length ? Object.keys(byMethod).sort((a, b) => a.localeCompare(b, "nl-BE")) : getRevenuePaymentFilterOptions(data);
-    methodList.innerHTML = methodNames.length
-      ? methodNames.map(method => `
-          <div class="revenue-method-row">
-            <span>${method}:</span>
-            <strong>${euro(byMethod[method] || 0)}</strong>
-          </div>
-        `).join("")
-      : `<div class="empty-state">Nog geen betaalgegevens.</div>`;
+    const methodNames = Object.keys(byMethod).sort((a, b) => a.localeCompare(b, "nl-BE"));
+    methodList.innerHTML = totalNumeric > 0 && methodNames.length
+      ? `
+          <h3 class="revenue-method-title">${t("paymentMethodTitle")}</h3>
+          ${methodNames.map(method => `
+            <div class="revenue-method-row">
+              <span>${method}:</span>
+              <strong>${formatCurrencyTotals(byMethod[method])}</strong>
+            </div>
+          `).join("")}
+        `
+      : "";
   }
 
 
@@ -3215,6 +4633,13 @@ function getStatisticsSummary(data = getData()) {
 
   const paidAppointments = appointments.filter(app => app.paid);
   const paidRevenue = paidAppointments.reduce((sum, app) => sum + Number(app.price || 0), 0);
+  const now = new Date();
+  const appointmentDateTime = app => new Date(`${app.date || todayStr}T${app.time || '00:00'}:00`);
+  const pastAppointments = appointments.filter(app => appointmentDateTime(app).getTime() < now.getTime());
+  const futureAppointments = appointments.filter(app => appointmentDateTime(app).getTime() >= now.getTime());
+  const paidRevenueUntilToday = paidAppointments
+    .filter(app => String(app.date || '') <= todayStr)
+    .reduce((sum, app) => sum + Number(app.price || 0), 0);
 
   const serviceUsage = services.map(service => ({
     label: service.name,
@@ -3246,8 +4671,11 @@ function getStatisticsSummary(data = getData()) {
   return {
     appointmentCount: appointments.length,
     customerCount: customers.length,
+    pastAppointmentCount: pastAppointments.length,
+    futureAppointmentCount: futureAppointments.length,
     paidAppointmentCount: paidAppointments.length,
     paidRevenue,
+    paidRevenueUntilToday,
     serviceUsage,
     paymentUsage,
     statusUsage,
@@ -3337,8 +4765,16 @@ function buildStatisticsDonut(items, valueFormatter = value => String(value)) {
   `;
 }
 
-function getTopCustomers(data = getData()) {
+function getStatisticsAppointmentYears(data = getData()) {
+  return Array.from(new Set((data.appointments || [])
+    .map(appointment => Number(String(appointment.date || "").slice(0, 4)))
+    .filter(year => Number.isFinite(year) && year > 0)))
+    .sort((a, b) => b - a);
+}
+
+function getTopCustomers(data = getData(), yearFilter = "all") {
   const totals = new Map();
+  const safeYearFilter = String(yearFilter || "all");
 
   (data.customers || []).forEach(customer => {
     const name = fullName(customer) || 'Onbekend';
@@ -3353,6 +4789,7 @@ function getTopCustomers(data = getData()) {
 
   (data.appointments || []).forEach(appointment => {
     if ((appointment.status || '').toLowerCase() === 'no-show') return;
+    if (safeYearFilter !== 'all' && !String(appointment.date || '').startsWith(safeYearFilter)) return;
     const customer = customerById(data, appointment.customerId);
     const key = customer ? String(customer.id) : `unknown-${appointment.customerId || appointment.id}`;
     const name = customer ? fullName(customer) : 'Onbekend';
@@ -3366,6 +4803,7 @@ function getTopCustomers(data = getData()) {
   });
 
   return Array.from(totals.values())
+    .filter(customer => Number(customer.revenue || 0) > 0)
     .sort((a, b) => (b.revenue - a.revenue) || (b.paidAppointments - a.paidAppointments) || (b.appointments - a.appointments) || a.name.localeCompare(b.name, 'nl-BE'));
 }
 
@@ -3375,7 +4813,12 @@ function renderStatistics() {
 
   const data = getData();
   const summary = getStatisticsSummary(data);
-  const topCustomers = getTopCustomers(data);
+  const topCustomerYears = getStatisticsAppointmentYears(data);
+  if (state.statsTopCustomersYear !== 'all' && !topCustomerYears.includes(Number(state.statsTopCustomersYear))) {
+    state.statsTopCustomersYear = 'all';
+  }
+  const selectedTopCustomerYear = state.statsTopCustomersYear || 'all';
+  const topCustomers = getTopCustomers(data, selectedTopCustomerYear);
   const visibleCount = Math.max(10, Number(state.statsTopCustomersVisible) || 10);
   const visibleCustomers = topCustomers.slice(0, visibleCount);
   const hasMoreCustomers = visibleCustomers.length < topCustomers.length;
@@ -3384,65 +4827,86 @@ function renderStatistics() {
   wrap.innerHTML = `
     <section class="statistics-card statistics-kpi-grid">
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">Aantal klanten</span>
+        <span class="statistics-kpi-label">${t("customerCount")}</span>
         <strong>${summary.customerCount}</strong>
       </div>
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">Aantal afspraken</span>
-        <strong>${summary.appointmentCount}</strong>
+        <span class="statistics-kpi-label">${t("pastAppointments")}</span>
+        <strong>${summary.pastAppointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">Betaalde afspraken</span>
-        <strong>${summary.paidAppointmentCount}</strong>
+        <span class="statistics-kpi-label">${t("futureAppointments")}</span>
+        <strong>${summary.futureAppointmentCount}</strong>
       </div>
       <div class="statistics-kpi">
-        <span class="statistics-kpi-label">Omzet tot op heden</span>
-        <strong>${euro(summary.paidRevenue)}</strong>
+        <span class="statistics-kpi-label">${t("totalRevenueUntilToday")}</span>
+        <strong>${euro(summary.paidRevenueUntilToday)}</strong>
       </div>
     </section>
 
     <section class="statistics-card">
       <div class="statistics-card-head">
-        <h2>Gekozen behandelingen</h2>
+        <h2>${t("chosenServices")}</h2>
       </div>
       ${buildStatisticsDonut(summary.serviceUsage)}
     </section>
 
     <section class="statistics-card">
       <div class="statistics-card-head">
-        <h2>Omzet per behandeling</h2>
+        <h2>${t("revenueByService")}</h2>
       </div>
       ${buildStatisticsDonut(summary.revenueByService, value => euro(value))}
     </section>
 
     <section class="statistics-card">
       <div class="statistics-card-head">
-        <h2>Gekozen betaalwijze</h2>
+        <h2>${t("chosenPaymentMethod")}</h2>
       </div>
       ${buildStatisticsDonut(summary.paymentUsage)}
     </section>
 
     <section class="statistics-card">
-      <div class="statistics-card-head">
-        <h2>Top klanten</h2>
+      <div class="statistics-card-head statistics-card-head-stacked">
+        <h2>${t("topCustomers")}</h2>
+        <select id="topCustomersYearFilter" class="field compact-field statistics-year-filter" aria-label="Top klanten jaar filteren">
+          <option value="all"${selectedTopCustomerYear === 'all' ? ' selected' : ''}>${t("all")}</option>
+          ${topCustomerYears.map(year => `<option value="${year}"${String(year) === String(selectedTopCustomerYear) ? ' selected' : ''}>${year}</option>`).join('')}
+        </select>
       </div>
       <div class="statistics-top-customers">
         ${visibleCustomers.length ? visibleCustomers.map((customer, index) => `
-          <div class="statistics-top-customer-row">
+          <button class="statistics-top-customer-row" type="button" data-customer-id="${customer.id || ''}">
             <div class="statistics-top-customer-rank">${index + 1}</div>
             <div class="statistics-top-customer-name">${customer.name}</div>
             <strong class="statistics-top-customer-amount">${euro(customer.revenue)}</strong>
-          </div>
-        `).join('') : `<div class="statistics-empty">Nog geen klantgegevens beschikbaar.</div>`}
+          </button>
+        `).join('') : `<div class="statistics-empty">${t("noCustomerStats")}</div>`}
       </div>
       ${(hasMoreCustomers || canShowLessCustomers) ? `
         <div class="statistics-more-wrap">
-          ${hasMoreCustomers ? `<button id="statisticsMoreCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Meer...</button>` : ''}
-          ${canShowLessCustomers ? `<button id="statisticsLessCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">Minder</button>` : ''}
+          ${hasMoreCustomers ? `<button id="statisticsMoreCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">${t("more")}</button>` : ''}
+          ${canShowLessCustomers ? `<button id="statisticsLessCustomersBtn" class="btn btn-secondary statistics-more-btn" type="button">${t("less")}</button>` : ''}
         </div>
       ` : ''}
     </section>
   `;
+
+
+  const topCustomersYearFilter = document.getElementById('topCustomersYearFilter');
+  if (topCustomersYearFilter) {
+    topCustomersYearFilter.addEventListener('change', () => {
+      state.statsTopCustomersYear = topCustomersYearFilter.value || 'all';
+      state.statsTopCustomersVisible = 10;
+      renderStatistics();
+    });
+  }
+
+  wrap.querySelectorAll('.statistics-top-customer-row[data-customer-id]').forEach(row => {
+    row.addEventListener('click', () => {
+      const customerId = row.dataset.customerId;
+      if (customerId) openClientDetail(customerId);
+    });
+  });
 
   const moreBtn = document.getElementById('statisticsMoreCustomersBtn');
   if (moreBtn) {
@@ -3623,6 +5087,14 @@ function renderSettings() {
   const overlapToggle = document.getElementById("settingsOverlapWarningsEnabled");
   const reminderWrap = document.getElementById("settingsReminderWrap");
   const saveHint = document.getElementById("settingsSaveHint");
+  const languageSelect = document.getElementById("settingsLanguage");
+  const currencySelect = document.getElementById("settingsCurrency");
+  const paymentBeneficiaryNameInput = document.getElementById("settingsPaymentBeneficiaryName");
+  const paymentIbanInput = document.getElementById("settingsPaymentIban");
+  const paymentBicInput = document.getElementById("settingsPaymentBic");
+  const paymentReferencePrefixInput = document.getElementById("settingsPaymentReferencePrefix");
+
+  rebuildSettingsSelectOptions();
 
   if (!breakInput || !notificationsToggle || !reminderSelect || !overlapToggle || !reminderWrap || !saveHint) return;
 
@@ -3630,23 +5102,31 @@ function renderSettings() {
   notificationsToggle.checked = Boolean(settings.notificationsEnabled);
   reminderSelect.value = String(settings.reminderMinutes || 30);
   overlapToggle.checked = settings.overlapWarningsEnabled !== false;
+  if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
+  if (paymentIbanInput) paymentIbanInput.value = settings.paymentIban || "";
+  if (paymentBicInput) paymentBicInput.value = settings.paymentBic || "";
+  if (paymentReferencePrefixInput) paymentReferencePrefixInput.value = settings.paymentReferencePrefix || "Idle & Ease";
+
+  refreshAppSelect(reminderSelect);
+  refreshAppSelect(languageSelect);
+  refreshAppSelect(currencySelect);
   const notificationsEnabled = Boolean(settings.notificationsEnabled);
   const permissionState = notificationsPermissionState();
 
   reminderWrap.classList.toggle("hidden", !notificationsEnabled);
 
   if (state.settingsSavePending) {
-    saveHint.textContent = "Instellingen opslaan...";
+    saveHint.textContent = t("savePending");
   } else if (!notificationsEnabled) {
-    saveHint.textContent = "Meldingen zijn uitgeschakeld.";
+    saveHint.textContent = t("notificationsOff");
   } else if (permissionState === "granted") {
-    saveHint.textContent = "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.";
+    saveHint.textContent = t("notificationsActive");
   } else if (permissionState === "denied") {
-    saveHint.textContent = "Meldingen zijn geblokkeerd in je browserinstellingen.";
+    saveHint.textContent = t("notificationsBlocked");
   } else if (permissionState === "unsupported") {
-    saveHint.textContent = "Deze browser ondersteunt geen webmeldingen.";
+    saveHint.textContent = t("notificationsUnsupported");
   } else {
-    saveHint.textContent = "Schakel meldingen in en geef toestemming om herinneringen te tonen.";
+    saveHint.textContent = t("notificationsPermissionHint");
   }
 }
 
@@ -3657,7 +5137,7 @@ async function loadSettingsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_iban, payment_bic, payment_reference_prefix")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -3670,7 +5150,13 @@ async function loadSettingsFromSupabase() {
     defaultBreakMinutes: Number(data?.default_break_minutes ?? 10),
     notificationsEnabled: Boolean(data?.notifications_enabled ?? false),
     reminderMinutes: Number(data?.reminder_minutes ?? 30),
-    overlapWarningsEnabled: data?.overlap_warnings_enabled !== false
+    overlapWarningsEnabled: data?.overlap_warnings_enabled !== false,
+    language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
+    currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
+    paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
+    paymentIban: normalizeIban(data?.payment_iban || ""),
+    paymentBic: String(data?.payment_bic || "").trim().toUpperCase(),
+    paymentReferencePrefix: String(data?.payment_reference_prefix || "Idle & Ease").trim() || "Idle & Ease"
   };
 }
 
@@ -3681,19 +5167,40 @@ async function saveSettingsFromForm(event) {
     defaultBreakMinutes: Math.max(0, Number(document.getElementById("settingsDefaultBreakMinutes")?.value || 0)),
     notificationsEnabled: Boolean(document.getElementById("settingsNotificationsEnabled")?.checked),
     reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
-    overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked)
+    overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked),
+    language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
+    currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
+    paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
+    paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
+    paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
+    paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "Idle & Ease").trim() || "Idle & Ease"
   };
+
+  if (settings.paymentIban && !isValidIban(settings.paymentIban)) {
+    await appAlert("Het bankrekeningnummer is niet geldig. Controleer het IBAN-nummer en probeer opnieuw.", {
+      title: "Ongeldig bankrekeningnummer",
+      variant: "warning"
+    });
+    const paymentIbanInput = document.getElementById("settingsPaymentIban");
+    if (paymentIbanInput) {
+      paymentIbanInput.focus();
+      paymentIbanInput.select?.();
+    }
+    return;
+  }
 
   const user = await getCurrentUser();
 
   if (!user) {
     const data = getData();
     data.settings = settings;
+    currentProfilePreferences = { language: settings.language, currency: settings.currency };
     saveData(data);
     state.settingsSavePending = false;
     await syncNotificationState({ requestPermission: settings.notificationsEnabled });
+    rerenderAll();
+    await appAlert(t("settingsSavedDevice"), { title: t("settingsSaved"), variant: "success" });
     renderSettings();
-    await appAlert("Instellingen opgeslagen op dit toestel.", { title: "Instellingen opgeslagen", variant: "success" });
     return;
   }
 
@@ -3706,8 +5213,21 @@ async function saveSettingsFromForm(event) {
     notifications_enabled: settings.notificationsEnabled,
     reminder_minutes: settings.reminderMinutes,
     overlap_warnings_enabled: settings.overlapWarningsEnabled,
+    language: settings.language,
+    currency: settings.currency,
+    payment_beneficiary_name: settings.paymentBeneficiaryName || null,
+    payment_iban: settings.paymentIban || null,
+    payment_bic: settings.paymentBic || null,
+    payment_reference_prefix: settings.paymentReferencePrefix || "Idle & Ease",
     updated_at: new Date().toISOString()
   };
+
+  await upsertProfile(user.id, {
+    ...(await getCurrentProfile() || {}),
+    language: settings.language,
+    currency: settings.currency,
+    terms_accepted: true
+  });
 
   const { error } = await supabaseClient
     .from("user_settings")
@@ -3723,10 +5243,12 @@ async function saveSettingsFromForm(event) {
 
   const data = getData();
   data.settings = settings;
+  currentProfilePreferences = { language: settings.language, currency: settings.currency };
   saveData(data);
   await syncNotificationState({ requestPermission: settings.notificationsEnabled });
+  rerenderAll();
+  await appAlert(t("settingsSaved"), { title: t("settingsSaved"), variant: "success" });
   renderSettings();
-  await appAlert("Instellingen opgeslagen.", { title: "Instellingen opgeslagen", variant: "success" });
 }
 
 // =============================
@@ -3817,87 +5339,91 @@ function openClientDetail(clientId) {
       <div class="client-detail-card">
         <div class="client-detail-table">
           <div class="client-detail-row client-detail-row-stacked">
-            <div class="client-detail-label">Voornaam</div>
+            <div class="client-detail-label">${t("customerNumber")}</div>
+            ${renderClientContactValue('text', customerNumber(client))}
+          </div>
+
+          <div class="client-detail-row client-detail-row-stacked">
+            <div class="client-detail-label">${t("firstName")}</div>
             ${renderClientContactValue('text', client.firstName || '-')}
           </div>
 
           <div class="client-detail-row client-detail-row-stacked">
-            <div class="client-detail-label">Naam</div>
+            <div class="client-detail-label">${t("lastName")}</div>
             ${renderClientContactValue('text', client.lastName || '-')}
           </div>
 
           <div class="client-detail-row client-detail-row-stacked">
-            <div class="client-detail-label">Telefoon</div>
+            <div class="client-detail-label">${t("phone")}</div>
             ${renderClientContactValue('phone', client.phone || '')}
           </div>
 
           <div class="client-detail-row client-detail-row-stacked">
-            <div class="client-detail-label">E-mail</div>
+            <div class="client-detail-label">${t("email")}</div>
             ${renderClientContactValue('email', client.email || '')}
           </div>
 
           <div class="client-detail-note-block">
-            <div class="client-detail-label">Notitie</div>
+            <div class="client-detail-label">${t("note")}</div>
             <div class="client-detail-note">${safeNote}</div>
           </div>
         </div>
 
         <div class="client-detail-footer">
-          <button class="btn btn-primary client-detail-edit-btn" id="editClientBtn" type="button">
-            Bewerken
+          <button class="btn client-detail-edit-btn app-action-nav-btn" id="editClientBtn" type="button" aria-label="${t("edit")}">
+            <span class="app-action-nav-ico" aria-hidden="true">${getActionButtonIconSvg('edit')}</span>
+            <span class="app-action-nav-label">${t("edit")}</span>
           </button>
         </div>
       </div>
 
       <div class="client-appointments-section">
         <div class="client-appointments-header">
-          <div class="client-appointments-title">AFSPRAKEN</div>
-          <div class="client-appointments-count">${appts.length} totaal</div>
+          <div class="client-appointments-title">${t("appointments").toUpperCase()}</div>
+          <div class="client-appointments-count">${appts.length} ${t("totalLower")}</div>
         </div>
 
         <div class="client-new-appointment-bar">
           <button
-            class="btn btn-primary client-new-appointment-btn"
+            class="client-inline-add-btn"
             id="newClientAppointmentBtn"
             type="button"
+            aria-label="${t("newAppointment")}"
+            title="${t("newAppointment")}"
           >
-            Nieuwe afspraak
+            +
           </button>
         </div>
 
         <div class="client-appointments-list">
           ${
             appts.length
-              ? appts.map(app => {
+              ? `<div class="appointment-card client-detail-appointment-card">${appts.map(app => {
                   const service = serviceById(data, app.serviceId);
+                  const statusParts = [];
+                  if ((app.status || "").toLowerCase() === "no-show") {
+                    statusParts.push("no show");
+                  } else {
+                    statusParts.push(app.paid ? t("paid").toLowerCase() : t("unpaid").toLowerCase());
+                    const method = paymentMethodNameForAppointment(app, data);
+                    if (app.paid && method) statusParts.push(method);
+                  }
 
                   return `
-                    <div class="client-appointment-row">
-                      <div class="client-appointment-datecol">
-                        <div class="client-appointment-date">${formatShortDate(app.date)}</div>
-                        <div class="client-appointment-time">${app.time || ""}</div>
+                    <div class="appointment-row client-detail-appointment-row" data-id="${app.id}" role="button" tabindex="0" aria-label="${t("editAppointment")}">
+                      <div class="time-block">
+                        <div class="time">${app.time || ""}</div>
+                        <div class="time-end">${formatShortDate(app.date)}</div>
                       </div>
-
-                      <div class="client-appointment-main">
-                        <div class="client-appointment-service">${service ? service.name : "-"}</div>
-                        <div class="client-appointment-status">
-                          ${app.status || "-"}${app.paid ? " · betaald" : ""}
-                        </div>
+                      <div>
+                        <div class="main-name">${service ? service.name : "-"}</div>
+                        <div class="meta">${statusParts.join(" · ")}</div>
                       </div>
-
-                      <div class="client-appointment-actions">
-                        <button
-                          class="btn btn-primary client-appointment-edit-btn from-detail-edit"
-                          data-id="${app.id}"
-                          type="button"
-                        >
-                          Bewerk
-                        </button>
-                      </div>
+                      <button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>
                     </div>
                   `;
-                }).join("")
-              : `<div class="client-appointment-empty">Nog geen afspraken.</div>`
+                }).join("")}</div>`
+              : `<div class="client-appointment-empty">${t("noAppointmentsYet")}</div>`
           }
         </div>
 
@@ -3920,9 +5446,24 @@ function openClientDetail(clientId) {
     });
   }
 
-  content.querySelectorAll(".from-detail-edit").forEach(btn => {
-    btn.addEventListener("click", () => {
-      openEditAppointmentDialog(btn.dataset.id);
+  content.querySelectorAll(".client-detail-appointment-row").forEach(row => {
+    const openActions = () => openAppointmentActionPopover(row.dataset.id, row);
+    row.addEventListener("click", event => {
+      if (event.target.closest(".price-chip")) return;
+      openActions();
+    });
+    row.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openActions();
+      }
+    });
+  });
+
+  content.querySelectorAll(".client-detail-appointment-row .price-chip").forEach(btn => {
+    btn.addEventListener("click", event => {
+      event.stopPropagation();
+      openPaymentDialog(btn.dataset.id, btn);
     });
   });
 
@@ -3940,9 +5481,15 @@ function createAppointmentForClient(clientId) {
 
 
 function customerSearchText(customer) {
-  return [fullName(customer), customer.phone || "", customer.email || ""]
-    .join(" ")
-    .toLowerCase();
+  return [
+    fullName(customer),
+    customer.firstName,
+    customer.lastName,
+    customer.phone,
+    String(customer.phone || "").replace(/\D/g, ""),
+    customer.email,
+    customerNumber(customer)
+  ].join(" ").toLowerCase();
 }
 
 function setAppointmentCustomer(customerId, { updateSearch = true } = {}) {
@@ -3959,7 +5506,18 @@ function setAppointmentCustomer(customerId, { updateSearch = true } = {}) {
     searchInput.value = customer ? fullName(customer) : "";
   }
 
-  renderAppointmentCustomerResults(searchInput?.value || "", false);
+  refreshAppSelect(customerSelect);
+}
+
+
+function hideAppointmentCustomerResults() {
+  const resultsWrap = document.getElementById("appointmentCustomerResults");
+  const searchInput = document.getElementById("appointmentCustomerSearch");
+  if (resultsWrap) resultsWrap.classList.add("hidden");
+  if (searchInput) {
+    searchInput.setAttribute("aria-expanded", "false");
+    searchInput.blur();
+  }
 }
 
 function renderAppointmentCustomerResults(query = "", showAllWhenEmpty = false) {
@@ -3982,7 +5540,7 @@ function renderAppointmentCustomerResults(query = "", showAllWhenEmpty = false) 
 
   if (!customers.length) {
     resultsWrap.innerHTML = safeQuery
-      ? `<div class="appointment-customer-empty">Geen klanten gevonden.</div>`
+      ? `<div class="appointment-customer-empty">${t("noClientsFound")}</div>`
       : "";
     resultsWrap.classList.toggle("hidden", !safeQuery);
     if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
@@ -4009,47 +5567,210 @@ function setupAppointmentCustomerSearch() {
   const searchInput = document.getElementById("appointmentCustomerSearch");
   const resultsWrap = document.getElementById("appointmentCustomerResults");
   const customerSelect = document.getElementById("appointmentCustomer");
-  if (!searchInput || !resultsWrap || !customerSelect || searchInput.dataset.ready === "true") return;
+  if (!searchInput || !customerSelect || searchInput.dataset.ready === "true") return;
 
   searchInput.dataset.ready = "true";
+  if (resultsWrap) resultsWrap.classList.add("hidden");
+
+  const rebuildCustomerDropdown = () => {
+    const data = getData();
+    const query = String(searchInput.value || "").trim().toLowerCase();
+    const currentValue = customerSelect.value;
+
+    let customers = data.customers.slice().sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
+    if (query) customers = customers.filter(customer => customerSearchText(customer).includes(query));
+
+    const hasCurrent = currentValue && customers.some(customer => String(customer.id) === String(currentValue));
+    if (currentValue && !hasCurrent) {
+      const currentCustomer = customerById(data, currentValue);
+      if (currentCustomer) customers.unshift(currentCustomer);
+    }
+
+    customerSelect.innerHTML = `<option value="">${t("chooseCustomer")}</option>` +
+      customers.map(customer => `<option value="${customer.id}">${htmlEscape(fullName(customer) || "Naamloos")}</option>`).join("");
+    customerSelect.value = currentValue && Array.from(customerSelect.options).some(option => option.value === String(currentValue))
+      ? String(currentValue)
+      : "";
+    refreshAppSelect(customerSelect);
+  };
 
   searchInput.addEventListener("input", () => {
     customerSelect.value = "";
-    renderAppointmentCustomerResults(searchInput.value, false);
+    rebuildCustomerDropdown();
   });
 
   searchInput.addEventListener("focus", () => {
-    renderAppointmentCustomerResults(searchInput.value, true);
-  });
-
-  resultsWrap.addEventListener("click", event => {
-    const btn = event.target.closest("[data-customer-id]");
-    if (!btn) return;
-    setAppointmentCustomer(btn.dataset.customerId);
+    if (resultsWrap) resultsWrap.classList.add("hidden");
   });
 
   customerSelect.addEventListener("change", () => {
-    setAppointmentCustomer(customerSelect.value);
+    const customer = customerById(getData(), customerSelect.value);
+    searchInput.value = customer ? fullName(customer) : "";
+    refreshAppSelect(customerSelect);
   });
 
-  document.addEventListener("click", event => {
-    const picker = event.target.closest(".appointment-customer-picker");
-    if (picker) return;
-    resultsWrap.classList.add("hidden");
-    searchInput.setAttribute("aria-expanded", "false");
-  });
+  customerSelect.dataset.rebuildAppointmentDropdown = "true";
 }
+
+function serviceSearchText(service) {
+  return [
+    service?.name,
+    service?.duration,
+    service?.price,
+    service?.isActive === false ? t("inactive") : ""
+  ].join(" ").toLowerCase();
+}
+
+function setAppointmentService(serviceId, { updateSearch = true, updateDefaults = true } = {}) {
+  const data = getData();
+  const serviceSelect = document.getElementById("appointmentService");
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  const service = serviceById(data, serviceId);
+
+  if (serviceSelect) {
+    serviceSelect.value = service ? String(service.id) : "";
+  }
+
+  if (searchInput && updateSearch) {
+    searchInput.value = service ? service.name : "";
+  }
+
+  refreshAppSelect(serviceSelect);
+
+  if (updateDefaults && service) {
+    syncServiceDefaults();
+  }
+}
+
+function hideAppointmentServiceResults() {
+  const resultsWrap = document.getElementById("appointmentServiceResults");
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  if (resultsWrap) resultsWrap.classList.add("hidden");
+  if (searchInput) {
+    searchInput.setAttribute("aria-expanded", "false");
+    searchInput.blur();
+  }
+}
+
+function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
+  const data = getData();
+  const resultsWrap = document.getElementById("appointmentServiceResults");
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  if (!resultsWrap) return;
+
+  const safeQuery = String(query || "").trim().toLowerCase();
+  const selectedId = document.getElementById("appointmentService")?.value || "";
+
+  let services = (data.services || [])
+    .filter(service => service.isActive !== false || String(service.id) === String(selectedId))
+    .slice()
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
+
+  if (safeQuery) {
+    services = services.filter(service => serviceSearchText(service).includes(safeQuery));
+  } else if (!showAllWhenEmpty) {
+    services = [];
+  }
+
+  services = services.slice(0, 30);
+
+  if (!services.length) {
+    resultsWrap.innerHTML = safeQuery
+      ? `<div class="appointment-service-empty">${t("noActiveServices")}</div>`
+      : "";
+    resultsWrap.classList.toggle("hidden", !safeQuery);
+    if (searchInput) searchInput.setAttribute("aria-expanded", safeQuery ? "true" : "false");
+    return;
+  }
+
+  resultsWrap.innerHTML = services.map(service => {
+    const name = service.name || "Naamloze dienst";
+    const metaParts = [];
+    if (Number(service.duration || 0)) metaParts.push(`${Number(service.duration)} min`);
+    if (Number(service.price || 0)) metaParts.push(euro(service.price));
+    if (service.isActive === false) metaParts.push(t("inactive"));
+    const activeClass = String(service.id) === String(selectedId) ? " active" : "";
+    return `
+      <button class="appointment-service-result${activeClass}" type="button" role="option" data-service-id="${service.id}" aria-selected="${activeClass ? "true" : "false"}">
+        <span class="appointment-service-result-name">${htmlEscape(name)}</span>
+        ${metaParts.length ? `<span class="appointment-service-result-meta">${htmlEscape(metaParts.join(" · "))}</span>` : ""}
+      </button>
+    `;
+  }).join("");
+
+  resultsWrap.classList.remove("hidden");
+  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
+}
+
+function setupAppointmentServiceSearch() {
+  const searchInput = document.getElementById("appointmentServiceSearch");
+  const resultsWrap = document.getElementById("appointmentServiceResults");
+  const serviceSelect = document.getElementById("appointmentService");
+  if (!searchInput || !serviceSelect || searchInput.dataset.ready === "true") return;
+
+  searchInput.dataset.ready = "true";
+  if (resultsWrap) resultsWrap.classList.add("hidden");
+
+  const rebuildServiceDropdown = () => {
+    const data = getData();
+    const query = String(searchInput.value || "").trim().toLowerCase();
+    const currentValue = serviceSelect.value;
+
+    let services = (data.services || [])
+      .filter(service => service.isActive !== false || String(service.id) === String(currentValue))
+      .slice()
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
+
+    if (query) services = services.filter(service => serviceSearchText(service).includes(query));
+
+    const hasCurrent = currentValue && services.some(service => String(service.id) === String(currentValue));
+    if (currentValue && !hasCurrent) {
+      const currentService = serviceById(data, currentValue);
+      if (currentService) services.unshift(currentService);
+    }
+
+    serviceSelect.innerHTML = services.map(service => {
+      const suffix = service.isActive === false ? ` (${t("inactive")})` : "";
+      return `<option value="${service.id}">${htmlEscape((service.name || "Naamloze dienst") + suffix)}</option>`;
+    }).join("");
+    serviceSelect.value = currentValue && Array.from(serviceSelect.options).some(option => option.value === String(currentValue))
+      ? String(currentValue)
+      : (serviceSelect.options[0]?.value || "");
+    refreshAppSelect(serviceSelect);
+  };
+
+  searchInput.addEventListener("input", () => {
+    serviceSelect.value = "";
+    rebuildServiceDropdown();
+  });
+
+  searchInput.addEventListener("focus", () => {
+    if (resultsWrap) resultsWrap.classList.add("hidden");
+  });
+
+  serviceSelect.addEventListener("change", () => {
+    const service = serviceById(getData(), serviceSelect.value);
+    searchInput.value = service ? service.name : "";
+    refreshAppSelect(serviceSelect);
+    syncServiceDefaults();
+  });
+
+  serviceSelect.dataset.rebuildAppointmentDropdown = "true";
+}
+
 
 function populateAppointmentForm(customerId = null) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
   const serviceSelect = document.getElementById("appointmentService");
 
-  customerSelect.innerHTML = `<option value="">Kies een klant...</option>` +
+  customerSelect.innerHTML = `<option value="">${t("chooseCustomer")}</option>` +
     data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
-  serviceSelect.innerHTML = data.services.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  const activeServices = (data.services || []).filter(service => service.isActive !== false);
+  serviceSelect.innerHTML = activeServices.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
 
   setupAppointmentCustomerSearch();
+  setupAppointmentServiceSearch();
 
   if (customerId) {
     setAppointmentCustomer(customerId);
@@ -4058,6 +5779,10 @@ function populateAppointmentForm(customerId = null) {
     const searchInput = document.getElementById("appointmentCustomerSearch");
     if (searchInput) searchInput.value = "";
   }
+
+  const serviceSearchInput = document.getElementById("appointmentServiceSearch");
+  if (serviceSearchInput) serviceSearchInput.value = "";
+  hideAppointmentServiceResults();
 }
 
 function syncServiceDefaults() {
@@ -4074,19 +5799,26 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   populateAppointmentForm(prefillCustomerId);
 
   document.getElementById("appointmentForm")?.classList.remove("appointment-form-edit");
-  document.getElementById("appointmentModalTitle").textContent = "Nieuwe afspraak";
+  document.getElementById("appointmentModalTitle").textContent = t("newAppointment");
   document.getElementById("appointmentId").value = "";
   document.getElementById("appointmentDate").value = state.selectedDate;
   document.getElementById("appointmentTime").value = "10:00";
   document.getElementById("appointmentStatus").value = "gepland";
   document.getElementById("appointmentStatusWrap").style.display = "none";
+  document.getElementById("appointmentOpenCustomerBtn")?.classList.add("hidden");
+  const remarksInput = document.getElementById("appointmentRemarks");
+  if (remarksInput) remarksInput.value = "";
+  syncAppointmentDateTimeDisplays();
 
   const serviceSelect = document.getElementById("appointmentService");
   if (serviceSelect.options.length) {
-    serviceSelect.value = serviceSelect.options[0].value;
+    setAppointmentService(serviceSelect.options[0].value, { updateSearch: true, updateDefaults: false });
+  } else {
+    setAppointmentService("", { updateSearch: true, updateDefaults: false });
   }
 
   syncServiceDefaults();
+  hideAppointmentServiceResults();
   document.getElementById("deleteAppointmentBtn").style.visibility = "hidden";
   document.getElementById("appointmentDialog").showModal();
 }
@@ -4098,20 +5830,201 @@ function openEditAppointmentDialog(id) {
 
   populateAppointmentForm(app.customerId);
 
+  const appointmentServiceSelect = document.getElementById("appointmentService");
+  const currentService = serviceById(data, app.serviceId);
+  if (appointmentServiceSelect && currentService && !Array.from(appointmentServiceSelect.options).some(option => String(option.value) === String(currentService.id))) {
+    const option = document.createElement("option");
+    option.value = currentService.id;
+    option.textContent = `${currentService.name} (inactief)`;
+    appointmentServiceSelect.appendChild(option);
+  }
+
   document.getElementById("appointmentForm")?.classList.add("appointment-form-edit");
-  document.getElementById("appointmentModalTitle").textContent = "Afspraak bewerken";
+  document.getElementById("appointmentModalTitle").textContent = t("editAppointment");
   document.getElementById("appointmentId").value = app.id;
   setAppointmentCustomer(app.customerId);
+  hideAppointmentCustomerResults();
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
-  document.getElementById("appointmentService").value = app.serviceId;
+  setAppointmentService(app.serviceId, { updateSearch: true, updateDefaults: false });
+  hideAppointmentServiceResults();
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
   document.getElementById("appointmentStatus").value = app.status;
+  const remarksInput = document.getElementById("appointmentRemarks");
+  if (remarksInput) remarksInput.value = app.remarks || "";
   document.getElementById("appointmentStatusWrap").style.display = "block";
+  document.getElementById("appointmentOpenCustomerBtn")?.classList.remove("hidden");
+  syncAppointmentDateTimeDisplays();
 
   document.getElementById("deleteAppointmentBtn").style.visibility = "visible";
   document.getElementById("appointmentDialog").showModal();
+}
+
+
+function openAppointmentCustomerDetailFromDialog() {
+  const customerId = document.getElementById("appointmentCustomer")?.value;
+  if (!customerId) return;
+  closeDialog("appointmentDialog");
+  openClientDetail(customerId);
+}
+
+function positionAppointmentActionPopover() {
+  const popover = document.getElementById("appointmentActionPopover");
+  if (!popover || popover.classList.contains("hidden") || !appointmentActionPopoverState.anchorRect) return;
+
+  const card = popover.querySelector(".payment-popover-card");
+  if (!card) return;
+
+  const margin = 12;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const cardRect = card.getBoundingClientRect();
+  const anchor = appointmentActionPopoverState.anchorRect;
+
+  let left = anchor.left + (anchor.width / 2) - (cardRect.width / 2);
+  left = Math.max(margin, Math.min(left, viewportWidth - cardRect.width - margin));
+
+  let top = anchor.top - cardRect.height - 10;
+  const spaceAbove = anchor.top - margin;
+  const spaceBelow = viewportHeight - anchor.bottom - margin;
+
+  if (top < margin) {
+    if (spaceBelow >= cardRect.height || spaceBelow > spaceAbove) {
+      top = Math.min(viewportHeight - cardRect.height - margin, anchor.bottom + 10);
+      popover.dataset.placement = "bottom";
+    } else {
+      top = margin;
+      popover.dataset.placement = "top";
+    }
+  } else {
+    popover.dataset.placement = "top";
+  }
+
+  popover.style.left = `${Math.round(left)}px`;
+  popover.style.top = `${Math.round(top)}px`;
+}
+
+function closeAppointmentActionPopover() {
+  const popover = document.getElementById("appointmentActionPopover");
+  if (!popover) return;
+  popover.classList.add("hidden");
+  popover.setAttribute("aria-hidden", "true");
+  popover.style.left = "";
+  popover.style.top = "";
+  popover.removeAttribute("data-placement");
+  appointmentActionPopoverState.appointmentId = null;
+  appointmentActionPopoverState.anchorRect = null;
+}
+
+function getOrCreateAppointmentActionContactLinks() {
+  const titleWrap = document.querySelector('#appointmentActionPopover .payment-popover-title-wrap');
+  if (!titleWrap) return null;
+
+  let links = document.getElementById('appointmentActionContactLinks');
+  if (!links) {
+    links = document.createElement('div');
+    links.id = 'appointmentActionContactLinks';
+    links.className = 'appointment-action-contact-links hidden';
+    links.setAttribute('aria-label', 'Contactacties klant');
+    titleWrap.innerHTML = '';
+    titleWrap.appendChild(links);
+  }
+  return links;
+}
+
+function renderAppointmentActionContactLinks(customer = null) {
+  const links = getOrCreateAppointmentActionContactLinks();
+  if (!links) return;
+
+  const phoneValue = normalizePhoneHref(customer?.phone || '');
+  const emailValue = String(customer?.email || '').trim();
+  const items = [];
+
+  if (phoneValue) {
+    items.push(`
+      <a class="appointment-action-contact-btn client-action-btn-call" href="tel:${escapeHtml(phoneValue)}" aria-label="Bellen" title="Bellen">
+        <span class="client-action-icon" aria-hidden="true">
+          <svg class="client-action-svg client-action-svg-phone" viewBox="0 0 33.866663 33.866663" xmlns="http://www.w3.org/2000/svg">
+          <path fill="currentColor" d="M 23.909996,32.434977 C 20.389461,32.094537 15.982601,30.509443 12.849544,28.456682 7.2145569,24.764556 3.0899852,17.711697 2.4473057,10.6692 2.2754657,8.7864544 2.4546714,7.6922982 3.1790805,6.2285059 4.3160008,3.9275809 6.0482706,2.8458773 8.6236913,2.8286216 c 1.2263569,-0.00736 1.3845997,0.1133321 1.6342907,1.2571049 0.334981,1.5340315 0.980983,5.295665 1.1933,6.9485955 0.282797,2.201391 0.131555,2.609886 -1.095805,2.96081 -0.9857392,0.281804 -1.1985177,0.48832 -1.1985177,1.163277 0,0.679666 0.8533197,2.470356 1.8489857,3.880049 0.903416,1.279096 3.30761,3.6896 4.704684,4.716988 1.367875,1.006006 3.942592,2.313883 4.319583,2.194232 0.186889,-0.05922 0.291149,-0.243068 0.351169,-0.618407 0.102416,-0.640666 0.47429,-1.40353 0.849582,-1.742926 0.21091,-0.190772 0.457058,-0.243092 1.075419,-0.229114 1.489809,0.03375 6.767781,0.902178 8.481024,1.395594 0.791091,0.227897 0.975255,0.525719 0.975255,1.577619 0,1.820154 -0.573679,3.179294 -1.887625,4.472123 -1.130634,1.112384 -1.84168,1.435711 -3.601183,1.637302 -0.631587,0.07232 -1.177913,0.124016 -1.214051,0.114806 -0.03617,-0.0073 -0.553558,-0.06383 -1.149806,-0.121598 z" />
+        </svg>
+        </span>
+      </a>`);
+    items.push(`
+      <a class="appointment-action-contact-btn client-action-btn-sms" href="sms:${escapeHtml(phoneValue)}" aria-label="Bericht sturen" title="Bericht sturen">
+        <span class="client-action-icon" aria-hidden="true">
+          <svg class="client-action-svg client-action-svg-sms" viewBox="0 0 33.866663 33.866663" xmlns="http://www.w3.org/2000/svg">
+          <path fill="currentColor" d="M 17.237191,4.2157633 C 15.924104,4.208373 14.50829,4.3016804 13.618807,4.4808634 10.623333,5.084378 7.6720597,6.584915 5.6999105,8.5069743 4.3110914,9.8604712 3.0792941,11.871952 2.5869222,13.589351 c -0.9929979,3.463411 -0.2111128,6.859917 2.2732463,9.874333 0.7518947,0.912356 1.7234255,1.766311 3.0049845,2.641183 0.5103951,0.34844 1.0304512,0.743743 1.155485,0.877982 0.2160192,0.23183 0.2217486,0.266071 0.1116211,0.682129 -0.1429863,0.540796 -0.5763827,1.273266 -1.1286133,1.90686 -0.2302149,0.264146 -0.475591,0.553612 -0.5451863,0.642855 -0.113099,0.144925 -0.1013234,0.162264 0.107487,0.162264 0.3834421,0 1.4285714,-0.357752 2.7352335,-0.93586 2.058384,-0.910801 1.816009,-0.872366 5.683891,-0.877466 3.794028,-0.0042 4.358245,-0.06403 6.114872,-0.65164 1.255404,-0.419959 3.022798,-1.269399 4.006474,-1.925463 3.510566,-2.341374 5.611292,-5.987736 5.603792,-9.71517 -0.0022,-0.910394 -0.04817,-1.328779 -0.214974,-1.945617 C 30.806233,11.774784 29.800559,10.032112 28.046867,8.3488444 25.802542,6.1947064 22.83288,4.8256552 19.353857,4.3413371 18.776038,4.2608885 18.025042,4.2201977 17.237191,4.2157633 Z M 11.552783,15.481742 a 1.6370258,1.6370258 0 0 1 1.63711,1.63711 1.6370258,1.6370258 0 0 1 -1.63711,1.636592 1.6370258,1.6370258 0 0 1 -1.6371092,-1.636592 1.6370258,1.6370258 0 0 1 1.6371092,-1.63711 z m 5.425509,0 a 1.6370258,1.6370258 0 0 1 1.637109,1.63711 1.6370258,1.6370258 0 0 1 -1.637109,1.636592 1.6370258,1.6370258 0 0 1 -1.63711,-1.636592 1.6370258,1.6370258 0 0 1 1.63711,-1.63711 z m 5.425508,0 a 1.6370258,1.6370258 0 0 1 1.63711,1.63711 1.6370258,1.6370258 0 0 1 -1.63711,1.636592 1.6370258,1.6370258 0 0 1 -1.637109,-1.636592 1.6370258,1.6370258 0 0 1 1.637109,-1.63711 z" />
+        </svg>
+        </span>
+      </a>`);
+  }
+
+  if (emailValue) {
+    items.push(`
+      <a class="appointment-action-contact-btn client-action-btn-email" href="mailto:${escapeHtml(emailValue)}" aria-label="E-mail sturen" title="E-mail sturen">
+        <span class="client-action-icon" aria-hidden="true">
+          <svg class="client-action-svg client-action-svg-email" viewBox="0 0 33.866667 33.866667" xmlns="http://www.w3.org/2000/svg">
+          <path fill="currentColor" d="M 2.0799968,28.080039 C 1.8289663,27.991005 1.5567088,27.744414 1.4169892,27.479523 L 1.2985944,27.255051 1.2856283,17.293783 C 1.2761199,9.9601709 1.2859582,7.2635094 1.3226393,7.0709184 1.3881324,6.7276111 1.546333,6.4659599 1.7896315,6.2985663 2.1880519,6.024446 1.0607028,6.0436646 16.741875,6.0436646 c 15.858803,0 14.596946,-0.023411 14.991777,0.2780721 0.123077,0.093975 0.240534,0.2408551 0.323406,0.404415 l 0.130136,0.2568437 0.01153,10.0464896 c 0.01297,11.386989 0.04718,10.347367 -0.353329,10.747879 -0.414657,0.414658 1.256321,0.373783 -15.121186,0.369879 C 4.1636997,28.144218 2.2360869,28.13543 2.079981,28.080036 Z M 29.762479,17.794045 c 0,-6.591651 -0.0098,-7.9041993 -0.05842,-7.8750832 -0.03214,0.019219 -2.804728,2.3253752 -6.16132,5.1247982 -4.455652,3.716045 -6.164518,5.116653 -6.331205,5.189127 C 16.90421,20.36651 16.495626,20.352406 16.20551,20.198167 16.093541,20.138638 13.265393,17.80932 9.9207458,15.021914 6.5760985,12.234505 3.8134267,9.9381775 3.781474,9.9189603 3.7332257,9.8899451 3.7233859,11.224635 3.7233859,17.794043 v 7.91002 H 16.742938 29.762492 Z M 22.193734,12.99034 27.572168,8.5121374 22.157546,8.5010442 c -2.978042,-0.00605 -7.849026,-0.00605 -10.824409,0 L 5.9233485,8.5121374 11.30037,12.998771 c 2.957361,2.467649 5.408051,4.48284 5.445975,4.478203 0.03792,-0.0046 2.489251,-2.023623 5.447389,-4.486634 z" />
+        </svg>
+        </span>
+      </a>`);
+  }
+
+  links.innerHTML = items.join('');
+  links.classList.toggle('hidden', items.length === 0);
+
+  links.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', event => event.stopPropagation());
+  });
+}
+
+function openAppointmentActionPopover(id, anchorEl = null) {
+  const data = getData();
+  const app = data.appointments.find(a => String(a.id) === String(id));
+  if (!app) return;
+
+  closePaymentPopover();
+
+  const popover = document.getElementById("appointmentActionPopover");
+  if (!popover) {
+    openEditAppointmentDialog(id);
+    return;
+  }
+
+  const detailsBtn = document.getElementById("appointmentActionDetailsBtn");
+  const customerBtn = document.getElementById("appointmentActionCustomerBtn");
+  const customer = customerById(data, app.customerId);
+
+  renderAppointmentActionContactLinks(customer);
+
+  if (detailsBtn) {
+    detailsBtn.onclick = event => {
+      event.stopPropagation();
+      closeAppointmentActionPopover();
+      openEditAppointmentDialog(id);
+    };
+  }
+
+  if (customerBtn) {
+    customerBtn.disabled = !app.customerId;
+    customerBtn.onclick = event => {
+      event.stopPropagation();
+      if (!app.customerId) return;
+      closeAppointmentActionPopover();
+      openClientDetail(app.customerId);
+    };
+  }
+
+  const rect = anchorEl?.getBoundingClientRect?.();
+  appointmentActionPopoverState.appointmentId = String(id);
+  appointmentActionPopoverState.anchorRect = rect
+    ? { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width, height: rect.height }
+    : { top: window.innerHeight / 2, right: window.innerWidth / 2 + 120, bottom: window.innerHeight / 2, left: window.innerWidth / 2 - 120, width: 240, height: 0 };
+
+  popover.classList.remove("hidden");
+  popover.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(positionAppointmentActionPopover);
 }
 
 function positionPaymentPopover() {
@@ -4148,18 +6061,182 @@ function positionPaymentPopover() {
 
   popover.style.left = `${Math.round(left)}px`;
   popover.style.top = `${Math.round(top)}px`;
+  requestAnimationFrame(positionPaymentQrPopover);
+}
+
+function positionPaymentQrPopover() {
+  const qrPopover = document.getElementById("paymentQrPopover");
+  const paymentPopover = document.getElementById("paymentPopover");
+  if (!qrPopover || qrPopover.classList.contains("hidden") || !paymentPopover || paymentPopover.classList.contains("hidden")) return;
+
+  const paymentCard = paymentPopover.querySelector(".payment-popover-card");
+  const qrCard = qrPopover.querySelector(".payment-qr-card");
+  if (!paymentCard || !qrCard) return;
+
+  const margin = 12;
+  const gap = 10;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const paymentRect = paymentCard.getBoundingClientRect();
+  const qrRect = qrCard.getBoundingClientRect();
+
+  let left = paymentRect.left + (paymentRect.width - qrRect.width) / 2;
+  left = Math.max(margin, Math.min(left, viewportWidth - qrRect.width - margin));
+
+  let top = paymentRect.bottom + gap;
+  if (top + qrRect.height > viewportHeight - margin) {
+    top = Math.max(margin, paymentRect.top - qrRect.height - gap);
+    qrPopover.dataset.placement = "top";
+  } else {
+    qrPopover.dataset.placement = "bottom";
+  }
+
+  qrPopover.style.left = `${Math.round(left)}px`;
+  qrPopover.style.top = `${Math.round(top)}px`;
 }
 
 function closePaymentPopover() {
   const popover = document.getElementById("paymentPopover");
-  if (!popover) return;
-  popover.classList.add("hidden");
-  popover.setAttribute("aria-hidden", "true");
-  popover.style.left = "";
-  popover.style.top = "";
-  popover.removeAttribute("data-placement");
+  if (popover) {
+    popover.classList.add("hidden");
+    popover.setAttribute("aria-hidden", "true");
+    popover.style.left = "";
+    popover.style.top = "";
+    popover.removeAttribute("data-placement");
+  }
+
+  const qrPopover = document.getElementById("paymentQrPopover");
+  if (qrPopover) {
+    qrPopover.classList.add("hidden");
+    qrPopover.setAttribute("aria-hidden", "true");
+    qrPopover.style.left = "";
+    qrPopover.style.top = "";
+    qrPopover.removeAttribute("data-placement");
+  }
+
   paymentPopoverState.appointmentId = null;
   paymentPopoverState.anchorRect = null;
+}
+
+function normalizeIban(value) {
+  return String(value || "").replace(/\s+/g, "").toUpperCase();
+}
+
+function isValidIban(value) {
+  const iban = normalizeIban(value);
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  let remainder = 0;
+
+  for (const char of rearranged) {
+    const code = char.charCodeAt(0);
+    const chunk = code >= 65 && code <= 90 ? String(code - 55) : char;
+    if (!/^\d+$/.test(chunk)) return false;
+
+    for (const digit of chunk) {
+      remainder = (remainder * 10 + Number(digit)) % 97;
+    }
+  }
+
+  return remainder === 1;
+}
+
+function buildPaymentReference(app, data = getData()) {
+  const settings = getSettings();
+  const service = serviceById(data, app?.serviceId);
+  const treatmentName = service?.name || app?.serviceName || "behandeling";
+  const prefix = String(settings.paymentReferencePrefix || "Idle & Ease").trim() || "Idle & Ease";
+  return `${prefix} - ${treatmentName}`.slice(0, 140);
+}
+
+function buildEpcQrPayload(app, data = getData()) {
+  const settings = getSettings();
+  const iban = normalizeIban(settings.paymentIban || "");
+  const beneficiary = String(settings.paymentBeneficiaryName || "").trim();
+  if (!isValidIban(iban) || !beneficiary) return "";
+
+  const amount = Number(app?.price || 0);
+  const safeAmount = Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "0.00";
+  const bic = String(settings.paymentBic || "").trim().toUpperCase();
+  const reference = buildPaymentReference(app, data);
+
+  return [
+    "BCD",
+    "002",
+    "1",
+    "SCT",
+    bic,
+    beneficiary.slice(0, 70),
+    iban,
+    `EUR${safeAmount}`,
+    "",
+    "",
+    reference
+  ].join("\n");
+}
+
+function renderPaymentQrTooltip(app, data = getData()) {
+  const qrPopover = document.getElementById("paymentQrPopover");
+  const button = document.getElementById("paymentQrOpenBtn");
+  const hint = document.getElementById("paymentQrButtonHint");
+  if (!qrPopover || !button || !hint) return;
+
+  const payload = buildEpcQrPayload(app, data);
+  const canShowQr = Boolean(payload);
+
+  if (!canShowQr) {
+    qrPopover.classList.add("hidden");
+    qrPopover.setAttribute("aria-hidden", "true");
+    qrPopover.style.left = "";
+    qrPopover.style.top = "";
+    qrPopover.removeAttribute("data-placement");
+    button.disabled = true;
+    button.dataset.qrPayload = "";
+    button.dataset.appointmentId = "";
+    hint.textContent = "";
+    return;
+  }
+
+  qrPopover.classList.remove("hidden");
+  qrPopover.setAttribute("aria-hidden", "false");
+
+  button.disabled = false;
+  button.dataset.qrPayload = payload;
+  button.dataset.appointmentId = app?.id ? String(app.id) : "";
+  hint.textContent = "Toon bank-QR";
+}
+
+function openPaymentQrModal(event = null) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const button = document.getElementById("paymentQrOpenBtn");
+  const dialog = document.getElementById("paymentQrDialog");
+  const image = document.getElementById("paymentQrDialogImage");
+  const text = document.getElementById("paymentQrDialogText");
+  const amount = document.getElementById("paymentQrDialogAmount");
+  if (!button || !dialog || !image || !text || !amount) return;
+
+  const payload = button.dataset.qrPayload || "";
+  const appointmentId = button.dataset.appointmentId || paymentPopoverState.appointmentId;
+  const data = getData();
+  const app = data.appointments.find(item => String(item.id) === String(appointmentId));
+
+  if (!payload || !app) {
+    image.removeAttribute("src");
+    text.textContent = "Vul eerst naam en IBAN in bij Instellingen om een bank-QR te tonen.";
+    amount.textContent = "";
+  } else {
+    image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=14&data=${encodeURIComponent(payload)}`;
+    image.dataset.qrPayload = payload;
+    amount.textContent = euro(app.price, app.currency);
+    text.textContent = buildPaymentReference(app, data);
+  }
+
+  openStyledDialog(dialog);
 }
 
 function renderPaymentPopoverOptions(app, data = getData()) {
@@ -4168,16 +6245,25 @@ function renderPaymentPopoverOptions(app, data = getData()) {
 
   const methods = getPaymentMethods(data);
   const selectedName = paymentMethodNameForAppointment(app, data) || "";
-  const items = [{ value: "", label: "Onbetaald", unpaid: true }, ...methods.map(method => ({ value: method.name, label: method.name, unpaid: false }))];
+  const isNoShow = (app.status || "").toLowerCase() === "no-show";
+  const items = [
+    { value: "", label: "Onbetaald", type: "unpaid" },
+    { value: "no-show", label: "No show", type: "noshow" },
+    ...methods.map(method => ({ value: method.name, label: method.name, type: "payment" }))
+  ];
 
   list.innerHTML = items.map(item => {
-    const isActive = item.unpaid ? !app.paid : (app.paid && item.value === selectedName);
+    const isActive = item.type === "noshow"
+      ? isNoShow
+      : item.type === "unpaid"
+        ? (!app.paid && !isNoShow)
+        : (app.paid && item.value === selectedName && !isNoShow);
     return `
       <button
         type="button"
-        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.unpaid ? "is-unpaid" : ""}"
+        class="payment-method-popup-item ${isActive ? "active" : ""} ${item.type === "unpaid" ? "is-unpaid" : ""} ${item.type === "noshow" ? "is-no-show" : ""}"
         data-payment-value="${item.value}"
-        data-unpaid="${item.unpaid ? "true" : "false"}"
+        data-payment-type="${item.type}"
         role="menuitemradio"
         aria-checked="${isActive ? "true" : "false"}"
       >
@@ -4190,8 +6276,13 @@ function renderPaymentPopoverOptions(app, data = getData()) {
     button.addEventListener("click", async event => {
       event.stopPropagation();
       const methodName = button.dataset.paymentValue || "";
-      if (button.dataset.unpaid === "true") {
+      const type = button.dataset.paymentType || "payment";
+      if (type === "unpaid") {
         await markUnpaid();
+        return;
+      }
+      if (type === "noshow") {
+        await markNoShow();
         return;
       }
       await confirmPaymentSelection(methodName);
@@ -4208,11 +6299,15 @@ function openPaymentDialog(id, anchorEl = null) {
   if (!popover) return;
 
   document.getElementById("paymentAppointmentId").value = id;
-  document.getElementById("paymentAmount").textContent = euro(app.price);
+  document.getElementById("paymentAmount").textContent = euro(app.price, app.currency);
+  const currentMethodWrap = document.getElementById("paymentCurrentMethodWrap");
+  const isNoShow = (app.status || "").toLowerCase() === "no-show";
+  if (currentMethodWrap) currentMethodWrap.classList.toggle("hidden", isNoShow);
   document.getElementById("paymentDialogCurrentMethod").textContent = app.paid
     ? (paymentMethodNameForAppointment(app, data) || "Onbekend")
     : "Nog niet betaald";
 
+  renderPaymentQrTooltip(app, data);
   renderPaymentPopoverOptions(app, data);
 
   const rect = anchorEl?.getBoundingClientRect?.();
@@ -4223,7 +6318,10 @@ function openPaymentDialog(id, anchorEl = null) {
 
   popover.classList.remove("hidden");
   popover.setAttribute("aria-hidden", "false");
-  requestAnimationFrame(positionPaymentPopover);
+  requestAnimationFrame(() => {
+    positionPaymentPopover();
+    positionPaymentQrPopover();
+  });
 }
 
 function renderPaymentMethods() {
@@ -4233,7 +6331,7 @@ function renderPaymentMethods() {
 
   const methods = getPaymentMethods(data);
   if (!methods.length) {
-    list.innerHTML = `<div class="empty-state">Nog geen betaalwijzen.</div>`;
+    list.innerHTML = `<div class="empty-state">${t("noPaymentMethods")}</div>`;
     return;
   }
 
@@ -4245,7 +6343,7 @@ function renderPaymentMethods() {
     card.innerHTML = `
       <button type="button" data-id="${method.id}">
         <div class="client-name">${method.name}</div>
-        <div class="meta">${usageCount} betaling${usageCount === 1 ? "" : "en"}</div>
+        <div class="meta">${usageCount} ${usageCount === 1 ? t("paymentSingular") : t("paymentPlural")}</div>
       </button>
     `;
     card.querySelector("button").addEventListener("click", () => openEditPaymentMethodDialog(method.id));
@@ -4254,7 +6352,7 @@ function renderPaymentMethods() {
 }
 
 function openNewPaymentMethodDialog() {
-  document.getElementById("paymentMethodModalTitle").textContent = "Nieuwe betaalwijze";
+  document.getElementById("paymentMethodModalTitle").textContent = t("newPaymentMethod");
   document.getElementById("paymentMethodId").value = "";
   document.getElementById("paymentMethodName").value = "";
   document.getElementById("deletePaymentMethodBtn").style.visibility = "hidden";
@@ -4266,7 +6364,7 @@ function openEditPaymentMethodDialog(id) {
   const method = getPaymentMethods(data).find(item => String(item.id) === String(id));
   if (!method) return;
 
-  document.getElementById("paymentMethodModalTitle").textContent = "Betaalwijze bewerken";
+  document.getElementById("paymentMethodModalTitle").textContent = t("editPaymentMethod");
   document.getElementById("paymentMethodId").value = method.id;
   document.getElementById("paymentMethodName").value = method.name;
   document.getElementById("deletePaymentMethodBtn").style.visibility = "visible";
@@ -4274,7 +6372,7 @@ function openEditPaymentMethodDialog(id) {
 }
 
 function openNewClientDialog() {
-  document.getElementById("clientModalTitle").textContent = "Nieuwe klant";
+  document.getElementById("clientModalTitle").textContent = t("newClient");
   document.getElementById("clientId").value = "";
   document.getElementById("clientFirstName").value = "";
   document.getElementById("clientLastName").value = "";
@@ -4290,7 +6388,7 @@ function openEditClientDialog(id) {
   const client = customerById(data, id);
   if (!client) return;
 
-  document.getElementById("clientModalTitle").textContent = "Klant bewerken";
+  document.getElementById("clientModalTitle").textContent = t("editClient");
   document.getElementById("clientId").value = client.id;
   document.getElementById("clientFirstName").value = client.firstName || "";
   document.getElementById("clientLastName").value = client.lastName || "";
@@ -4302,11 +6400,16 @@ function openEditClientDialog(id) {
 }
 
 function openNewServiceDialog() {
-  document.getElementById("serviceModalTitle").textContent = "Nieuwe dienst";
+  document.getElementById("serviceModalTitle").textContent = t("newService");
   document.getElementById("serviceId").value = "";
   document.getElementById("serviceName").value = "";
   document.getElementById("serviceDuration").value = 60;
   document.getElementById("servicePrice").value = 65;
+
+  const reactivateWrap = document.getElementById("serviceReactivateWrap");
+  const reactivateCheckbox = document.getElementById("serviceReactivateCheckbox");
+  if (reactivateWrap) reactivateWrap.classList.add("hidden");
+  if (reactivateCheckbox) reactivateCheckbox.checked = false;
 
   document.getElementById("deleteServiceBtn").style.visibility = "hidden";
   document.getElementById("serviceDialog").showModal();
@@ -4317,13 +6420,20 @@ function openEditServiceDialog(id) {
   const service = serviceById(data, id);
   if (!service) return;
 
-  document.getElementById("serviceModalTitle").textContent = "Dienst bewerken";
+  const isInactive = service.isActive === false;
+
+  document.getElementById("serviceModalTitle").textContent = t("editService");
   document.getElementById("serviceId").value = service.id;
   document.getElementById("serviceName").value = service.name;
   document.getElementById("serviceDuration").value = service.duration;
   document.getElementById("servicePrice").value = service.price;
 
-  document.getElementById("deleteServiceBtn").style.visibility = "visible";
+  const reactivateWrap = document.getElementById("serviceReactivateWrap");
+  const reactivateCheckbox = document.getElementById("serviceReactivateCheckbox");
+  if (reactivateWrap) reactivateWrap.classList.toggle("hidden", !isInactive);
+  if (reactivateCheckbox) reactivateCheckbox.checked = false;
+
+  document.getElementById("deleteServiceBtn").style.visibility = isInactive ? "hidden" : "visible";
   document.getElementById("serviceDialog").showModal();
 }
 
@@ -4405,8 +6515,8 @@ async function deleteCurrentPaymentMethod() {
 
   const confirmed = await appConfirm("Deze betaalwijze wordt verwijderd uit de keuzelijst. Eerdere betalingen behouden hun opgeslagen naam.", {
     title: "Betaalwijze verwijderen",
-    confirmText: "Verwijderen",
-    cancelText: "Annuleren",
+    confirmText: t("delete"),
+    cancelText: t("cancel"),
     variant: "warning"
   });
   if (!confirmed) return;
@@ -4437,27 +6547,100 @@ async function deleteCurrentPaymentMethod() {
   rerenderAll();
 }
 
+
+function normalizeServiceNameForDuplicateCheck(name) {
+  return String(name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function getUniqueServiceNameWithCounter(data, requestedName, excludeId = null) {
+  const baseName = String(requestedName || "").trim().replace(/\s+/g, " ");
+  if (!baseName) return "";
+
+  const usedNames = new Set(
+    (data.services || [])
+      .filter(service => String(service.id) !== String(excludeId || ""))
+      .map(service => normalizeServiceNameForDuplicateCheck(service.name))
+      .filter(Boolean)
+  );
+
+  if (!usedNames.has(normalizeServiceNameForDuplicateCheck(baseName))) {
+    return baseName;
+  }
+
+  let counter = 2;
+  let candidate = `${baseName} (${counter})`;
+  while (usedNames.has(normalizeServiceNameForDuplicateCheck(candidate))) {
+    counter += 1;
+    candidate = `${baseName} (${counter})`;
+  }
+
+  return candidate;
+}
+
+async function resolveServiceNameBeforeSave(data, requestedName, excludeId = null) {
+  const cleanName = String(requestedName || "").trim().replace(/\s+/g, " ");
+  if (!cleanName) {
+    await appAlert(t("serviceNameRequired"), { title: t("service"), variant: "warning" });
+    return null;
+  }
+
+  const duplicate = (data.services || []).find(service =>
+    String(service.id) !== String(excludeId || "") &&
+    normalizeServiceNameForDuplicateCheck(service.name) === normalizeServiceNameForDuplicateCheck(cleanName)
+  );
+
+  if (!duplicate) return cleanName;
+
+  const uniqueName = getUniqueServiceNameWithCounter(data, cleanName, excludeId);
+  const confirmed = await appConfirm(
+    t("duplicateServiceMessage", { name: cleanName, uniqueName }),
+    {
+      title: t("duplicateServiceTitle"),
+      confirmText: t("saveAnyway"),
+      cancelText: t("cancel"),
+      variant: "warning"
+    }
+  );
+
+  return confirmed ? uniqueName : null;
+}
+
 async function saveClientFromForm(event) {
   event.preventDefault();
 
   const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("clientId").value;
+  const id = rawId ? Number(rawId) : null;
+
+  const payload = {
+    firstName: document.getElementById("clientFirstName").value.trim(),
+    lastName: document.getElementById("clientLastName").value.trim(),
+    phone: normalizePhoneNumber(document.getElementById("clientPhone").value),
+    email: document.getElementById("clientEmail").value.trim(),
+    note: document.getElementById("clientNote").value.trim()
+  };
+
+  const duplicate = findDuplicateCustomer(data, payload, id);
+  if (duplicate) {
+    const confirmed = await appConfirm(buildDuplicateCustomerMessage(duplicate, payload), {
+      title: "Mogelijke dubbele klant",
+      confirmText: t("saveAnyway"),
+      cancelText: t("cancel"),
+      variant: "warning"
+    });
+    if (!confirmed) return;
+  }
 
   if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("clientId").value);
-
-    const payload = {
-      firstName: document.getElementById("clientFirstName").value.trim(),
-      lastName: document.getElementById("clientLastName").value.trim(),
-      phone: document.getElementById("clientPhone").value.trim(),
-      email: document.getElementById("clientEmail").value.trim(),
-      note: document.getElementById("clientNote").value.trim()
-    };
-
     if (id) {
       Object.assign(customerById(data, id), payload);
     } else {
-      data.customers.push({ id: nextId(data.customers), ...payload });
+      data.customers.push({
+        id: nextId(data.customers),
+        customerNumber: nextCustomerNumber(data),
+        ...payload
+      });
     }
 
     saveData(data);
@@ -4468,29 +6651,31 @@ async function saveClientFromForm(event) {
     return;
   }
 
-  const id = document.getElementById("clientId").value;
-
-  const payload = {
+  const dbPayload = {
     user_id: user.id,
-    first_name: document.getElementById("clientFirstName").value.trim(),
-    last_name: document.getElementById("clientLastName").value.trim(),
-    phone: document.getElementById("clientPhone").value.trim(),
-    email: document.getElementById("clientEmail").value.trim(),
-    note: document.getElementById("clientNote").value.trim()
+    first_name: payload.firstName,
+    last_name: payload.lastName,
+    phone: payload.phone,
+    email: payload.email,
+    note: payload.note
   };
+
+  if (!id) {
+    dbPayload.customer_number = nextCustomerNumber(data);
+  }
 
   let error;
 
   if (id) {
     ({ error } = await supabaseClient
       .from("customers")
-      .update(payload)
+      .update(dbPayload)
       .eq("id", Number(id))
       .eq("user_id", user.id));
   } else {
     ({ error } = await supabaseClient
       .from("customers")
-      .insert(payload));
+      .insert(dbPayload));
   }
 
   if (error) {
@@ -4513,19 +6698,29 @@ async function saveServiceFromForm(event) {
   event.preventDefault();
 
   const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("serviceId").value;
+  const id = rawId ? Number(rawId) : null;
+  const reactivateChecked = Boolean(document.getElementById("serviceReactivateCheckbox")?.checked);
+  const serviceName = await resolveServiceNameBeforeSave(data, document.getElementById("serviceName").value, id);
+
+  if (!serviceName) return;
 
   if (!user) {
-    const data = getData();
-    const id = Number(document.getElementById("serviceId").value);
+    const existingService = id ? serviceById(data, id) : null;
+    const nextIsActive = id
+      ? (existingService?.isActive === false ? reactivateChecked : true)
+      : true;
 
     const payload = {
-      name: document.getElementById("serviceName").value.trim(),
+      name: serviceName,
       duration: Number(document.getElementById("serviceDuration").value),
-      price: Number(document.getElementById("servicePrice").value)
+      price: Number(document.getElementById("servicePrice").value),
+      isActive: nextIsActive
     };
 
     if (id) {
-      Object.assign(serviceById(data, id), payload);
+      Object.assign(existingService, payload);
     } else {
       data.services.push({ id: nextId(data.services), ...payload });
     }
@@ -4536,13 +6731,17 @@ async function saveServiceFromForm(event) {
     return;
   }
 
-  const id = document.getElementById("serviceId").value;
+  const existingService = id ? serviceById(data, id) : null;
+  const nextIsActive = id
+    ? (existingService?.isActive === false ? reactivateChecked : true)
+    : true;
 
   const payload = {
     user_id: user.id,
-    name: document.getElementById("serviceName").value.trim(),
+    name: serviceName,
     duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value)
+    price: Number(document.getElementById("servicePrice").value),
+    is_active: nextIsActive
   };
 
   let error;
@@ -4560,7 +6759,7 @@ async function saveServiceFromForm(event) {
   }
 
   if (error) {
-    await appAlert("Opslaan dienst mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    await appAlert("Opslaan dienst mislukt: " + error.message, { title: t("saveFailed"), variant: "danger" });
     return;
   }
 
@@ -4593,14 +6792,15 @@ async function saveAppointmentFromForm(event) {
     serviceId: Number(document.getElementById("appointmentService").value),
     duration: Number(document.getElementById("appointmentDuration").value),
     price: Number(document.getElementById("appointmentPrice").value),
-    status: id ? document.getElementById("appointmentStatus").value : "gepland"
+    status: id ? document.getElementById("appointmentStatus").value : "gepland",
+    remarks: String(document.getElementById("appointmentRemarks")?.value || "").trim()
   };
 
   if (isAppointmentInPast(localPayload)) {
     const confirmedPast = await appConfirm(buildPastAppointmentMessage(localPayload), {
       title: "Afspraak in het verleden",
-      confirmText: "Toch opslaan",
-      cancelText: "Annuleren",
+      confirmText: t("save"),
+      cancelText: t("cancel"),
       variant: "warning"
     });
     if (!confirmedPast) return;
@@ -4611,8 +6811,8 @@ async function saveAppointmentFromForm(event) {
     if (overlapApp) {
       const confirmed = await appConfirm(buildOverlapMessage(localPayload, overlapApp, data.appointments, settings.defaultBreakMinutes, id), {
         title: "Overlap gedetecteerd",
-        confirmText: "Toch opslaan",
-        cancelText: "Annuleren",
+        confirmText: t("save"),
+        cancelText: t("cancel"),
         variant: "warning"
       });
       if (!confirmed) return;
@@ -4622,13 +6822,14 @@ async function saveAppointmentFromForm(event) {
   if (!user) {
     if (id) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
-      Object.assign(existingApp, localPayload);
+      Object.assign(existingApp, { ...localPayload, currency: existingApp.currency || getCurrentCurrency() });
     } else {
       data.appointments.push({
         id: nextId(data.appointments),
         ...localPayload,
         paid: false,
-        paymentMethodName: null
+        paymentMethodName: null,
+        currency: getCurrentCurrency()
       });
     }
 
@@ -4647,6 +6848,7 @@ async function saveAppointmentFromForm(event) {
   const existingApp = data.appointments.find(a => String(a.id) === String(id));
   const isPaid = existingApp ? Boolean(existingApp.paid) : false;
   const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
+  const appointmentCurrency = normalizeCurrency(existingApp?.currency || getCurrentCurrency());
 
   const payload = {
     user_id: user.id,
@@ -4658,7 +6860,9 @@ async function saveAppointmentFromForm(event) {
     price: localPayload.price,
     status: localPayload.status,
     paid: isPaid,
-    payment_method_label: isPaid ? existingPaymentMethodName : null
+    payment_method_label: isPaid ? existingPaymentMethodName : null,
+    currency: appointmentCurrency,
+    appointment_remarks: localPayload.remarks
   };
 
   let error;
@@ -4695,6 +6899,15 @@ async function deleteCurrentAppointment() {
   const id = document.getElementById("appointmentId").value;
   if (!id) return;
 
+  const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd.", {
+    title: "Afspraak verwijderen",
+    confirmText: t("delete"),
+    cancelText: t("cancel"),
+    variant: "danger"
+  });
+
+  if (!confirmed) return;
+
   const user = await getCurrentUser();
 
   if (!user) {
@@ -4726,11 +6939,21 @@ async function deleteCurrentService() {
   const id = document.getElementById("serviceId").value;
   if (!id) return;
 
+  const confirmed = await appConfirm("Deze dienst wordt op inactief gezet en verdwijnt uit de dienstenlijst en nieuwe afspraken. Bestaande afspraken blijven behouden.", {
+    title: "Dienst inactief zetten",
+    confirmText: "Inactief zetten",
+    cancelText: t("cancel"),
+    variant: "danger"
+  });
+
+  if (!confirmed) return;
+
   const user = await getCurrentUser();
 
   if (!user) {
     const data = getData();
-    data.services = data.services.filter(s => String(s.id) !== String(id));
+    const service = serviceById(data, id);
+    if (service) service.isActive = false;
     saveData(data);
     closeDialog("serviceDialog");
     rerenderAll();
@@ -4739,12 +6962,12 @@ async function deleteCurrentService() {
 
   const { error } = await supabaseClient
     .from("services")
-    .delete()
+    .update({ is_active: false })
     .eq("id", Number(id))
     .eq("user_id", user.id);
 
   if (error) {
-    await appAlert("Verwijderen dienst mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+    await appAlert("Dienst inactief zetten mislukt: " + error.message, { title: "Aanpassen mislukt", variant: "danger" });
     return;
   }
 
@@ -4809,6 +7032,7 @@ async function markUnpaid() {
 
     appointment.paid = false;
     appointment.paymentMethodName = null;
+    if ((appointment.status || "").toLowerCase() === "no-show") appointment.status = "gepland";
 
     saveData(data);
     closePaymentPopover();
@@ -4820,7 +7044,8 @@ async function markUnpaid() {
     .from("appointments")
     .update({
       paid: false,
-      payment_method_label: null
+      payment_method_label: null,
+      status: "gepland"
     })
     .eq("id", Number(id))
     .eq("user_id", user.id);
@@ -4835,13 +7060,52 @@ async function markUnpaid() {
   rerenderAll();
 }
 
+async function markNoShow() {
+  const id = document.getElementById("paymentAppointmentId").value;
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const data = getData();
+    const appointment = data.appointments.find(a => String(a.id) === String(id));
+    if (!appointment) return;
+
+    appointment.status = "no-show";
+    appointment.paid = false;
+    appointment.paymentMethodName = null;
+
+    saveData(data);
+    closePaymentPopover();
+    rerenderAll();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .update({
+      status: "no-show",
+      paid: false,
+      payment_method_label: null
+    })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("No show opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closePaymentPopover();
+  rerenderAll();
+}
+
 /* =========================
    MONTH PICKER
 ========================= */
 
 function openMonthPicker() {
   const monthSelect = document.getElementById("monthSelect");
-  monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+  monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${getMonthNameUpper(i)}</option>`).join("");
   monthSelect.value = String(state.currentMonth);
   document.getElementById("yearSelect").value = state.currentYear;
 
@@ -4873,6 +7137,7 @@ function closeDialog(id) {
 }
 
 function rerenderAll() {
+  updateStaticI18n();
   renderAlphabetFilter();
   renderCalendar();
   renderAgendaList();
@@ -4881,6 +7146,7 @@ function rerenderAll() {
   renderPaymentMethods();
   renderStatistics();
   renderRevenue();
+  renderTodos();
 
   if (state.selectedClientId && state.currentScreen === "clientDetailScreen") {
     openClientDetail(state.selectedClientId);
@@ -4895,37 +7161,367 @@ function getActionButtonIconSvg(type) {
   const icons = {
     save: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="m 1.2487599,6.3350499 -0.09755,-0.067983 V 3.7370896 c 0,-1.9103368 0.012742,-2.5426364 0.052027,-2.58166 0.035778,-0.035538 0.252426,-0.051681 0.6936895,-0.051681 H 2.5385889 V 1.9651164 2.8264842 H 3.7742229 5.009857 V 1.9651173 1.1037498 H 5.3902354 5.7706138 L 6.1067451,1.4396243 6.4428764,1.7754988 6.4308947,4.021599 c -0.00945,1.7724982 -0.023861,2.2579 -0.068322,2.3020623 -0.044619,0.04432 -0.572285,0.058401 -2.5363015,0.067672 C 1.624705,6.4017253 1.3353593,6.3954233 1.24876,6.3350563 Z M 5.2892092,5.8747533 c 0.055268,-0.078383 0.067492,-0.2421888 0.067492,-0.9044356 0,-0.7512913 -0.00616,-0.8148317 -0.086711,-0.8948522 -0.083105,-0.082552 -0.1445187,-0.086135 -1.4769401,-0.086135 -0.8754091,0 -1.4212835,0.016507 -1.4740897,0.044588 -0.078777,0.041885 -0.083861,0.098794 -0.083861,0.9388902 0,0.6381478 0.014902,0.9091103 0.052027,0.9459891 0.038378,0.038125 0.4301191,0.05168 1.4933091,0.05168 1.4402317,0 1.4413315,-6.93e-5 1.508774,-0.09572 z M 4.0993893,1.9651155 V 1.2760213 H 4.4245562 4.7497231 V 1.9651155 2.65421 H 4.4245562 4.0993893 Z" /></svg>`,
     cancel: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="M 3.7216875,1.0757028 A 2.6458266,2.6458266 0 0 0 1.0758545,3.721536 2.6458266,2.6458266 0 0 0 3.7216875,6.3673694 2.6458266,2.6458266 0 0 0 6.3675215,3.721536 2.6458266,2.6458266 0 0 0 3.7216875,1.0757028 Z m -0.82292,1.3657978 c 0.05451,0 0.138465,0.070411 0.447301,0.375477 l 0.380029,0.3754771 0.378179,-0.3754771 c 0.292326,-0.2902706 0.392113,-0.375477 0.439905,-0.375477 0.04347,0 0.107409,0.044353 0.215615,0.1494797 0.208329,0.2023863 0.245294,0.2617301 0.207508,0.3332359 -0.01611,0.030483 -0.188746,0.217296 -0.383726,0.4151581 l -0.35457,0.3598322 0.335512,0.333947 c 0.184481,0.1836653 0.357479,0.3692108 0.384437,0.4123137 0.04674,0.074724 0.04701,0.081153 0.0081,0.1405195 -0.08631,0.1317284 -0.351617,0.3670857 -0.413878,0.3670857 -0.0465,0 -0.150027,-0.088488 -0.439621,-0.376046 L 3.7248165,4.2009804 3.4082215,4.5137358 C 3.2340805,4.6857555 3.0594205,4.8549521 3.0200865,4.8897817 2.9045905,4.9920513 2.8540445,4.9753377 2.6447515,4.766045 2.5193755,4.6406693 2.4577245,4.5608493 2.4577245,4.5238338 c 0,-0.039229 0.110334,-0.1669151 0.381308,-0.4410433 L 3.2204835,3.6969309 2.8390325,3.3116402 c -0.271639,-0.2745061 -0.381308,-0.401336 -0.381308,-0.4407588 0,-0.085362 0.353348,-0.4293808 0.441043,-0.4293808 z" /></svg>`,
-    delete: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="m 2.2698341,6.1775822 c -0.1094284,-0.04971 -0.231493,-0.164087 -0.290851,-0.272533 -0.037167,-0.0679 -0.041899,-0.221644 -0.052699,-1.711931 L 1.9144211,2.5557908 1.7067886,2.5489308 1.4991566,2.5420708 V 2.3545326 2.1669857 l 0.1008498,-0.0073 0.1008498,-0.0073 0.013669,-0.1423763 c 0.01596,-0.1662368 0.034542,-0.2158412 0.089015,-0.2376519 0.02183,-0.00874 0.2399086,-0.021819 0.4846179,-0.029062 L 2.7330836,1.7301305 V 1.6192114 c 0,-0.3484396 0.3062313,-0.68698353 0.5910897,-0.68179893 0.077671,0.00141 0.1969862,-0.00708 0.4182785,-0.00708 h 0.4780034 c 0.3249416,0.00541 0.5533562,0.39764923 0.5533562,0.71128873 v 0.095511 l 0.3025494,0.00123 c 0.3906803,0.00158 0.6135415,0.026715 0.6614465,0.07462 0.023407,0.023407 0.042463,0.097122 0.050279,0.1944918 l 0.012586,0.1567987 h 0.091669 0.091669 V 2.3541076 2.543943 H 5.7823104 5.5806105 l -5.209e-4,1.6076662 c -5.104e-4,1.566046 -0.00177,1.61043 -0.048858,1.714448 -0.062582,0.138254 -0.1489784,0.227906 -0.2879761,0.29883 l -0.1119258,0.05711 -1.3830257,-5.24e-4 c -1.288121,-4.9e-4 -1.3895764,-0.0035 -1.4784713,-0.04388 z m 2.8347098,-0.400527 0.070458,-0.06526 0.00704,-1.578004 0.00704,-1.5780044 -1.4415606,-0.00612 -1.4415606,-0.00612 v 1.5800134 1.580014 l 0.069363,0.06936 0.069363,0.06936 H 3.7393895 5.0340922 Z M 2.7330841,4.1931182 V 2.9710547 h 0.2016996 0.2017 v 1.2220635 1.222064 h -0.2017 -0.2016996 z m 0.8067992,0 V 2.9710547 h 0.2017 0.2016996 v 1.2220635 1.222064 h -0.2016996 -0.2017 z m 0.8305286,0 V 2.9710547 H 4.560247 4.7500825 v 1.2220635 1.222064 H 4.560247 4.3704119 Z M 4.3466819,1.6275524 C 4.3525019,1.4948826 4.3066309,1.3905375 4.2264459,1.3628251 4.1044771,1.3096741 4.063522,1.3135821 3.7620234,1.3163031 3.4605248,1.3190231 3.3539331,1.3387671 3.2833638,1.3817941 3.1976948,1.4340251 3.136483,1.5521229 3.136483,1.6651764 v 0.07195 h 0.6050997 0.6050992 z" /></svg>`
+    delete: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="m 2.2698341,6.1775822 c -0.1094284,-0.04971 -0.231493,-0.164087 -0.290851,-0.272533 -0.037167,-0.0679 -0.041899,-0.221644 -0.052699,-1.711931 L 1.9144211,2.5557908 1.7067886,2.5489308 1.4991566,2.5420708 V 2.3545326 2.1669857 l 0.1008498,-0.0073 0.1008498,-0.0073 0.013669,-0.1423763 c 0.01596,-0.1662368 0.034542,-0.2158412 0.089015,-0.2376519 0.02183,-0.00874 0.2399086,-0.021819 0.4846179,-0.029062 L 2.7330836,1.7301305 V 1.6192114 c 0,-0.3484396 0.3062313,-0.68698353 0.5910897,-0.68179893 0.077671,0.00141 0.1969862,-0.00708 0.4182785,-0.00708 h 0.4780034 c 0.3249416,0.00541 0.5533562,0.39764923 0.5533562,0.71128873 v 0.095511 l 0.3025494,0.00123 c 0.3906803,0.00158 0.6135415,0.026715 0.6614465,0.07462 0.023407,0.023407 0.042463,0.097122 0.050279,0.1944918 l 0.012586,0.1567987 h 0.091669 0.091669 V 2.3541076 2.543943 H 5.7823104 5.5806105 l -5.209e-4,1.6076662 c -5.104e-4,1.566046 -0.00177,1.61043 -0.048858,1.714448 -0.062582,0.138254 -0.1489784,0.227906 -0.2879761,0.29883 l -0.1119258,0.05711 -1.3830257,-5.24e-4 c -1.288121,-4.9e-4 -1.3895764,-0.0035 -1.4784713,-0.04388 z m 2.8347098,-0.400527 0.070458,-0.06526 0.00704,-1.578004 0.00704,-1.5780044 -1.4415606,-0.00612 -1.4415606,-0.00612 v 1.5800134 1.580014 l 0.069363,0.06936 0.069363,0.06936 H 3.7393895 5.0340922 Z M 2.7330841,4.1931182 V 2.9710547 h 0.2016996 0.2017 v 1.2220635 1.222064 h -0.2017 -0.2016996 z m 0.8067992,0 V 2.9710547 h 0.2017 0.2016996 v 1.2220635 1.222064 h -0.2016996 -0.2017 z m 0.8305286,0 V 2.9710547 H 4.560247 4.7500825 v 1.2220635 1.222064 H 4.560247 4.3704119 Z M 4.3466819,1.6275524 C 4.3525019,1.4948826 4.3066309,1.3905375 4.2264459,1.3628251 4.1044771,1.3096741 4.063522,1.3135821 3.7620234,1.3163031 3.4605248,1.3190231 3.3539331,1.3387671 3.2833638,1.3817941 3.1976948,1.4340251 3.136483,1.5521229 3.136483,1.6651764 v 0.07195 h 0.6050997 0.6050992 z" /></svg>`,
+    ok: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="M 3.0465827,6.023294 C 2.9739427,5.999434 2.8963597,5.944464 2.8604957,5.891429 2.8433557,5.866079 2.7829257,5.76905 2.7262217,5.675813 2.5980057,5.465003 2.4549037,5.256914 2.2820347,5.029908 2.1539417,4.861701 2.1487597,4.852462 2.1487597,4.79231 c 0,-0.05732 0.0045,-0.06692 0.05384,-0.114171 0.117778,-0.112851 0.307085,-0.123696 0.448503,-0.02569 0.05211,0.03611 0.173259,0.200332 0.382098,0.517943 0.07379,0.112229 0.136067,0.204053 0.138384,0.204053 0.0023,0 0.03545,-0.05509 0.07362,-0.122432 0.294617,-0.519657 0.753512,-1.139717 1.196512,-1.616729 0.138195,-0.148805 0.507732,-0.517006 0.587531,-0.585406 0.09414,-0.0807 0.208563,-0.03957 0.208563,0.07497 0,0.0405 -0.0123,0.06068 -0.08951,0.146846 -0.646693,0.721674 -1.206898,1.591625 -1.599732,2.48425 -0.05664,0.128705 -0.126804,0.209421 -0.216681,0.249269 -0.07283,0.03229 -0.214666,0.04128 -0.285304,0.01808 z" /></svg>`,
+    register: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path id="path1" style="fill:#000000;stroke-width:0.999995" d="M 6.540686 1.1265462 C 6.5207502 1.1259342 6.4989928 1.1281559 6.4729899 1.1322306 C 6.3772463 1.1472499 6.3497802 1.1686728 6.2456136 1.3079305 L 6.1639648 1.4169678 L 6.4921102 1.6582967 L 6.8202555 1.9001424 L 6.9039714 1.786971 C 7.0046224 1.6508614 7.0205585 1.6103329 7.0068075 1.5218709 C 6.9907771 1.4187716 6.9623561 1.3853884 6.7696126 1.245402 C 6.6474355 1.1566718 6.6004936 1.1283823 6.540686 1.1265462 z M 6.0988525 1.5048177 L 5.1795288 2.7528035 C 4.6737295 3.4391482 4.2539592 4.0131979 4.2467692 4.0281779 C 4.2334909 4.0558302 4.0991703 4.4764461 4.0255941 4.7687012 C 3.9847 4.7299384 3.9355355 4.6928504 3.8829671 4.6648315 C 3.7510954 4.5945355 3.5467462 4.5673529 3.3837728 4.5981689 C 3.2055152 4.6318736 3.0572014 4.6974253 2.7863932 4.8627523 C 2.6028527 4.9748009 2.545036 4.9979558 2.490804 4.9800578 C 2.448657 4.9661488 2.4365438 4.9456167 2.4365438 4.8880737 C 2.4365438 4.7517822 2.3524866 4.6644998 2.2127848 4.6555298 C 2.1189412 4.6495073 2.0419341 4.6728654 1.8774048 4.7573324 C 1.7856367 4.8044519 1.7535755 4.8170539 1.7575155 4.8043579 C 1.7604575 4.7948124 1.7694893 4.7468955 1.7776693 4.6979045 C 1.8403308 4.3222779 1.818114 3.9298591 1.723409 3.7362061 C 1.6845351 3.6567162 1.5954465 3.5730611 1.5249715 3.5496541 C 1.4241082 3.5161533 1.2935972 3.5348565 1.1854574 3.59823 C 1.0558029 3.6742126 0.86767815 3.8574764 0.77101237 4.0018229 C 0.58903797 4.2735582 0.49269029 4.614555 0.51004639 4.9237305 C 0.52303559 5.1550861 0.54938069 5.2177694 0.63458659 5.2177694 C 0.71761246 5.2177694 0.75323227 5.1632646 0.73483887 5.0637736 C 0.68023278 4.7683827 0.74891291 4.4324187 0.91932373 4.1609863 C 1.0647234 3.9293918 1.2846915 3.742924 1.4128337 3.742924 C 1.4555521 3.742924 1.4636897 3.7471843 1.5001668 3.7852987 C 1.5643263 3.852333 1.5904826 3.959306 1.6014526 4.203361 C 1.6115892 4.4289165 1.581476 4.6753556 1.515153 4.9123617 L 1.4856974 5.0177816 L 1.3890625 5.11545 C 1.284441 5.221176 1.1482805 5.395798 1.1017415 5.483903 C 1.0318675 5.6161831 1.019508 5.7334123 1.065568 5.8275513 C 1.080468 5.8580023 1.103242 5.8870774 1.118278 5.8952474 C 1.1786704 5.9280435 1.2211164 5.9106834 1.2872599 5.8265177 C 1.4113785 5.6685804 1.5327619 5.4591578 1.6143717 5.2616943 L 1.6619141 5.1464559 L 1.7399455 5.0885783 C 1.8923139 4.9751134 2.1051774 4.8677189 2.1791951 4.8668864 L 2.2236369 4.8663696 L 2.2303548 4.9330322 C 2.2430026 5.0608284 2.3070799 5.1421803 2.4246582 5.1784953 C 2.5011574 5.2021194 2.538608 5.2025317 2.6174113 5.1821126 C 2.6923686 5.1626893 2.7448313 5.1362095 2.8959473 5.0415527 C 3.1956042 4.8538521 3.4007604 4.7803198 3.5811768 4.7955729 C 3.7280662 4.8079895 3.8497488 4.8688587 3.9212077 4.9655884 C 3.9436157 4.9959214 3.973851 5.0251807 3.988387 5.0307007 C 4.0118873 5.0396356 4.0366277 5.038455 4.058667 5.0301839 C 4.0823353 5.0308561 4.1082484 5.023071 4.131014 5.0074463 C 4.3503697 4.8568971 4.8450496 4.5443453 4.8725708 4.5242716 C 4.8901365 4.5114593 5.2503917 4.0297198 5.828068 3.2463135 L 6.7551432 1.9890259 L 6.4269979 1.7471802 L 6.0988525 1.5048177 z M 4.4855143 4.0876058 L 4.5010173 4.2152466 L 4.5165202 4.3423706 L 4.6446777 4.3175659 L 4.7733521 4.2927612 L 4.7764526 4.345988 C 4.7781026 4.375449 4.7822144 4.4189319 4.7857544 4.4426229 L 4.7924723 4.4860311 L 4.5304728 4.6565633 C 4.3864769 4.750369 4.263131 4.8296099 4.256071 4.8327799 C 4.246158 4.8372299 4.2424213 4.8340635 4.2400513 4.8183105 C 4.2330329 4.7718075 4.1832581 4.7361197 4.1351481 4.7433797 C 4.1265881 4.7446748 4.1193141 4.7446097 4.1191284 4.7433797 C 4.1189454 4.7421659 4.1588641 4.601959 4.2074951 4.4312541 L 4.2958618 4.1206787 L 4.3909465 4.1041423 L 4.4855143 4.0876058 z " /></svg>`,
+    edit: `<svg class="app-action-nav-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path style="fill:#000000;stroke-width:0.999997" d="M 0.85745286,4.071847 V 1.4504062 H 2.1945137 c 1.1852598,0 1.3414524,0.00187 1.3757367,0.016158 0.1821091,0.076071 0.1821091,0.3389267 0,0.4149979 -0.034144,0.014263 -0.1685224,0.016158 -1.1468806,0.016158 H 1.3151649 V 4.071851 6.2459823 h 2.1689307 2.168927 l 4.01e-5,-1.0948674 c 4e-5,-0.7592936 0.00334,-1.1076208 0.011408,-1.1364781 0.031955,-0.1169908 0.1497368,-0.1877603 0.2683253,-0.1612213 0.074458,0.016665 0.1476153,0.08657 0.1656811,0.158314 0.00901,0.035891 0.012208,0.3913215 0.012208,1.3650459 V 6.6932919 H 3.4840622 0.8574195 Z M 1.9877636,5.5692403 c -0.015204,-0.011962 -0.027639,-0.032029 -0.027639,-0.044604 0,-0.025965 0.5483906,-1.2375886 0.5834909,-1.2891762 C 2.5561845,4.2169871 3.2293223,3.538324 4.0394791,2.7273167 L 5.5124923,1.2527564 5.9000532,1.6402179 6.2876208,2.0276795 4.8026394,3.513364 C 3.8774492,4.4389925 3.3019711,5.0072229 3.2760466,5.0207316 3.2239172,5.047897 2.0594218,5.5770097 2.0340363,5.5850673 c -0.010727,0.0034 -0.030354,-0.00334 -0.046272,-0.015831 z m 0.8071627,-0.4414675 0.382294,-0.1742256 7.88e-5,-0.058554 c 3.93e-5,-0.032209 0.00314,-0.090873 0.00685,-0.1303713 l 0.00678,-0.071815 -0.1758955,0.00734 -0.1758968,0.00734 0.0052,-0.1724897 0.0052,-0.1724892 -0.1296535,0.00294 -0.1296536,0.00294 -0.1798221,0.3948973 c -0.098902,0.2171933 -0.1798222,0.396247 -0.1798222,0.3978975 0,0.00167 0.00951,0.003 0.021141,0.003 0.065418,0 0.1244966,0.057093 0.1244966,0.1203258 0,0.021421 0.00414,0.026578 0.018206,0.022649 0.010014,-0.0028 0.1902367,-0.08349 0.4004979,-0.1793145 z M 6.0043185,1.535671 5.6166175,1.1483322 5.7466806,1.0199769 C 5.9131089,0.85573486 5.9544308,0.83275836 6.0847341,0.83199986 6.2262851,0.83119926 6.263224,0.85207366 6.4560638,1.0420535 6.684228,1.2668341 6.7154429,1.3166471 6.71607,1.4569327 6.7166037,1.5773005 6.6875837,1.6281002 6.5264658,1.7888632 L 6.3920196,1.9230105 Z" /></svg>`
   };
   return icons[type] || "";
 }
 
 function applyNavStyleActionButtons(root = document) {
   const actionMap = [
-    { type: "save", label: "Opslaan", match: /^(instellingen\s+)?opslaan$/i },
-    { type: "cancel", label: "Annuleren", match: /^annuleren$/i },
-    { type: "delete", label: "Verwijderen", match: /^verwijderen$/i }
+    { type: "save", key: "save", match: /^(instellingen\s+)?opslaan$|^save settings$|^save$|^enregistrer( les paramètres)?$/i },
+    { type: "cancel", key: "cancel", match: /^annuleren$|^cancel$|^annuler$/i },
+    { type: "delete", key: "delete", match: /^verwijderen$|^delete$|^supprimer$/i },
+    { type: "ok", key: "ok", match: /^(ok)$/i },
+    { type: "ok", key: "chooseConfirm", match: /^kies$|^choose$|^choisir$/i },
+    { type: "register", key: "register", match: /^registreren$|^register$|^s’inscrire$|^s'inscrire$/i }
   ];
 
   root.querySelectorAll("button").forEach(button => {
     if (button.classList.contains("nav-btn") || button.classList.contains("icon-btn") || button.classList.contains("fab")) return;
 
-    const plainText = (button.dataset.actionLabel || button.textContent || "").replace(/\s+/g, " ").trim();
-    const action = actionMap.find(item => item.match.test(plainText));
+    let action = null;
+    if (button.dataset.actionType) {
+      action = actionMap.find(item => item.type === button.dataset.actionType);
+    }
+
+    if (!action) {
+      const plainText = (button.dataset.actionLabel || button.textContent || "").replace(/\s+/g, " ").trim();
+      action = actionMap.find(item => item.match.test(plainText));
+    }
+
     if (!action) return;
 
-    button.dataset.actionLabel = action.label;
+    const label = t(action.key);
+    button.dataset.actionLabel = label;
     button.dataset.actionType = action.type;
-    button.setAttribute("aria-label", action.label);
-    button.title = action.label;
+    button.dataset.actionKey = action.key;
+    button.setAttribute("aria-label", label);
+    button.title = label;
     button.classList.add("app-action-nav-btn");
     button.innerHTML = `
       <span class="app-action-nav-ico" aria-hidden="true">${getActionButtonIconSvg(action.type)}</span>
-      <span class="app-action-nav-label">${action.label}</span>
+      <span class="app-action-nav-label">${label}</span>
     `;
   });
 }
 
+
+
+/* =========================
+   TO DO
+========================= */
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatTodoDescription(description = "") {
+  const lines = String(description || "").split(/\r?\n/);
+  let html = "";
+  let inList = false;
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    const bullet = trimmed.match(/^[-*•]\s+(.*)$/);
+
+    if (bullet) {
+      if (!inList) {
+        html += "<ul>";
+        inList = true;
+      }
+      html += `<li>${escapeHtml(bullet[1])}</li>`;
+      return;
+    }
+
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
+
+    if (trimmed) {
+      html += `<p>${escapeHtml(trimmed)}</p>`;
+    }
+  });
+
+  if (inList) html += "</ul>";
+  return html;
+}
+
+function getTodos(data = getData()) {
+  return Array.isArray(data.todos) ? data.todos : [];
+}
+
+function todoById(data, id) {
+  return getTodos(data).find(todo => String(todo.id) === String(id));
+}
+
+function getFilteredTodos(data = getData()) {
+  const todos = getTodos(data).slice().sort((a, b) => {
+    if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
+    return String(b.updatedAt || b.createdAt || b.id || "").localeCompare(String(a.updatedAt || a.createdAt || a.id || ""));
+  });
+
+  if (state.todoFilter === "open") return todos.filter(todo => !todo.completed);
+  if (state.todoFilter === "done") return todos.filter(todo => todo.completed);
+  return todos;
+}
+
+function renderTodos() {
+  const list = document.getElementById("todoList");
+  const count = document.getElementById("todoCountBadge");
+  if (!list) return;
+
+  const data = getData();
+  const todos = getFilteredTodos(data);
+  const allTodos = getTodos(data);
+  const openCount = allTodos.filter(todo => !todo.completed).length;
+
+  document.querySelectorAll(".todo-filter-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.todoFilter === state.todoFilter);
+  });
+
+  if (count) {
+    count.textContent = `${openCount} open`;
+  }
+
+  if (!todos.length) {
+    list.innerHTML = `<div class="empty-state">${t("noTodos")}</div>`;
+    return;
+  }
+
+  list.innerHTML = todos.map(todo => `
+    <article class="todo-card${todo.completed ? " is-completed" : ""}">
+      <button class="todo-check-btn" type="button" data-todo-toggle="${todo.id}" aria-label="${todo.completed ? t("markOpen") : t("markDone")}">
+        <span>${todo.completed ? "✓" : ""}</span>
+      </button>
+      <button class="todo-main-btn" type="button" data-todo-edit="${todo.id}">
+        <div class="todo-title-row">
+          <strong class="todo-title">${escapeHtml(todo.title || t("newTodo"))}</strong>
+          <span class="todo-status-pill${todo.completed ? " done" : ""}">${todo.completed ? t("completed") : t("open")}</span>
+        </div>
+        ${todo.description ? `<div class="todo-note">${formatTodoDescription(todo.description)}</div>` : ""}
+      </button>
+    </article>
+  `).join("");
+
+  list.querySelectorAll("[data-todo-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openEditTodoDialog(btn.dataset.todoEdit));
+  });
+
+  list.querySelectorAll("[data-todo-toggle]").forEach(btn => {
+    btn.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleTodoCompleted(btn.dataset.todoToggle);
+    });
+  });
+}
+
+function openNewTodoDialog() {
+  const form = document.getElementById("todoForm");
+  if (form) form.reset();
+  document.getElementById("todoId").value = "";
+  document.getElementById("todoCompleted").checked = false;
+  document.getElementById("todoModalTitle").textContent = t("newTodo");
+  document.getElementById("deleteTodoBtn")?.classList.add("hidden");
+  document.getElementById("todoDialog")?.showModal();
+}
+
+function openEditTodoDialog(id) {
+  const data = getData();
+  const todo = todoById(data, id);
+  if (!todo) return;
+
+  document.getElementById("todoId").value = todo.id;
+  document.getElementById("todoTitle").value = todo.title || "";
+  document.getElementById("todoDescription").value = todo.description || "";
+  document.getElementById("todoCompleted").checked = Boolean(todo.completed);
+  document.getElementById("todoModalTitle").textContent = t("editTodo");
+  document.getElementById("deleteTodoBtn")?.classList.remove("hidden");
+  document.getElementById("todoDialog")?.showModal();
+}
+
+function addTodoBulletLine() {
+  const textarea = document.getElementById("todoDescription");
+  if (!textarea) return;
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  const prefix = before && !before.endsWith("\n") ? "\n" : "";
+  const insert = `${prefix}- `;
+  textarea.value = before + insert + after;
+  const cursor = (before + insert).length;
+  textarea.focus();
+  textarea.setSelectionRange(cursor, cursor);
+}
+
+async function saveTodoFromForm(event) {
+  event.preventDefault();
+
+  const user = await getCurrentUser();
+  const data = getData();
+  const rawId = document.getElementById("todoId").value;
+  const id = rawId ? Number(rawId) || rawId : null;
+  const now = new Date().toISOString();
+
+  const payload = {
+    title: String(document.getElementById("todoTitle")?.value || "").trim(),
+    description: String(document.getElementById("todoDescription")?.value || "").trim(),
+    completed: Boolean(document.getElementById("todoCompleted")?.checked),
+    updatedAt: now
+  };
+
+  if (!payload.title) {
+    await appAlert("Geef de taak een titel.", { title: t("todo"), variant: "warning" });
+    return;
+  }
+
+  if (!user) {
+    if (id) {
+      const existing = todoById(data, id);
+      if (existing) Object.assign(existing, payload);
+    } else {
+      data.todos = getTodos(data);
+      data.todos.push({ id: nextId(data.todos), ...payload, createdAt: now });
+    }
+    saveData(data);
+    closeDialog("todoDialog");
+    renderTodos();
+    return;
+  }
+
+  const dbPayload = {
+    user_id: user.id,
+    title: payload.title,
+    description: payload.description,
+    is_completed: payload.completed,
+    updated_at: now
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await supabaseClient
+      .from("todos")
+      .update(dbPayload)
+      .eq("id", id)
+      .eq("user_id", user.id));
+  } else {
+    ({ error } = await supabaseClient
+      .from("todos")
+      .insert({ ...dbPayload, created_at: now }));
+  }
+
+  if (error) {
+    await appAlert("Opslaan taak mislukt: " + error.message, { title: t("saveFailed"), variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("todoDialog");
+  renderTodos();
+}
+
+async function toggleTodoCompleted(id) {
+  const data = getData();
+  const todo = todoById(data, id);
+  if (!todo) return;
+  todo.completed = !todo.completed;
+  todo.updatedAt = new Date().toISOString();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    saveData(data);
+    renderTodos();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("todos")
+    .update({ is_completed: todo.completed, updated_at: todo.updatedAt })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("Taak aanpassen mislukt: " + error.message, { title: t("saveFailed"), variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  renderTodos();
+}
+
+async function deleteCurrentTodo() {
+  const id = document.getElementById("todoId")?.value;
+  if (!id) return;
+
+  const confirmed = await appConfirm("Deze taak verwijderen?", {
+    title: t("delete"),
+    confirmText: t("delete"),
+    cancelText: t("cancel"),
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
+  const user = await getCurrentUser();
+  const data = getData();
+
+  if (!user) {
+    data.todos = getTodos(data).filter(todo => String(todo.id) !== String(id));
+    saveData(data);
+    closeDialog("todoDialog");
+    renderTodos();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("todos")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    await appAlert("Verwijderen taak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  closeDialog("todoDialog");
+  renderTodos();
+}
+
+async function loadTodosFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("todos")
+    .select("id, title, description, is_completed, created_at, updated_at")
+    .eq("user_id", user.id)
+    .order("is_completed", { ascending: true })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("Fout bij laden taken:", error.message);
+    return [];
+  }
+
+  return (data || []).map(todo => ({
+    id: todo.id,
+    title: todo.title,
+    description: todo.description || "",
+    completed: Boolean(todo.is_completed),
+    createdAt: todo.created_at,
+    updatedAt: todo.updated_at
+  }));
+}
 
 /* =========================
    EVENTS
@@ -4963,8 +7559,26 @@ function registerEvents() {
 
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
+  document.getElementById("todoForm")?.addEventListener("submit", withActionLock(saveTodoFromForm));
+  document.getElementById("deleteTodoBtn")?.addEventListener("click", withActionLock(deleteCurrentTodo));
+  document.getElementById("todoAddBulletBtn")?.addEventListener("click", addTodoBulletLine);
+  document.querySelectorAll(".todo-filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.todoFilter = btn.dataset.todoFilter || "all";
+      renderTodos();
+    });
+  });
+
   document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => switchScreen(btn.dataset.screen, btn.dataset.title));
+    btn.addEventListener("click", (event) => {
+      if (isAuthLocked() && btn.dataset.screen !== "accountScreen") {
+        event.preventDefault();
+        event.stopPropagation();
+        switchScreen("accountScreen", t("account"));
+        return;
+      }
+      switchScreen(btn.dataset.screen, getScreenTitle(btn.dataset.screen, btn.dataset.title));
+    });
   });
 
   document.getElementById("backBtn").addEventListener("click", () => {
@@ -4975,16 +7589,34 @@ function registerEvents() {
       paymentMethodsScreen: "Betaalwijze",
       statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
+      todoScreen: "To Do",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
     };
 
-    switchScreen(state.previousMainScreen, map[state.previousMainScreen]);
+    switchScreen(state.previousMainScreen, getScreenTitle(state.previousMainScreen, map[state.previousMainScreen]));
   });
 
   document.getElementById("clientSearch").addEventListener("input", renderClients);
+  document.getElementById("serviceSearch")?.addEventListener("input", renderServices);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
-  document.getElementById("settingsForm")?.addEventListener("submit", saveSettingsFromForm);
+  document.getElementById("settingsForm")?.addEventListener("submit", withActionLock(saveSettingsFromForm));
+  document.getElementById("downloadCalendarIcsBtn")?.addEventListener("click", downloadAppointmentsIcs);
+  document.getElementById("openGoogleCalendarImportBtn")?.addEventListener("click", openGoogleCalendarImportPage);
+  document.getElementById("settingsLanguage")?.addEventListener("change", event => {
+    currentProfilePreferences.language = normalizeLanguage(event.target.value);
+    const data = getData();
+    data.settings = { ...getSettings(), language: currentProfilePreferences.language, currency: getCurrentCurrency() };
+    saveData(data);
+    rerenderAll();
+  });
+  document.getElementById("settingsCurrency")?.addEventListener("change", event => {
+    currentProfilePreferences.currency = normalizeCurrency(event.target.value);
+    const data = getData();
+    data.settings = { ...getSettings(), language: getCurrentLanguage(), currency: currentProfilePreferences.currency };
+    saveData(data);
+    rerenderAll();
+  });
   document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", async event => {
     const checked = Boolean(event.target.checked);
     const data = getData();
@@ -4998,34 +7630,63 @@ function registerEvents() {
     renderSettings();
   });
 
-  document.getElementById("appointmentForm").addEventListener("submit", saveAppointmentFromForm);
-  document.getElementById("deleteAppointmentBtn").addEventListener("click", deleteCurrentAppointment);
+  document.getElementById("appointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date"));
+  document.getElementById("appointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time"));
+  document.getElementById("appointmentDate")?.addEventListener("change", syncAppointmentDateTimeDisplays);
+  document.getElementById("appointmentTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
 
-  document.getElementById("clientForm").addEventListener("submit", saveClientFromForm);
+  const appointmentWheelPickerForm = document.getElementById("appointmentWheelPickerForm");
+  if (appointmentWheelPickerForm) {
+    appointmentWheelPickerForm.addEventListener("submit", event => {
+      event.preventDefault();
+      applyAppointmentWheelPickerSelection();
+      closeDialog("appointmentWheelPickerDialog");
+    });
+  }
 
-  document.getElementById("serviceForm").addEventListener("submit", saveServiceFromForm);
-  document.getElementById("deleteServiceBtn").addEventListener("click", deleteCurrentService);
+  document.getElementById("appointmentForm").addEventListener("submit", withActionLock(saveAppointmentFromForm));
+  document.getElementById("appointmentOpenCustomerBtn")?.addEventListener("click", openAppointmentCustomerDetailFromDialog);
+  document.getElementById("deleteAppointmentBtn").addEventListener("click", withActionLock(deleteCurrentAppointment));
 
-  document.getElementById("paymentMethodForm").addEventListener("submit", savePaymentMethodFromForm);
-  document.getElementById("deletePaymentMethodBtn").addEventListener("click", deleteCurrentPaymentMethod);
+  document.getElementById("clientForm").addEventListener("submit", withActionLock(saveClientFromForm));
+
+  document.getElementById("serviceForm").addEventListener("submit", withActionLock(saveServiceFromForm));
+  document.getElementById("deleteServiceBtn").addEventListener("click", withActionLock(deleteCurrentService));
+
+  document.getElementById("paymentMethodForm").addEventListener("submit", withActionLock(savePaymentMethodFromForm));
+  document.getElementById("deletePaymentMethodBtn").addEventListener("click", withActionLock(deleteCurrentPaymentMethod));
 
   document.getElementById("paymentPopoverCloseBtn")?.addEventListener("click", closePaymentPopover);
+  document.getElementById("paymentQrOpenBtn")?.addEventListener("click", openPaymentQrModal);
+  document.getElementById("appointmentActionPopoverCloseBtn")?.addEventListener("click", closeAppointmentActionPopover);
 
   document.addEventListener("click", event => {
+    const actionPopover = document.getElementById("appointmentActionPopover");
+    if (actionPopover && !actionPopover.classList.contains("hidden")) {
+      if (!actionPopover.contains(event.target) && !event.target.closest(".appointment-row")) {
+        closeAppointmentActionPopover();
+      }
+    }
+
     const popover = document.getElementById("paymentPopover");
     if (!popover || popover.classList.contains("hidden")) return;
     if (popover.contains(event.target)) return;
+    if (event.target.closest("#paymentQrPopover")) return;
+    if (event.target.closest("#paymentQrDialog")) return;
     if (event.target.closest(".price-chip")) return;
     closePaymentPopover();
   });
 
   window.addEventListener("resize", () => {
+    const actionPopover = document.getElementById("appointmentActionPopover");
+    if (actionPopover && !actionPopover.classList.contains("hidden")) positionAppointmentActionPopover();
+
     const popover = document.getElementById("paymentPopover");
     if (popover && !popover.classList.contains("hidden")) positionPaymentPopover();
   });
 
-  document.getElementById("agendaList")?.addEventListener("scroll", closePaymentPopover, { passive: true });
-  document.querySelector(".calendar-panel")?.addEventListener("scroll", closePaymentPopover, { passive: true });
+  document.getElementById("agendaList")?.addEventListener("scroll", () => { closePaymentPopover(); closeAppointmentActionPopover(); }, { passive: true });
+  document.querySelector(".calendar-panel")?.addEventListener("scroll", () => { closePaymentPopover(); closeAppointmentActionPopover(); }, { passive: true });
 
   document.querySelectorAll("[data-close]").forEach(btn => {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));
@@ -5038,51 +7699,30 @@ function registerEvents() {
     if (el) el.addEventListener("change", renderRevenue);
   });
 
-  const revenueYearMain = document.getElementById("revenueYearMain");
-  const revenueYearToggle = document.getElementById("revenueYearToggle");
-  const revenueMonthMain = document.getElementById("revenueMonthMain");
-  const revenueMonthToggle = document.getElementById("revenueMonthToggle");
-  const revenueDayMain = document.getElementById("revenueDayMain");
-  const revenueDayToggle = document.getElementById("revenueDayToggle");
+  const attachRevenuePeriodButton = (id, mode, openPicker) => {
+    const button = document.getElementById(id);
+    if (!button) return;
 
-  if (revenueYearMain) {
-    revenueYearMain.addEventListener("click", () => {
-      const anchor = document.getElementById("revenueDate").value || todayStr;
-      setRevenuePeriod("year", anchor);
-    });
-  }
+    button.addEventListener("contextmenu", event => event.preventDefault());
+    button.addEventListener("click", event => {
+      event.preventDefault();
 
-  if (revenueYearToggle) {
-    revenueYearToggle.addEventListener("click", () => {
-      openRevenueWheelPicker("year");
-    });
-  }
+      const currentMode = document.getElementById("revenuePeriodType")?.value || "day";
+      const anchor = document.getElementById("revenueDate")?.value || todayStr;
 
-  if (revenueMonthMain) {
-    revenueMonthMain.addEventListener("click", () => {
-      const anchor = document.getElementById("revenueDate").value || todayStr;
-      setRevenuePeriod("month", anchor);
-    });
-  }
+      if (currentMode === mode) {
+        openPicker();
+        return;
+      }
 
-  if (revenueMonthToggle) {
-    revenueMonthToggle.addEventListener("click", () => {
-      openRevenueWheelPicker("month");
+      setRevenuePeriod(mode, anchor);
     });
-  }
+  };
 
-  if (revenueDayMain) {
-    revenueDayMain.addEventListener("click", () => {
-      const anchor = document.getElementById("revenueDate").value || todayStr;
-      setRevenuePeriod("day", anchor);
-    });
-  }
-
-  if (revenueDayToggle) {
-    revenueDayToggle.addEventListener("click", () => {
-      openRevenueDayPicker();
-    });
-  }
+  attachRevenuePeriodButton("revenueYearBtn", "year", () => openRevenueWheelPicker("year"));
+  attachRevenuePeriodButton("revenueMonthBtn", "month", () => openRevenueWheelPicker("month"));
+  attachRevenuePeriodButton("revenueWeekBtn", "week", () => openRevenueWheelPicker("week"));
+  attachRevenuePeriodButton("revenueDayBtn", "day", () => openRevenueWheelPicker("day"));
 
   const revenueWheelPickerForm = document.getElementById("revenueWheelPickerForm");
   if (revenueWheelPickerForm) {
@@ -5098,7 +7738,8 @@ function registerEvents() {
     revenueNativeDatePicker.addEventListener("change", event => {
       const pickedDate = event.target.value;
       if (!pickedDate) return;
-      setRevenuePeriod("day", pickedDate);
+      const mode = event.target.dataset.mode || "day";
+      setRevenuePeriod(mode, pickedDate);
     });
   }
 
@@ -5124,8 +7765,8 @@ function registerEvents() {
   const editProfileForm = document.getElementById("editProfileForm");
   const passwordForm = document.getElementById("passwordForm");
 
-  if (registerBtn) registerBtn.addEventListener("click", registerAccount);
-  if (registerForm) registerForm.addEventListener("submit", registerAccount);
+  if (registerBtn) registerBtn.addEventListener("click", withActionLock(registerAccount));
+  if (registerForm) registerForm.addEventListener("submit", withActionLock(registerAccount));
 
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {
@@ -5134,18 +7775,19 @@ function registerEvents() {
     });
   }
 
-  if (loginBtn) loginBtn.addEventListener("click", loginAccount);
-  if (logoutBtn) logoutBtn.addEventListener("click", logoutAccount);
+  if (loginBtn) loginBtn.addEventListener("click", withActionLock(loginAccount));
+  if (logoutBtn) logoutBtn.addEventListener("click", withActionLock(logoutAccount));
   if (editProfileBtn) editProfileBtn.addEventListener("click", openEditProfileDialog);
   if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
-  if (editProfileForm) editProfileForm.addEventListener("submit", saveProfileFromForm);
-  if (passwordForm) passwordForm.addEventListener("submit", savePasswordFromForm);
+  if (editProfileForm) editProfileForm.addEventListener("submit", withActionLock(saveProfileFromForm));
+  if (passwordForm) passwordForm.addEventListener("submit", withActionLock(savePasswordFromForm));
 
   setupPasswordToggleButtons();
+  setupAppSelectDropdowns();
 
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {
-      switchScreen("accountScreen", "Account");
+      switchScreen("accountScreen", t("account"));
     });
   }
 
@@ -5211,7 +7853,8 @@ async function loadCustomersFromSupabase() {
     lastName: c.last_name,
     phone: c.phone,
     email: c.email,
-    note: c.note
+    note: c.note,
+    customerNumber: c.customer_number ?? null
   }));
 }
 
@@ -5277,7 +7920,8 @@ async function loadServicesFromSupabase() {
     id: s.id,
     name: s.name,
     duration: s.duration,
-    price: Number(s.price || 0)
+    price: Number(s.price || 0),
+    isActive: s.is_active !== false
   }));
 }
 
@@ -5307,7 +7951,9 @@ async function loadAppointmentsFromSupabase() {
     price: Number(a.price || 0),
     status: a.status,
     paid: Boolean(a.paid),
-    paymentMethodName: a.payment_method_label ?? null
+    paymentMethodName: a.payment_method_label ?? null,
+    currency: normalizeCurrency(a.currency || DEFAULT_CURRENCY),
+    remarks: String(a.appointment_remarks || a.remarks || "").trim()
   }));
 }
 
@@ -5316,6 +7962,7 @@ async function loadAllDataFromSupabase() {
   const services = await loadServicesFromSupabase();
   const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
+  const todos = await loadTodosFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
@@ -5323,6 +7970,7 @@ async function loadAllDataFromSupabase() {
     services,
     paymentMethods,
     appointments,
+    todos,
     settings
   });
 
@@ -5332,6 +7980,351 @@ async function loadAllDataFromSupabase() {
 /* =========================
    STARTUP
 ========================= */
+
+
+
+/* =========================
+   APP NAVIGATIE VIA BROWSER / ANDROID TERUGKNOP
+========================= */
+function getAppHistoryPayload(screenId = state.currentScreen, title = "") {
+  const safeScreenId = document.getElementById(screenId) ? screenId : "agendaScreen";
+  return {
+    nailbookerApp: true,
+    screenId: safeScreenId,
+    title: getScreenTitle(safeScreenId, title || "")
+  };
+}
+
+function syncAppBrowserHistory(screenId, title = "", { replace = false, skip = false, previousScreen = null } = {}) {
+  if (skip || !state.appNavigationReady || !window.history?.pushState) return;
+
+  const payload = getAppHistoryPayload(screenId, title);
+  const isSameScreen = state.appNavigationLastScreen === payload.screenId;
+
+  try {
+    if (replace || !history.state?.nailbookerApp) {
+      history.replaceState(payload, "", window.location.href);
+      history.pushState({ ...payload, guard: true }, "", window.location.href);
+      state.appNavigationLastScreen = payload.screenId;
+      return;
+    }
+
+    if (!isSameScreen && previousScreen !== payload.screenId) {
+      history.pushState(payload, "", window.location.href);
+      state.appNavigationLastScreen = payload.screenId;
+    }
+  } catch (error) {
+    console.warn("App-navigatie kon niet aan browser history gekoppeld worden:", error?.message || error);
+  }
+}
+
+function pushCurrentAppHistoryGuard() {
+  if (!state.appNavigationReady || !window.history?.pushState) return;
+  try {
+    const payload = getAppHistoryPayload(state.currentScreen);
+    history.pushState({ ...payload, guard: true }, "", window.location.href);
+    state.appNavigationLastScreen = payload.screenId;
+  } catch (error) {
+    console.warn("App-terugknop guard kon niet geplaatst worden:", error?.message || error);
+  }
+}
+
+function closeTopAppOverlayForBackButton() {
+  const openSelect = document.querySelector('.app-select-wrap.is-open');
+  if (openSelect) {
+    closeAllAppSelectDropdowns();
+    return true;
+  }
+
+  const actionPopover = document.getElementById("appointmentActionPopover");
+  if (actionPopover && !actionPopover.classList.contains("hidden")) {
+    closeAppointmentActionPopover();
+    return true;
+  }
+
+  const openDialogs = Array.from(document.querySelectorAll("dialog[open]"));
+  const dialog = openDialogs[openDialogs.length - 1];
+  if (dialog) {
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.removeAttribute("open");
+    return true;
+  }
+
+  const paymentPopover = document.getElementById("paymentPopover");
+  if (paymentPopover && !paymentPopover.classList.contains("hidden")) {
+    closePaymentPopover();
+    return true;
+  }
+
+  return false;
+}
+
+function handleAppBrowserBack(event) {
+  if (closeTopAppOverlayForBackButton()) {
+    pushCurrentAppHistoryGuard();
+    return;
+  }
+
+  const payload = event.state?.nailbookerApp ? event.state : null;
+
+  if (!payload || !payload.screenId || payload.screenId === state.currentScreen) {
+    pushCurrentAppHistoryGuard();
+    return;
+  }
+
+  switchScreen(payload.screenId, getScreenTitle(payload.screenId, payload.title || ""), { skipHistory: true });
+  state.appNavigationLastScreen = payload.screenId;
+}
+
+function setupAppBrowserBackNavigation() {
+  if (state.appNavigationReady) return;
+  if (!window.history?.pushState) return;
+
+  state.appNavigationReady = true;
+  window.addEventListener("popstate", handleAppBrowserBack);
+}
+
+
+/* =========================
+   APP-STIJL DROPDOWNS
+   - Vervangt de browserweergave van <select> door een eigen app-dropdown.
+   - De originele select blijft bestaan, zodat alle bestaande change-events,
+     formulierlogica en waarden blijven werken.
+========================= */
+let appSelectsReady = false;
+let appSelectObserver = null;
+
+function closeAllAppSelectDropdowns(exceptWrap = null) {
+  document.querySelectorAll('.app-select-wrap.is-open').forEach(wrap => {
+    if (wrap !== exceptWrap) wrap.classList.remove('is-open');
+  });
+}
+
+function getSelectDisplayText(select) {
+  const option = select.options?.[select.selectedIndex];
+  return option ? option.textContent.trim() : '';
+}
+
+function syncAppSelectButton(select) {
+  const wrap = select.closest('.app-select-wrap');
+  const button = wrap?.querySelector('.app-select-button');
+  const valueEl = button?.querySelector('.app-select-value');
+  if (!button || !valueEl) return;
+
+  valueEl.textContent = getSelectDisplayText(select) || select.getAttribute('aria-label') || 'Kies';
+  button.disabled = select.disabled;
+  button.setAttribute('aria-disabled', String(select.disabled));
+}
+
+function renderAppSelectOptions(select) {
+  const wrap = select.closest('.app-select-wrap');
+  const list = wrap?.querySelector('.app-select-options');
+  if (!wrap || !list) return;
+
+  list.innerHTML = '';
+
+  Array.from(select.options || []).forEach(option => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'app-select-option';
+    item.textContent = option.textContent.trim();
+    item.dataset.value = option.value;
+    item.disabled = option.disabled;
+
+    const isSelected = option.value === select.value;
+    item.classList.toggle('is-selected', isSelected);
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', String(isSelected));
+
+    item.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (option.disabled) return;
+
+      select.value = option.value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      syncAppSelectButton(select);
+      renderAppSelectOptions(select);
+      wrap.classList.remove('is-open');
+      wrap.querySelector('.app-select-button')?.focus({ preventScroll: true });
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function refreshAppSelect(select) {
+  if (!select) return;
+
+  const wrap = select.closest('.app-select-wrap');
+  const hasValidWrap = Boolean(wrap && wrap.querySelector('.app-select-button') && wrap.querySelector('.app-select-options'));
+
+  if (select.dataset.appSelectReady !== 'true' || !hasValidWrap) {
+    if (!hasValidWrap) {
+      delete select.dataset.appSelectReady;
+      if (wrap) {
+        wrap.parentNode.insertBefore(select, wrap);
+        wrap.remove();
+      }
+    }
+    enhanceAppSelect(select);
+    return;
+  }
+
+  syncAppSelectButton(select);
+  renderAppSelectOptions(select);
+}
+
+function enhanceAppSelect(select) {
+  if (!select || select.dataset.appSelectReady === 'true') return;
+  if (select.multiple) return;
+
+  select.dataset.appSelectReady = 'true';
+
+  const wrap = document.createElement('span');
+  wrap.className = 'app-select-wrap';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'app-select-button';
+  button.setAttribute('aria-haspopup', 'listbox');
+  button.innerHTML = '<span class="app-select-value"></span><span class="app-select-arrow" aria-hidden="true"></span>';
+
+  const list = document.createElement('div');
+  list.className = 'app-select-options';
+  list.setAttribute('role', 'listbox');
+
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+  wrap.appendChild(button);
+  wrap.appendChild(list);
+
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (select.disabled) return;
+
+    const shouldOpen = !wrap.classList.contains('is-open');
+    closeAllAppSelectDropdowns(wrap);
+    renderAppSelectOptions(select);
+    wrap.classList.toggle('is-open', shouldOpen);
+  });
+
+  button.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      wrap.classList.remove('is-open');
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      renderAppSelectOptions(select);
+      closeAllAppSelectDropdowns(wrap);
+      wrap.classList.add('is-open');
+      const active = list.querySelector('.app-select-option.is-selected:not(:disabled)') || list.querySelector('.app-select-option:not(:disabled)');
+      active?.focus({ preventScroll: true });
+    }
+  });
+
+  select.addEventListener('change', () => {
+    syncAppSelectButton(select);
+    renderAppSelectOptions(select);
+  });
+
+  const selectObserver = new MutationObserver(() => {
+    syncAppSelectButton(select);
+    renderAppSelectOptions(select);
+  });
+  selectObserver.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'selected', 'value'] });
+
+  syncAppSelectButton(select);
+  renderAppSelectOptions(select);
+}
+
+function rebuildSettingsSelectOptions() {
+  const languageSelect = document.getElementById('settingsLanguage');
+  const currencySelect = document.getElementById('settingsCurrency');
+
+  if (languageSelect) {
+    const selectedLanguage = normalizeLanguage(languageSelect.value || getCurrentLanguage());
+    languageSelect.innerHTML = buildLanguageOptions(selectedLanguage);
+    languageSelect.value = selectedLanguage;
+  }
+
+  if (currencySelect) {
+    const selectedCurrency = normalizeCurrency(currencySelect.value || getCurrentCurrency());
+    currencySelect.innerHTML = buildCurrencyOptions(selectedCurrency);
+    currencySelect.value = selectedCurrency;
+  }
+}
+
+function setupAppSelectDropdowns() {
+  rebuildSettingsSelectOptions();
+
+  document.querySelectorAll('select').forEach(select => {
+    select.removeAttribute('size');
+    enhanceAppSelect(select);
+  });
+
+  if (appSelectsReady) return;
+  appSelectsReady = true;
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.app-select-wrap')) closeAllAppSelectDropdowns();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeAllAppSelectDropdowns();
+  });
+
+  appSelectObserver = new MutationObserver(() => {
+    document.querySelectorAll('select').forEach(select => {
+      select.removeAttribute('size');
+      enhanceAppSelect(select);
+    });
+  });
+  appSelectObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+
+function getActionLockButton(event) {
+  if (!event?.target) return null;
+  if (event.target.matches?.('button')) return event.target;
+  return event.target.closest?.('button');
+}
+
+function setActionLocked(button, locked) {
+  if (!button) return;
+  if (locked) {
+    button.dataset.actionLocked = "true";
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.classList.add("is-action-locked");
+  } else {
+    delete button.dataset.actionLocked;
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+    button.classList.remove("is-action-locked");
+  }
+}
+
+function withActionLock(handler) {
+  return async function actionLockWrapper(event) {
+    const button = getActionLockButton(event) || this?.querySelector?.('button[type="submit"], .btn-primary, .btn-danger, button');
+    if (button?.dataset?.actionLocked === "true") {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      return;
+    }
+
+    setActionLocked(button, true);
+    try {
+      return await handler.call(this, event);
+    } finally {
+      setActionLocked(button, false);
+    }
+  };
+}
 
 async function initAppData() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -5352,10 +8345,12 @@ async function startApp() {
 
   const user = await getCurrentUser();
 
+  setupAppBrowserBackNavigation();
+
   if (user) {
-    switchScreen("agendaScreen", "Agenda");
+    switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
   } else {
-    switchScreen("accountScreen", "Account");
+    switchScreen("accountScreen", t("account"), { replaceHistory: true });
   }
 }
 

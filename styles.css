@@ -38,6 +38,7 @@
 
 html,
 body {
+  width: 100%;
   height: 100%;
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
@@ -45,6 +46,12 @@ body {
   color: var(--text);
   overflow: hidden;
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-width: 0;
 }
 
 button,
@@ -119,11 +126,16 @@ button {
    2. APP SHELL / ALGEMENE LAYOUT
 ========================================================= */
 .app-shell {
+  width: 100%;
   max-width: 520px;
+  min-height: 100vh;
+  min-height: 100svh;
+  height: 100vh;
+  height: 100svh;
   height: 100dvh;
   margin: 0 auto;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: linear-gradient(180deg, #ffffff 0%, #fffdfd 48%, #fbf7f9 100%);
   overflow: hidden;
 }
@@ -1272,6 +1284,99 @@ button {
   color: var(--text);
 }
 
+.payment-qr-tooltip {
+  margin-top: 8px;
+}
+
+.payment-qr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid #f0dce5;
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: #fff8fb;
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.08);
+}
+
+.payment-qr-toggle:hover,
+.payment-qr-toggle:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.payment-qr-mini {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid rgba(184, 109, 135, 0.28);
+}
+
+.payment-qr-mini span {
+  display: block;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.payment-qr-mini span:nth-child(4) {
+  opacity: 0.45;
+}
+
+.payment-qr-panel {
+  width: 150px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #f1dfe7;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(84, 48, 65, 0.14);
+}
+
+.payment-qr-code-wrap {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #f4e8ee;
+}
+
+.payment-qr-image {
+  display: block;
+  width: 118px;
+  height: 118px;
+  object-fit: contain;
+}
+
+.payment-qr-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.payment-qr-open-btn {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .payment-popover-close {
   flex: 0 0 auto;
 }
@@ -2025,91 +2130,66 @@ button {
 }
 
 .revenue-period-strip {
-  display: flex;
-  gap: 8px;
-  padding: 4px 0 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.revenue-period-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.revenue-period-chip {
-  display: inline-grid;
-  grid-template-columns: minmax(0, 1fr) 56px;
-  align-items: stretch;
-  border: 1px solid #d8ccd3;
-  background: #f8f6f7;
-  color: #675e67;
-  min-height: 54px;
-  border-radius: 22px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 16px;
-  white-space: nowrap;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
-}
-
-.revenue-period-main,
-.revenue-period-toggle {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  min-height: 54px;
-  padding: 0;
-}
-
-.revenue-period-main {
-  padding: 0 18px 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 98px;
-}
-
-.revenue-period-toggle {
-  width: 56px;
   display: grid;
-  place-items: center;
-  border-left: 1px solid rgba(104, 90, 99, 0.18);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px 0 12px;
 }
 
-.revenue-period-main:focus-visible,
-.revenue-period-toggle:focus-visible {
-  outline: 2px solid rgba(165, 86, 122, 0.28);
-  outline-offset: -2px;
+.revenue-period-tile {
+  min-width: 0;
+  min-height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #ffffff;
+  color: #555052;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  text-align: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.revenue-period-caret {
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 11px solid currentColor;
-  transform: translateY(1px);
-  opacity: 0.86;
+.revenue-period-tile:hover,
+.revenue-period-tile:active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
-.revenue-period-chip.active {
-  background: #a5567a;
-  border-color: #a5567a;
-  color: #fff;
+.revenue-period-tile.active {
+  background: var(--primary-soft);
+  border-color: var(--primary-soft);
+  color: var(--text);
 }
 
-.revenue-period-chip.active .revenue-period-toggle {
-  border-left-color: rgba(255, 255, 255, 0.46);
+.revenue-period-title {
+  display: block;
+  font-size: clamp(13px, 3.6vw, 21px);
+  font-weight: 400;
+  line-height: 1.05;
 }
 
-.revenue-period-chip-wide {
-  min-width: 164px;
+.revenue-period-sub {
+  display: block;
+  align-self: start;
+  font-size: clamp(10px, 2.7vw, 13px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: inherit;
+  word-break: keep-all;
 }
 
-.revenue-period-chip-wide .revenue-period-main {
-  min-width: 108px;
+.revenue-period-year {
+  font-size: clamp(18px, 5.8vw, 28px);
+  line-height: 1;
 }
 
 .revenue-filter-card,
@@ -2176,6 +2256,13 @@ button {
   margin-top: 14px;
 }
 
+.revenue-method-title {
+  margin: 4px 0 8px;
+  color: var(--primary-dark);
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .revenue-method-row {
   display: flex;
   justify-content: space-between;
@@ -2202,7 +2289,7 @@ button {
 
 .revenue-chart-head h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text);
 }
 
@@ -2227,7 +2314,7 @@ button {
   height: 260px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 2px;
   overflow-x: auto;
   padding: 8px 4px 0;
   scrollbar-width: none;
@@ -2241,14 +2328,14 @@ button {
 
 .revenue-bar-col {
   flex: 0 0 auto;
-  min-width: 22px;
+  min-width: 9px;
   display: grid;
   gap: 8px;
   justify-items: center;
 }
 
 .revenue-bar-stack {
-  width: 18px;
+  width: 4px;
   border-radius: 0;
   display: flex;
   flex-direction: column-reverse;
@@ -2271,7 +2358,7 @@ button {
 }
 
 .revenue-bar-label {
-  font-size: 13px;
+  font-size: 10px;
   color: #453f46;
   white-space: nowrap;
 }
@@ -2303,24 +2390,63 @@ button {
 }
 
 @media (max-width: 420px) {
+  .revenue-summary-card {
+    padding: 12px 10px;
+  }
+
   .revenue-summary-top {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .revenue-summary-item {
+    padding: 10px 4px;
+    text-align: center;
+    gap: 4px;
+  }
+
+  .revenue-main-label {
+    font-size: 13px;
+  }
+
+  .revenue-summary-item strong {
+    font-size: clamp(14px, 4.2vw, 17px);
+    white-space: nowrap;
+  }
+
+  .revenue-method-breakdown {
+    margin-top: 10px;
+  }
+
+  .revenue-method-title {
+    margin: 2px 0 6px;
+    font-size: 15px;
+  }
+
+  .revenue-method-row {
+    font-size: 14px;
   }
 
   .revenue-filter-grid-two {
     grid-template-columns: 1fr;
   }
 
-  .revenue-period-chip-wide {
-    min-width: 118px;
+  .revenue-bars {
+    gap: 2px;
+    padding-inline: 2px;
   }
 
   .revenue-bar-col {
-    min-width: 20px;
+    min-width: 7px;
+    gap: 5px;
   }
 
   .revenue-bar-stack {
-    width: 16px;
+    width: 3px;
+  }
+
+  .revenue-bar-label {
+    font-size: 10px;
   }
 }
 
@@ -2365,6 +2491,10 @@ button {
 
 .revenue-wheel-columns.two-cols {
   grid-template-columns: 1fr 1fr;
+}
+
+.revenue-wheel-columns.three-cols {
+  grid-template-columns: 0.78fr 1.25fr 0.95fr;
 }
 
 .revenue-wheel-column {
@@ -2476,36 +2606,18 @@ button {
     font-size: 9px;
   }
 
-  .revenue-period-chip {
-    grid-template-columns: minmax(0, 1fr) 42px;
-    border-radius: 18px;
-    min-height: 46px;
-    font-size: 14px;
+  .revenue-period-strip {
+    gap: 8px;
+    padding-inline: 0;
   }
 
-  .revenue-period-main,
-  .revenue-period-toggle {
-    min-height: 46px;
+  .revenue-period-tile {
+    min-height: 78px;
+    border-radius: 20px;
+    padding: 10px 4px 8px;
   }
 
-  .revenue-period-main {
-    min-width: 76px;
-    padding: 0 12px 0 14px;
-  }
 
-  .revenue-period-toggle {
-    width: 42px;
-  }
-
-  .revenue-period-caret {
-    border-left-width: 7px;
-    border-right-width: 7px;
-    border-top-width: 9px;
-  }
-
-  .revenue-period-chip-wide {
-    min-width: 130px;
-  }
 }
 
 
@@ -2671,6 +2783,7 @@ button {
   margin-top: 10px;
   border-top: 1px solid #f1e5eb;
 }
+
 
 @media (min-width: 900px) {
   .todo-screen-shell {
@@ -2908,34 +3021,40 @@ button {
 
 .statistics-card-head h2 {
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text);
 }
 
 .statistics-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
 }
 
 .statistics-kpi {
   border: 1px solid var(--line);
   background: #fffdfd;
-  padding: 14px;
+  padding: 10px 8px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
 }
 
 .statistics-kpi-label {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
+  line-height: 1.2;
   text-transform: uppercase;
   font-weight: 700;
 }
 
 .statistics-kpi strong {
-  font-size: 18px;
-  line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.2;
   color: var(--text);
 }
 
@@ -3050,12 +3169,23 @@ button {
 }
 
 .statistics-top-customer-row {
+  width: 100%;
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 14px 0;
+  border: none;
   border-top: 1px solid #f1e5eb;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.statistics-top-customer-row:hover,
+.statistics-top-customer-row:active {
+  background: var(--primary-soft);
 }
 
 .statistics-top-customer-row:first-child {
@@ -3078,7 +3208,7 @@ button {
 
 .statistics-top-customer-name {
   min-width: 0;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text);
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -3109,10 +3239,6 @@ button {
 }
 
 @media (max-width: 520px) {
-  .statistics-kpi-grid {
-    grid-template-columns: 1fr;
-  }
-
   .statistics-card {
     padding: 14px 12px;
   }
@@ -3297,117 +3423,26 @@ button {
 }
 
 .revenue-period-strip.app-control-card {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
   margin-bottom: 10px;
-  overflow: visible;
   border-radius: 0;
-  scrollbar-width: auto;
-}
-
-.revenue-period-row {
-  display: grid;
-  grid-template-columns: minmax(108px, 0.88fr) minmax(0, 1.12fr);
-  gap: 12px;
-  align-items: center;
-}
-
-.revenue-period-row-label {
-  min-width: 0;
-  color: var(--text);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.revenue-period-row .revenue-period-chip {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 48px;
-  min-height: 48px;
-  border-radius: 16px;
-  background: #ffffff;
-  color: var(--text);
-  border-color: var(--line-strong);
-  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.08);
-}
-
-.revenue-period-row .revenue-period-main,
-.revenue-period-row .revenue-period-toggle {
-  min-height: 48px;
-}
-
-.revenue-period-row .revenue-period-main {
-  justify-content: flex-start;
-  min-width: 0;
-  padding: 0 12px 0 14px;
-  overflow: hidden;
-}
-
-.revenue-period-row .revenue-period-main span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.revenue-period-row .revenue-period-toggle {
-  width: 48px;
-  border-left-color: rgba(104, 90, 99, 0.14);
-  background: var(--primary-soft);
-}
-
-.revenue-period-row .revenue-period-chip.active {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary-dark);
-  box-shadow: inset 0 0 0 1px rgba(217, 145, 171, 0.24), var(--shadow-soft);
-}
-
-.revenue-period-row .revenue-period-chip.active .revenue-period-toggle {
-  background: var(--primary);
-  color: #ffffff;
-  border-left-color: rgba(185, 109, 135, 0.28);
-}
-
-.revenue-period-row .revenue-period-caret {
-  border-left-width: 7px;
-  border-right-width: 7px;
-  border-top-width: 9px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 400px) {
-  .revenue-period-row {
-    grid-template-columns: minmax(96px, 0.82fr) minmax(0, 1.18fr);
-    gap: 8px;
+  .revenue-period-strip.app-control-card {
+    gap: 7px;
+    padding-left: 4px;
+    padding-right: 4px;
   }
 
-  .revenue-period-row-label {
-    font-size: 14px;
-  }
-
-  .revenue-period-row .revenue-period-chip {
-    grid-template-columns: minmax(0, 1fr) 42px;
-    min-height: 46px;
-    border-radius: 14px;
-    font-size: 14px;
-  }
-
-  .revenue-period-row .revenue-period-main,
-  .revenue-period-row .revenue-period-toggle {
-    min-height: 46px;
-  }
-
-  .revenue-period-row .revenue-period-main {
-    padding: 0 10px 0 12px;
-  }
-
-  .revenue-period-row .revenue-period-toggle {
-    width: 42px;
+  .revenue-period-tile {
+    min-height: 76px;
+    border-radius: 18px;
   }
 }
+
 
 /* =========================================================
    19. DESKTOP / TABLET RESPONSIVE LAYOUT VOOR VOLLEDIGE APP
@@ -3552,6 +3587,59 @@ button {
 
   .statistics-donut-wrap {
     width: clamp(150px, 24vw, 190px);
+  }
+}
+
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .revenue-screen-shell {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    grid-template-areas:
+      "period summary"
+      "filters chart";
+    gap: 14px;
+    align-content: start;
+    padding: 24px 28px 96px;
+  }
+
+  .revenue-period-strip.app-control-card {
+    grid-area: period;
+    margin-bottom: 0;
+    align-self: start;
+  }
+
+  .revenue-summary-card {
+    grid-area: summary;
+    margin-bottom: 0;
+  }
+
+  .revenue-chart-card {
+    grid-area: chart;
+    margin-bottom: 0;
+    min-width: 0;
+  }
+
+  .revenue-filter-card {
+    grid-area: filters;
+    margin-bottom: 0;
+    align-self: start;
+  }
+
+  .revenue-filter-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-summary-top {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .revenue-chart-wrap {
+    min-height: 340px;
+  }
+
+  .revenue-bars {
+    height: 310px;
   }
 }
 
@@ -4322,12 +4410,14 @@ button {
    - Er staat géén touchmove-handler meer op de scrollbare lijst zelf.
    - Alleen na een korte long-press op het handvat wordt de sortering actief.
 ========================================================= */
-#servicesScreen .services-panel,
+#servicesScreen .services-panel {
+  grid-template-rows: auto 1fr;
+}
+
 #paymentMethodsScreen .services-panel {
   grid-template-rows: 1fr;
 }
 
-#servicesScreen .section-head,
 #paymentMethodsScreen .section-head {
   display: none;
 }
@@ -4484,6 +4574,24 @@ button {
 
 #appointmentForm .appointment-form-field-wide {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: end;
+}
+
+#appointmentForm .appointment-form-field-wide > .field-label {
+  grid-column: 1 / -1;
+}
+
+#appointmentForm .appointment-form-field-wide > .appointment-customer-picker {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#appointmentForm .appointment-form-field-wide > .appointment-open-customer-btn {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 #appointmentForm .field {
@@ -4514,6 +4622,54 @@ button {
   }
 }
 
+
+
+
+/* =========================================================
+   REGISTREREN - dialog met scrollbare inhoud
+   Zorgt dat de actieknoppen onderaan altijd bereikbaar blijven
+========================================================= */
+#registerDialog.modal {
+  max-height: calc(100dvh - 16px);
+  overflow: hidden;
+}
+
+#registerForm.modal-card {
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+#registerForm .modal-actions {
+  position: sticky;
+  bottom: -1px;
+  z-index: 3;
+  margin-left: -18px;
+  margin-right: -18px;
+  margin-bottom: -18px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, #ffffff 35%, #ffffff 100%);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 420px) {
+  #registerDialog.modal {
+    max-height: calc(100dvh - 12px);
+  }
+
+  #registerForm.modal-card {
+    max-height: calc(100dvh - 12px);
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  #registerForm .modal-actions {
+    margin-left: -12px;
+    margin-right: -12px;
+    margin-bottom: -14px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+}
 
 /* =========================================================
    GLOBALE ACTIEKNOPPEN - stijl zoals bottom menu
@@ -4639,5 +4795,2588 @@ button {
   .app-action-nav-icon {
     width: 24px;
     height: 24px;
+  }
+}
+
+/* =========================================================
+   TABLET FIX OMZET
+   - Schakelt de desktop/tablet layout compacter in zodat iPad-breedtes
+     niet in te smalle kolommen vallen.
+========================================================= */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .app-shell {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+
+  .bottom-nav {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .nav-btn {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+    padding: 11px 12px;
+    font-size: 14px;
+  }
+
+  .revenue-screen-shell {
+    display: grid;
+    grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
+    grid-template-areas:
+      "period summary"
+      "filters chart";
+    gap: 14px;
+    align-content: start;
+    padding: 22px 24px 88px;
+  }
+
+  .revenue-period-strip.app-control-card {
+    grid-area: period;
+    margin-bottom: 0;
+    align-self: start;
+  }
+
+  .revenue-summary-card {
+    grid-area: summary;
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 12px;
+  }
+
+  .revenue-chart-card {
+    grid-area: chart;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+
+  .revenue-filter-card {
+    grid-area: filters;
+    margin-bottom: 0;
+    align-self: start;
+  }
+
+  .revenue-summary-top {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .revenue-summary-item {
+    padding: 12px 8px;
+  }
+
+  .revenue-summary-item strong {
+    font-size: clamp(14px, 1.65vw, 18px);
+    white-space: nowrap;
+  }
+
+  .revenue-main-label {
+    font-size: 13px;
+  }
+
+  .revenue-method-row {
+    font-size: 13px;
+  }
+
+  .revenue-filter-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-chart-wrap {
+    min-height: 330px;
+  }
+
+  .revenue-bars {
+    height: 300px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .revenue-screen-shell {
+    grid-template-columns: minmax(230px, 295px) minmax(0, 1fr);
+    padding-left: 22px;
+    padding-right: 22px;
+    gap: 12px;
+  }
+
+  .revenue-period-strip {
+    gap: 8px;
+  }
+
+  .revenue-period-tile {
+    min-height: 84px;
+    padding: 10px 6px 8px;
+  }
+}
+
+/* =========================================================
+   TABLET OMZET LAYOUT FIX 2
+   - Op tablets krijgen periodeknoppen en samenvatting opnieuw de volledige breedte.
+   - Zo worden Dag/Week/Maand/Jaar en Totaal/Betaald/Onbetaald niet samengedrukt.
+========================================================= */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .revenue-screen-shell {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) !important;
+    grid-template-areas:
+      "period period"
+      "summary summary"
+      "filters chart" !important;
+    gap: 14px !important;
+    padding: 22px 24px 88px !important;
+  }
+
+  .revenue-period-strip.app-control-card {
+    grid-area: period !important;
+    width: 100%;
+  }
+
+  .revenue-period-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    padding-bottom: 10px;
+  }
+
+  .revenue-period-tile {
+    min-height: 92px;
+    padding: 12px 8px 10px;
+  }
+
+  .revenue-summary-card {
+    grid-area: summary !important;
+    width: 100%;
+    padding: 14px !important;
+  }
+
+  .revenue-summary-top {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .revenue-summary-item {
+    min-width: 0;
+    padding: 14px 12px !important;
+  }
+
+  .revenue-summary-item strong {
+    font-size: clamp(16px, 2vw, 19px) !important;
+  }
+
+  .revenue-filter-card {
+    grid-area: filters !important;
+    align-self: start;
+  }
+
+  .revenue-chart-card {
+    grid-area: chart !important;
+    align-self: start;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 920px) {
+  .revenue-screen-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "period"
+      "summary"
+      "filters"
+      "chart" !important;
+  }
+
+  .revenue-filter-grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* =========================================================
+   AFSPRAAK DATUM/TIJD PICKERS IN APP-LAYOUT
+========================================================= */
+.appointment-form-field {
+  position: relative;
+}
+
+.appointment-native-picker-input {
+  position: absolute !important;
+  inset: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.appointment-picker-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  width: 100%;
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: center;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.appointment-picker-display:hover,
+.appointment-picker-display:active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  transform: none;
+}
+
+.appointment-wheel-dialog::backdrop {
+  background: rgba(42, 27, 36, 0.34);
+}
+
+.appointment-wheel-card .revenue-wheel-columns.two-cols {
+  grid-template-columns: 1fr 1fr;
+}
+
+.appointment-wheel-card .revenue-wheel-columns.three-cols {
+  grid-template-columns: 0.82fr 1.28fr 1fr;
+}
+
+.appointment-wheel-card .revenue-wheel-option {
+  font-size: 17px;
+}
+
+@media (max-width: 420px) {
+  .appointment-wheel-card .revenue-wheel-columns.three-cols {
+    grid-template-columns: 0.72fr 1.34fr 0.94fr;
+    gap: 6px;
+  }
+
+  .appointment-wheel-card .revenue-wheel-option {
+    font-size: 16px;
+  }
+}
+
+/* =========================================================
+   OMZET - titel boven tegels + betaalstatuskleuren
+========================================================= */
+.revenue-summary-head {
+  padding: 0 2px 12px;
+}
+
+.revenue-summary-head h2,
+#revenueTitle {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+#revenueChartTitle {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.revenue-summary-item.revenue-summary-paid {
+  background: #dff3e5;
+  border-color: rgba(45, 139, 78, 0.22);
+}
+
+.revenue-summary-item.revenue-summary-paid .revenue-main-label,
+.revenue-summary-item.revenue-summary-paid strong {
+  color: #2d8b4e;
+}
+
+.revenue-summary-item.revenue-summary-unpaid {
+  background: var(--danger-soft);
+  border-color: rgba(212, 106, 138, 0.28);
+}
+
+.revenue-summary-item.revenue-summary-unpaid .revenue-main-label,
+.revenue-summary-item.revenue-summary-unpaid strong {
+  color: var(--danger);
+}
+
+.revenue-summary-item.revenue-summary-total {
+  background: #fbf7f9;
+}
+
+@media (max-width: 420px) {
+  .revenue-summary-head {
+    padding-bottom: 10px;
+  }
+
+  .revenue-summary-head h2,
+  #revenueTitle {
+    font-size: 15px;
+  }
+
+  #revenueChartTitle {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   KLANTDETAIL - afspraken zoals Agenda + plusknop
+========================================================= */
+.client-new-appointment-bar {
+  display: flex;
+  justify-content: center;
+  padding: 12px 14px 14px;
+}
+
+.client-inline-add-btn {
+  width: 52px;
+  height: 52px;
+  border: 1px solid #d5819d;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  color: #ffffff;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 400;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 0 3px;
+  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.16);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-inline-add-btn:hover {
+  transform: translateY(-1px);
+}
+
+.client-inline-add-btn:active {
+  transform: translateY(0);
+}
+
+.client-detail-appointment-card {
+  margin: 0;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.client-detail-appointment-row {
+  grid-template-columns: 72px 1fr auto;
+  border-bottom: 1px solid #f1e5eb;
+  cursor: pointer;
+}
+
+.client-detail-appointment-row:last-child {
+  border-bottom: none;
+}
+
+.client-detail-appointment-row:focus-visible {
+  outline: 2px solid rgba(185, 109, 135, 0.35);
+  outline-offset: -2px;
+}
+
+.client-detail-appointment-row .price-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+@media (max-width: 420px) {
+  .client-detail-appointment-row {
+    grid-template-columns: 72px 1fr auto;
+  }
+}
+
+/* Inactieve diensten */
+.service-card-inactive {
+  background: #f1f1f1;
+  border-color: #ded6db;
+  box-shadow: none;
+  opacity: 0.88;
+}
+
+.service-card-inactive button {
+  color: #6f6870;
+}
+
+.service-card-inactive .meta {
+  color: #9a929a;
+}
+
+.inactive-services-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 12px 4px 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inactive-services-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-dark);
+}
+
+.service-reactivate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f7f4f6;
+  color: var(--text);
+}
+
+.service-reactivate-row span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.service-reactivate-row strong {
+  font-size: 14px;
+  color: var(--primary-dark);
+}
+
+.service-reactivate-row small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.service-reactivate-row input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
+
+/* Top klanten jaarfilter */
+.statistics-card-head-stacked {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+
+.statistics-year-filter {
+  width: min(180px, 100%);
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 12px;
+}
+
+
+/* Auth lock: menu onderaan is niet bereikbaar zolang er niet is ingelogd */
+body.auth-locked .bottom-nav {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.auth-locked .fab {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.header-account-icon,
+.header-account-icon svg,
+.header-account-icon path {
+  color: inherit;
+  fill: currentColor !important;
+}
+
+/* =========================================================
+   ACCOUNT / REGISTRATIE EXTRA VELDEN
+========================================================= */
+.optional-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.terms-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.terms-checkbox-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-dark);
+  flex: 0 0 auto;
+}
+
+
+/* =========================================================
+   OMZETGRAFIEK - DYNAMISCHE BALKVERDELING
+   Week/maand/jaar vullen de volledige grafiekbreedte.
+========================================================= */
+.revenue-bars.revenue-bars-even {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  gap: clamp(2px, 1vw, 8px);
+  overflow-x: hidden;
+}
+
+.revenue-bars.revenue-bars-even .revenue-bar-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.revenue-bars.revenue-bars-even .revenue-bar-stack {
+  width: min(70%, 22px);
+}
+
+.revenue-bars.revenue-bars-month {
+  gap: clamp(1px, 0.45vw, 3px);
+}
+
+.revenue-bars.revenue-bars-month .revenue-bar-stack {
+  width: min(72%, 10px);
+}
+
+.revenue-bars.revenue-bars-year .revenue-bar-stack {
+  width: min(72%, 18px);
+}
+
+.revenue-bars.revenue-bars-week .revenue-bar-stack {
+  width: min(62%, 28px);
+}
+
+@media (max-width: 420px) {
+  .revenue-bars.revenue-bars-even {
+    gap: 2px;
+  }
+
+  .revenue-bars.revenue-bars-month .revenue-bar-label {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   TAAL / VALUTA EXTRA'S
+========================================================= */
+.settings-info-text {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+
+.calendar-export-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.calendar-export-actions .btn {
+  width: 100%;
+  text-align: center;
+}
+
+@media (min-width: 430px) {
+  .calendar-export-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =========================================================
+   OMZET: dynamische staafbreedte voor daggrafiek
+========================================================= */
+.revenue-bars.revenue-bars-day-dynamic {
+  width: 100%;
+  min-width: 100%;
+  gap: var(--revenue-day-gap, 8px);
+  overflow-x: auto;
+  padding-inline: 8px;
+}
+
+.revenue-bars.revenue-bars-day-dynamic .revenue-bar-col {
+  flex: 0 0 var(--revenue-day-col-width, 48px);
+  min-width: var(--revenue-day-col-width, 48px);
+}
+
+.revenue-bars.revenue-bars-day-dynamic .revenue-bar-stack {
+  width: var(--revenue-day-stack-width, 20px);
+  max-width: 72%;
+}
+
+/* =========================================================
+   ACTION LOCK: voorkom dubbele klik / dubbele submit
+========================================================= */
+button.is-action-locked,
+button:disabled.is-action-locked {
+  opacity: 0.62;
+  cursor: wait;
+  pointer-events: none;
+}
+
+button.is-action-locked .app-action-nav-ico,
+button.is-action-locked .app-action-nav-label {
+  opacity: 0.75;
+}
+
+
+/* =========================================================
+   AANPASSINGEN: OPMERKINGEN / DIENSTEN ZOEKEN / STATISTIEKEN
+========================================================= */
+.appointment-main-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.appointment-remarks-star {
+  color: #d4a017;
+  font-size: 15px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.statistics-card-head-stacked {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.statistics-card-head-stacked h2 {
+  margin-bottom: 0;
+}
+
+.statistics-year-filter {
+  margin-bottom: 8px;
+}
+
+.statistics-top-customer-amount {
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   OMZET PERIODEKNOPPEN - LAYOUT VOLGENS REFERENTIE
+   Responsief op heel smalle schermen
+========================================================= */
+.revenue-screen-shell .revenue-period-strip.app-control-card {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: clamp(5px, 1.8vw, 12px) !important;
+  padding: 4px 0 14px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.revenue-screen-shell .revenue-period-tile {
+  min-width: 0;
+  min-height: clamp(84px, 24vw, 104px);
+  border: 1px solid transparent;
+  border-radius: clamp(16px, 4.7vw, 24px);
+  background: #ffffff;
+  color: #3f3b42;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: clamp(4px, 1.4vw, 10px);
+  row-gap: clamp(6px, 2vw, 10px);
+  align-items: start;
+  justify-items: start;
+  padding: clamp(12px, 4.2vw, 24px) clamp(5px, 2.5vw, 18px) clamp(10px, 3.2vw, 18px);
+  font-family: 'Montserrat', sans-serif;
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
+}
+
+.revenue-screen-shell .revenue-period-tile:hover,
+.revenue-screen-shell .revenue-period-tile:active {
+  background: #ffffff;
+  border-color: var(--primary-dark);
+  color: #3f3b42;
+  transform: translateY(-1px);
+}
+
+.revenue-screen-shell .revenue-period-tile.active {
+  background: var(--primary-soft);
+  border: 2px solid var(--primary-dark);
+  color: #3f3b42;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
+}
+
+.revenue-screen-shell .revenue-period-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: clamp(13px, 3.8vw, 20px);
+  height: clamp(13px, 3.8vw, 20px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #bf5174;
+  margin-top: 1px;
+}
+
+.revenue-screen-shell .revenue-period-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.revenue-screen-shell .revenue-period-icon path {
+  fill: currentColor;
+  stroke-width: 0;
+}
+
+.revenue-screen-shell .revenue-period-title {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: clamp(10px, 3.05vw, 20px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: #3f3b42;
+}
+
+.revenue-screen-shell .revenue-period-sub {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block;
+  justify-self: center;
+  align-self: start;
+  width: 100%;
+  max-width: 100%;
+  font-size: clamp(8px, 2.55vw, 15px);
+  font-weight: 600;
+  line-height: 1.08;
+  color: #3f3b42;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.revenue-screen-shell .revenue-period-year {
+  font-size: clamp(17px, 5.8vw, 34px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (max-width: 390px) {
+  .revenue-screen-shell .revenue-period-strip.app-control-card {
+    gap: 5px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 82px;
+    border-radius: 16px;
+    column-gap: 4px;
+    row-gap: 6px;
+    padding: 12px 5px 9px;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: clamp(9px, 2.95vw, 12px);
+    letter-spacing: -0.04em;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: clamp(7.5px, 2.45vw, 10px);
+    line-height: 1.05;
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: clamp(16px, 5.6vw, 23px);
+  }
+}
+
+@media (max-width: 340px) {
+  .revenue-screen-shell .revenue-period-strip.app-control-card {
+    gap: 4px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 78px;
+    border-radius: 14px;
+    column-gap: 3px;
+    row-gap: 5px;
+    padding: 10px 4px 8px;
+  }
+
+  .revenue-screen-shell .revenue-period-icon {
+    width: 11px;
+    height: 11px;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: clamp(8px, 2.75vw, 10px);
+    letter-spacing: -0.055em;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: clamp(7px, 2.25vw, 9px);
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: clamp(14px, 5vw, 20px);
+  }
+}
+
+@media (min-width: 768px) {
+  .revenue-screen-shell .revenue-period-strip.app-control-card {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   FIX: Omzet periodeknoppen - finaal responsief
+   - Alleen omzetknoppen bovenaan
+   - Hoogte volgt de inhoud en blijft verticaal gecentreerd
+   - Tekst op smalle schermen iets groter, jaar iets kleiner
+   - Kalendericoon gecentreerd t.o.v. titel
+========================================================= */
+.revenue-screen-shell .revenue-period-strip.app-control-card {
+  container-type: inline-size;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: clamp(5px, 1.8cqw, 12px) !important;
+  padding: 4px 0 14px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.revenue-screen-shell .revenue-period-tile {
+  min-width: 0 !important;
+  min-height: clamp(80px, 20cqw, 118px) !important;
+  height: auto !important;
+  border: 1px solid var(--primary-dark) !important;
+  border-radius: clamp(16px, 4.5cqw, 24px) !important;
+  background: #ffffff !important;
+  color: #3f3b42 !important;
+
+  display: grid !important;
+  grid-template-columns: auto auto !important;
+  grid-template-rows: auto auto !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  align-content: center !important;
+  align-items: center !important;
+
+  column-gap: clamp(4px, 1.1cqw, 8px) !important;
+  row-gap: clamp(5px, 1.4cqw, 10px) !important;
+  padding: clamp(9px, 2.4cqw, 18px) clamp(3px, 1.2cqw, 10px) !important;
+
+  font-family: 'Montserrat', sans-serif !important;
+  text-align: center !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+  overflow: hidden !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.revenue-screen-shell .revenue-period-tile:hover,
+.revenue-screen-shell .revenue-period-tile:active {
+  background: #ffffff !important;
+  border-color: var(--primary-dark) !important;
+  color: #3f3b42 !important;
+  transform: translateY(-1px);
+}
+
+.revenue-screen-shell .revenue-period-tile.active {
+  background: var(--primary-soft) !important;
+  border: 2px solid var(--primary-dark) !important;
+  color: #3f3b42 !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+}
+
+.revenue-screen-shell .revenue-period-icon {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: clamp(10px, 2.5cqw, 15px) !important;
+  height: clamp(10px, 2.5cqw, 15px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  justify-self: end !important;
+  color: #bf5174 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  transform: translateY(-0.08em);
+}
+
+.revenue-screen-shell .revenue-period-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
+
+.revenue-screen-shell .revenue-period-icon path {
+  fill: currentColor !important;
+  stroke-width: 0 !important;
+}
+
+.revenue-screen-shell .revenue-period-title {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+  font-size: clamp(11px, 2.7cqw, 17px) !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.025em !important;
+  color: #3f3b42 !important;
+  align-self: center !important;
+  justify-self: start !important;
+}
+
+.revenue-screen-shell .revenue-period-sub {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  display: block !important;
+  justify-self: center !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: clamp(9px, 2.15cqw, 13px) !important;
+  font-weight: 600 !important;
+  line-height: 1.08 !important;
+  color: #3f3b42 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  hyphens: auto !important;
+}
+
+.revenue-screen-shell .revenue-period-year {
+  font-size: clamp(16px, 4.2cqw, 25px) !important;
+  font-weight: 700 !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.03em !important;
+}
+
+@media (max-width: 390px) {
+  .revenue-screen-shell .revenue-period-strip.app-control-card {
+    gap: 5px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 82px !important;
+    border-radius: 16px !important;
+    column-gap: 4px !important;
+    row-gap: 5px !important;
+    padding: 9px 3px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-icon {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: 11px !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: 9px !important;
+    line-height: 1.06 !important;
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 78px !important;
+    border-radius: 14px !important;
+    column-gap: 3px !important;
+    row-gap: 4px !important;
+    padding: 8px 2px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-icon {
+    width: 9px !important;
+    height: 9px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: 10px !important;
+    letter-spacing: -0.045em !important;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: 8px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: 16px !important;
+  }
+}
+
+
+/* =========================================================
+   OMZETGRAFIEK - assen, animatie en compacte totalen
+========================================================= */
+.revenue-summary-item strong {
+  font-size: clamp(14px, 3.6vw, 17px);
+}
+
+.revenue-main-label {
+  font-size: clamp(11px, 3vw, 13px);
+}
+
+.revenue-chart-card {
+  padding-top: 14px;
+}
+
+.revenue-chart-wrap {
+  min-height: 285px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.revenue-chart-plot {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  min-width: 100%;
+}
+
+.revenue-y-axis {
+  height: var(--revenue-chart-height, 220px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 2px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.revenue-chart-area {
+  position: relative;
+  min-width: 0;
+  padding-left: 0;
+  padding-bottom: 22px;
+}
+
+.revenue-y-axis-line,
+.revenue-x-axis-line {
+  position: absolute;
+  pointer-events: none;
+  background: #cdbfc7;
+  z-index: 2;
+}
+
+.revenue-y-axis-line {
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: var(--revenue-chart-height, 220px);
+}
+
+.revenue-x-axis-line {
+  left: 0;
+  right: 0;
+  top: var(--revenue-chart-height, 220px);
+  height: 1px;
+}
+
+.revenue-bars {
+  height: calc(var(--revenue-chart-height, 220px) + 22px);
+  align-items: end;
+  padding: 0 4px 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.revenue-bar-stack {
+  background: transparent;
+  transform-origin: bottom;
+  animation: revenueBarGrow 0.55s ease-out both;
+}
+
+.revenue-bar-segment {
+  animation: revenueSegmentFade 0.45s ease-out both;
+}
+
+@keyframes revenueBarGrow {
+  from {
+    transform: scaleY(0.02);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes revenueSegmentFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 420px) {
+  .revenue-chart-plot {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .revenue-y-axis {
+    font-size: 9px;
+  }
+
+  .revenue-main-label {
+    font-size: clamp(10px, 2.8vw, 12px);
+  }
+
+  .revenue-summary-item strong {
+    font-size: clamp(13px, 3.8vw, 16px);
+  }
+}
+
+
+/* =========================================================
+   OMZET - totalen en grafiek in één kader
+========================================================= */
+.revenue-insights-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 10px;
+  padding: 14px 12px 16px;
+}
+
+.revenue-insights-card .revenue-summary-card,
+.revenue-insights-card .revenue-chart-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+
+.revenue-insights-card .revenue-summary-card {
+  padding: 0 4px 12px;
+}
+
+.revenue-insights-card .revenue-chart-card {
+  padding: 12px 0 0;
+}
+
+.revenue-summary-item {
+  border-radius: 20px;
+}
+
+.revenue-chart-area {
+  padding-bottom: 22px;
+}
+
+.revenue-bars {
+  height: calc(var(--revenue-chart-height, 220px) + 22px);
+  align-items: start;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.revenue-bar-col {
+  height: calc(var(--revenue-chart-height, 220px) + 22px);
+  display: grid;
+  grid-template-rows: var(--revenue-chart-height, 220px) 22px;
+  gap: 0;
+  align-items: end;
+}
+
+.revenue-bar-stack {
+  align-self: end;
+  margin-bottom: 0;
+}
+
+.revenue-bar-label {
+  align-self: start;
+  line-height: 1;
+  padding-top: 8px;
+}
+
+@media (max-width: 420px) {
+  .revenue-insights-card {
+    padding: 12px 8px 14px;
+  }
+
+  .revenue-insights-card .revenue-summary-card {
+    padding-inline: 2px;
+  }
+
+  .revenue-summary-item {
+    border-radius: 18px;
+  }
+}
+
+
+/* =========================================================
+   OMZET - compacte maandomzet op kleine schermen
+   Toon op smalle schermen enkel dagen met effectieve omzet.
+========================================================= */
+@media (max-width: 520px) {
+  .revenue-bars.revenue-bars-compact-month {
+    width: max-content;
+    min-width: 100%;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .revenue-bars.revenue-bars-compact-month .revenue-bar-col {
+    flex: 0 0 24px;
+    min-width: 24px;
+  }
+
+  .revenue-bars.revenue-bars-compact-month .revenue-bar-stack {
+    width: 8px;
+  }
+}
+
+/* =========================================================
+   OMZETGRAFIEK - weeklabels en maandpositie
+   Week: alleen dagletters. Maand: alle dagen behouden hun positie,
+   maar labels/staven verschijnen enkel bij effectieve omzet.
+========================================================= */
+.revenue-bar-col.is-empty {
+  pointer-events: none;
+}
+
+.revenue-bar-stack-empty {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  animation: none !important;
+}
+
+.revenue-bars.revenue-bars-month .revenue-bar-col.is-empty .revenue-bar-label {
+  visibility: hidden;
+}
+
+@media (max-width: 520px) {
+  .revenue-bars.revenue-bars-month {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    gap: 1px;
+    justify-content: stretch;
+    overflow-x: hidden;
+  }
+
+  .revenue-bars.revenue-bars-month .revenue-bar-col {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .revenue-bars.revenue-bars-month .revenue-bar-stack {
+    width: min(72%, 9px);
+  }
+}
+
+
+/* =========================================================
+   FIX 2026-05-20: consistente pagina-achtergrond bij swipen
+   + grafiek-as zonder vaste linkerwitruimte
+========================================================= */
+.main-layout,
+.screen,
+.screen.active,
+.main-layout.is-swiping,
+.main-layout.is-swipe-animating,
+.main-layout.is-swiping > .screen,
+.main-layout.is-swipe-animating > .screen,
+.main-layout.is-swiping > .screen.active,
+.main-layout.is-swipe-animating > .screen.active,
+.main-layout.is-swiping > .screen.swipe-preview,
+.main-layout.is-swipe-animating > .screen.swipe-preview {
+  background: #ffffff;
+}
+
+.main-layout.is-swiping > .screen.active,
+.main-layout.is-swipe-animating > .screen.active {
+  box-shadow: none;
+}
+
+.main-layout.is-swiping > .screen.swipe-preview,
+.main-layout.is-swipe-animating > .screen.swipe-preview {
+  opacity: 1;
+}
+
+#agendaScreen,
+#revenueScreen,
+#clientsScreen,
+#servicesScreen,
+#paymentMethodsScreen,
+#statisticsScreen,
+#settingsScreen,
+#clientDetailScreen,
+#todoScreen,
+#accountScreen,
+.revenue-screen-shell,
+.statistics-screen-shell,
+.detail-panel,
+.clients-panel,
+.services-panel,
+.todo-screen-shell {
+  background: #ffffff;
+}
+
+.revenue-chart-plot {
+  grid-template-columns: var(--revenue-y-axis-width, max-content) minmax(0, 1fr);
+  gap: 4px;
+}
+
+.revenue-y-axis {
+  width: var(--revenue-y-axis-width, auto);
+  min-width: 0;
+  padding-right: 2px;
+}
+
+@media (max-width: 420px) {
+  .revenue-chart-plot {
+    grid-template-columns: var(--revenue-y-axis-width, max-content) minmax(0, 1fr);
+    gap: 3px;
+  }
+}
+/* =========================================================
+   UPDATE: KLANTFICHE / NO-SHOW / TIJDWIEL
+========================================================= */
+.price-chip.no-show {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  opacity: 0.68;
+}
+
+.appointment-open-customer-btn {
+  width: auto;
+  margin-top: 8px;
+  padding: 0;
+  justify-self: start;
+}
+
+.revenue-wheel-column[data-looping="true"] {
+  overscroll-behavior-y: contain;
+}
+
+
+/* Afspraak actie-popover */
+.appointment-action-popover {
+  width: min(240px, calc(100vw - 24px));
+}
+
+.appointment-action-popover .payment-popover-card {
+  overflow: visible;
+}
+
+.appointment-action-popover-head {
+  padding: 10px 12px 8px;
+}
+
+.appointment-action-list {
+  padding: 4px 0 8px;
+}
+
+.appointment-action-list .payment-method-popup-item {
+  font-size: 15px;
+}
+
+.appointment-action-list .payment-method-popup-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Correcties afspraak actie-popover + klantfiche-icoon */
+.appointment-action-popover .payment-popover-card {
+  position: relative;
+}
+
+.appointment-action-popover[data-placement="top"] .payment-popover-card::after,
+.appointment-action-popover[data-placement="bottom"] .payment-popover-card::after {
+  left: 50%;
+  right: auto;
+  transform-origin: center;
+}
+
+.appointment-action-popover[data-placement="top"] .payment-popover-card::after {
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.appointment-action-popover[data-placement="bottom"] .payment-popover-card::after {
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.appointment-action-popover-head {
+  align-items: center;
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+
+.appointment-action-popover-head .payment-popover-title {
+  line-height: 1.2;
+  padding-top: 1px;
+}
+
+.appointment-open-customer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  box-shadow: none;
+  align-self: center;
+}
+
+.appointment-open-customer-btn:hover,
+.appointment-open-customer-btn:active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.appointment-open-customer-icon {
+  width: 38px;
+  height: 32px;
+  display: block;
+  overflow: visible;
+}
+
+.appointment-open-customer-icon .file-icon-sheet,
+.appointment-open-customer-icon .file-icon-fold,
+.appointment-open-customer-icon .file-icon-line,
+.appointment-open-customer-icon .file-icon-arrow {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* =========================================================
+   APP-STIJL VOOR ALLE KEUZELIJSTEN
+   De originele select blijft functioneel aanwezig, maar de gebruiker ziet
+   overal dezelfde NailBooker-dropdown met eigen pijltje, opties en hover.
+========================================================= */
+.app-select-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.app-select-wrap > select {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1;
+}
+
+.app-select-button {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 44px 12px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.08);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.14s ease;
+}
+
+.app-select-button:hover,
+.app-select-wrap.is-open .app-select-button {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 4px 10px rgba(170, 120, 145, 0.12);
+}
+
+.app-select-button:active {
+  transform: translateY(1px);
+}
+
+.app-select-button:focus-visible {
+  outline: 2px solid rgba(185, 109, 135, 0.32);
+  outline-offset: 2px;
+}
+
+.app-select-button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.app-select-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}
+
+.app-select-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--primary-dark);
+  border-bottom: 2px solid var(--primary-dark);
+  transform: translateY(-64%) rotate(45deg);
+  transition: transform 0.18s ease;
+  pointer-events: none;
+}
+
+.app-select-wrap.is-open .app-select-arrow {
+  transform: translateY(-30%) rotate(225deg);
+}
+
+.app-select-options {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 1500;
+  display: none;
+  max-height: min(260px, 44vh);
+  overflow-y: auto;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.18);
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-select-wrap.is-open .app-select-options {
+  display: grid;
+  gap: 4px;
+}
+
+.app-select-option {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 11px 12px;
+  text-align: left;
+  font-weight: 400;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.app-select-option:hover,
+.app-select-option:focus-visible {
+  background: var(--primary-soft);
+  border-color: var(--line-strong);
+  outline: none;
+}
+
+.app-select-option.is-selected {
+  background: #f2d7e1;
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  font-weight: 400;
+}
+
+.app-select-option:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.compact-field + .app-select-button,
+.app-select-wrap .compact-field ~ .app-select-button {
+  min-height: 44px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#appointmentForm .app-select-button {
+  min-height: 42px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.revenue-hidden-inputs .app-select-wrap {
+  display: none;
+}
+
+/* =========================================================
+   UPDATE: afspraak-klantzoeker zonder extra dropdown + contacticonen
+========================================================= */
+.appointment-customer-select-fallback,
+.appointment-service-select-fallback {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+.appointment-customer-result-name,
+.appointment-service-result-name,
+.appointment-customer-result,
+.appointment-service-result,
+.app-select-option,
+.app-select-option.is-selected {
+  font-weight: 400;
+}
+
+.appointment-action-popover-head {
+  align-items: center;
+}
+
+.appointment-action-popover-head .payment-popover-title-wrap {
+  flex: 1 1 auto;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+}
+
+.appointment-action-contact-links {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border-bottom: none;
+}
+
+.appointment-action-contact-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.14);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.appointment-action-contact-btn:hover,
+.appointment-action-contact-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.16);
+}
+
+.appointment-action-contact-btn .client-action-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.appointment-action-contact-btn .client-action-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: #ffffff;
+}
+
+.appointment-action-contact-btn .client-action-svg-email {
+  width: 21px;
+  height: 21px;
+}
+
+
+/* =========================================================
+   FIX: instellingen Taal/Valuta als gewone app-dropdowns
+   Zelfde component en gedrag als "Herinnering vóór afspraak".
+========================================================= */
+#settingsForm .app-select-wrap:has(#settingsLanguage),
+#settingsForm .app-select-wrap:has(#settingsCurrency),
+#settingsForm .app-select-wrap:has(#settingsReminderMinutes) {
+  display: block;
+  width: 100%;
+}
+
+#settingsForm .app-select-wrap:has(#settingsLanguage) .app-select-button,
+#settingsForm .app-select-wrap:has(#settingsCurrency) .app-select-button,
+#settingsForm .app-select-wrap:has(#settingsReminderMinutes) .app-select-button {
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+#settingsForm .app-select-wrap:has(#settingsLanguage) .app-select-option,
+#settingsForm .app-select-wrap:has(#settingsCurrency) .app-select-option,
+#settingsForm .app-select-wrap:has(#settingsReminderMinutes) .app-select-option {
+  font-weight: 400;
+}
+
+/* =========================================================
+   UPDATE: Omzet periodeknoppen groter, veilig binnen knop
+========================================================= */
+.revenue-screen-shell .revenue-period-tile {
+  min-height: clamp(88px, 21cqw, 124px) !important;
+  padding: clamp(10px, 2.7cqw, 20px) clamp(4px, 1.45cqw, 12px) !important;
+  column-gap: clamp(5px, 1.25cqw, 9px) !important;
+  row-gap: clamp(6px, 1.55cqw, 11px) !important;
+}
+
+.revenue-screen-shell .revenue-period-icon {
+  width: clamp(12px, 2.9cqw, 18px) !important;
+  height: clamp(12px, 2.9cqw, 18px) !important;
+}
+
+.revenue-screen-shell .revenue-period-title {
+  font-size: clamp(12px, 3.05cqw, 19px) !important;
+  line-height: 1.02 !important;
+}
+
+.revenue-screen-shell .revenue-period-sub {
+  font-size: clamp(10px, 2.35cqw, 14px) !important;
+  line-height: 1.08 !important;
+}
+
+.revenue-screen-shell .revenue-period-year {
+  font-size: clamp(18px, 4.55cqw, 27px) !important;
+}
+
+@media (max-width: 390px) {
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 86px !important;
+    padding: 10px 3px 9px !important;
+    column-gap: 4px !important;
+    row-gap: 5px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: 12px !important;
+    letter-spacing: -0.04em !important;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .revenue-screen-shell .revenue-period-tile {
+    min-height: 82px !important;
+    padding: 9px 2px 8px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-icon {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-title {
+    font-size: 11px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-sub {
+    font-size: 9px !important;
+  }
+
+  .revenue-screen-shell .revenue-period-year {
+    font-size: 17px !important;
+  }
+}
+
+/* =========================================================
+   OMZET: KALENDER-STYLE PICKERS VOOR DAG/WEEK/MAAND
+========================================================= */
+.revenue-wheel-shell.revenue-calendar-shell {
+  margin: 4px 0 12px;
+  padding: 0;
+}
+
+.revenue-wheel-shell.revenue-calendar-shell .revenue-wheel-highlight {
+  display: none;
+}
+
+.revenue-calendar-mode {
+  display: block;
+}
+
+.revenue-calendar-picker,
+.revenue-month-picker {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.revenue-calendar-picker-head {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 4px;
+}
+
+.revenue-calendar-picker-head strong {
+  text-align: center;
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.revenue-calendar-nav {
+  min-height: 38px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  font-size: 25px;
+}
+
+.revenue-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.revenue-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.revenue-calendar-empty,
+.revenue-calendar-day {
+  aspect-ratio: 1 / 0.82;
+  border-radius: 13px;
+}
+
+.revenue-calendar-day {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.revenue-calendar-day.is-other-month {
+  background: #fbf7f9;
+  color: #b2a8b1;
+  border-color: #f2e8ed;
+  box-shadow: none;
+}
+
+.revenue-calendar-day:hover,
+.revenue-calendar-day:active,
+.revenue-calendar-day.selected,
+.revenue-calendar-day.selected-week {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.revenue-calendar-day.selected-week {
+  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
+}
+
+.revenue-calendar-day.is-other-month.selected,
+.revenue-calendar-day.is-other-month.selected-week {
+  background: #f8e8ee;
+  color: var(--primary-dark);
+  border-color: #e6b1c3;
+}
+
+.revenue-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.revenue-month-option {
+  min-height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 10px 6px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.1;
+  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.revenue-month-option:hover,
+.revenue-month-option:active,
+.revenue-month-option.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+@media (max-width: 420px) {
+  .revenue-calendar-picker-head strong {
+    font-size: 16px;
+  }
+
+  .revenue-calendar-weekdays,
+  .revenue-calendar-grid {
+    gap: 4px;
+  }
+
+  .revenue-calendar-empty,
+  .revenue-calendar-day {
+    border-radius: 11px;
+  }
+
+  .revenue-month-grid {
+    gap: 7px;
+  }
+
+  .revenue-month-option {
+    min-height: 50px;
+    font-size: 13px;
+  }
+}
+
+/* =========================================================
+   FIX: afspraakvenster klant/dienst = zoekveld + aparte dropdown
+   Het zoekveld filtert de keuzelijst; de dropdown zelf blijft in app-stijl.
+========================================================= */
+#appointmentForm .appointment-customer-picker .app-select-wrap,
+#appointmentForm .appointment-service-picker .app-select-wrap {
+  width: 100%;
+  max-width: none;
+  display: block;
+}
+
+#appointmentForm .appointment-customer-picker .app-select-button,
+#appointmentForm .appointment-service-picker .app-select-button {
+  min-height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+}
+
+#appointmentForm .appointment-customer-select-fallback,
+#appointmentForm .appointment-service-select-fallback {
+  max-width: none;
+}
+
+#appointmentForm .appointment-customer-results,
+#appointmentForm .appointment-service-results {
+  display: none !important;
+}
+
+
+/* =========================================================
+   TO DO - app pagina
+========================================================= */
+#todoScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+  background: #fbf7f9;
+}
+
+.todo-screen-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.todo-filter-card {
+  background: #ffffff;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 16px;
+}
+
+.todo-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.todo-filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.todo-filter-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--muted);
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+}
+
+.todo-filter-btn.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.todo-count-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--primary-dark);
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.todo-list-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+#todoList {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+#todoList .todo-card {
+  margin-bottom: 0;
+}
+
+.todo-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.todo-card.is-completed {
+  opacity: 0.72;
+}
+
+.todo-check-btn {
+  border: none;
+  border-right: 1px solid #f2e8ed;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.todo-check-btn span {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--line-strong);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.todo-card.is-completed .todo-check-btn span {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.todo-main-btn {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  color: inherit;
+  text-align: left;
+  padding: 14px 14px 13px;
+}
+
+.todo-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.todo-title {
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.todo-card.is-completed .todo-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.todo-status-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.todo-status-pill.done {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.todo-note {
+  margin-top: 8px;
+  color: #675e67;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.todo-note p {
+  margin: 0 0 6px;
+}
+
+.todo-note p:last-child {
+  margin-bottom: 0;
+}
+
+.todo-note ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.todo-note li + li {
+  margin-top: 3px;
+}
+
+.todo-description-field {
+  min-height: 130px;
+  line-height: 1.45;
+}
+
+.todo-bullet-btn {
+  margin-top: 8px;
+  background: var(--primary-soft);
+  border-color: var(--line-strong);
+  color: var(--primary-dark);
+}
+
+.todo-completed-row {
+  margin-top: 14px;
+}
+
+@media (max-width: 420px) {
+  .todo-filter-card {
+    padding: 10px 12px;
+  }
+
+  .todo-filter-btn {
+    min-height: 36px;
+    padding: 7px 12px;
+  }
+
+  .todo-count-badge {
+    padding: 7px 10px;
+  }
+
+  .todo-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .todo-main-btn {
+    padding: 13px 12px;
+  }
+}
+
+
+/* =========================================================
+   BANK QR TOOLTIP (SEPA) - betaling popover
+========================================================= */
+.payment-qr-tooltip.hidden {
+  display: none !important;
+}
+
+.payment-popover-title-wrap .payment-qr-tooltip {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.payment-qr-toggle {
+  width: auto;
+  max-width: 100%;
+}
+
+.payment-qr-panel {
+  margin-top: 8px;
+}
+
+.settings-info-text {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.optional-label {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: none;
+}
+
+/* =========================================================
+   BANK QR - aparte tooltip naast/onder betaling registreren
+========================================================= */
+.payment-qr-popover {
+  position: fixed;
+  z-index: 1195;
+  width: min(210px, calc(100vw - 24px));
+}
+
+.payment-qr-popover.hidden {
+  display: none !important;
+}
+
+.payment-qr-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.18);
+  padding: 12px;
+}
+
+.payment-qr-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-dark);
+  font-size: 13px;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.payment-qr-card .payment-qr-code-wrap {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff8fb;
+  border: 1px solid #f4e8ee;
+}
+
+.payment-qr-card .payment-qr-image {
+  display: block;
+  width: 154px;
+  height: 154px;
+  object-fit: contain;
+}
+
+.payment-qr-card .payment-qr-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.payment-qr-popover[data-placement="bottom"] .payment-qr-card::before,
+.payment-qr-popover[data-placement="top"] .payment-qr-card::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.payment-qr-popover[data-placement="bottom"] .payment-qr-card::before {
+  top: -8px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.payment-qr-popover[data-placement="top"] .payment-qr-card::before {
+  bottom: -8px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+@media (max-width: 420px) {
+  .payment-qr-popover {
+    width: min(190px, calc(100vw - 24px));
+  }
+
+  .payment-qr-card .payment-qr-image {
+    width: 136px;
+    height: 136px;
+  }
+}
+
+/* =========================================================
+   BANK QR - knoptooltip + volledig QR-venster
+========================================================= */
+.payment-qr-popover {
+  width: min(174px, calc(100vw - 24px));
+}
+
+.payment-qr-card {
+  padding: 10px;
+}
+
+.payment-qr-open-trigger {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.10);
+}
+
+.payment-qr-open-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.payment-qr-button-hint {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.payment-qr-dialog::backdrop {
+  background: rgba(255, 248, 251, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.payment-qr-dialog {
+  width: min(92vw, 390px);
+}
+
+.payment-qr-dialog-card {
+  text-align: center;
+  border: 1px solid var(--line);
+  box-shadow: 0 28px 58px rgba(84, 48, 65, 0.22);
+}
+
+.payment-qr-dialog-card .modal-head {
+  text-align: left;
+}
+
+.payment-qr-dialog-amount {
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 700;
+  color: var(--text);
+  margin: 8px 0 14px;
+}
+
+.payment-qr-dialog-code-wrap {
+  display: grid;
+  place-items: center;
+  width: min(280px, 100%);
+  margin: 0 auto;
+  padding: 12px;
+  border: 1px solid #f0e3ea;
+  border-radius: 22px;
+  background: #fff8fb;
+}
+
+.payment-qr-dialog-image {
+  display: block;
+  width: min(250px, 70vw);
+  height: min(250px, 70vw);
+  object-fit: contain;
+}
+
+.payment-qr-dialog-text {
+  margin: 14px auto 0;
+  max-width: 280px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.payment-qr-dialog .modal-actions {
+  justify-content: center;
+}
+
+.payment-qr-dialog .modal-actions .btn {
+  min-width: 120px;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .payment-qr-popover {
+    width: min(164px, calc(100vw - 24px));
+  }
+
+  .payment-qr-dialog-amount {
+    font-size: 28px;
+  }
+}
+
+/* =========================================================
+   FIX: datumkiezers afspraak/omzet met afspraak-bolletjes + swipe
+========================================================= */
+.revenue-calendar-picker {
+  touch-action: pan-y;
+  transition: transform 180ms ease;
+}
+
+.revenue-calendar-picker.is-swiping {
+  transform: translate3d(var(--picker-swipe-x, 0px), 0, 0);
+}
+
+.revenue-calendar-day {
+  position: relative;
+  overflow: hidden;
+}
+
+.revenue-calendar-day-number {
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+}
+
+.revenue-calendar-dots {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.revenue-calendar-dots i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  flex: 0 0 4px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.revenue-calendar-dots em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5px;
+  font-size: 8px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+@media (max-width: 420px) {
+  .revenue-calendar-dots {
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    gap: 1.5px;
+  }
+
+  .revenue-calendar-dots i {
+    width: 3.5px;
+    height: 3.5px;
+    flex-basis: 3.5px;
   }
 }
