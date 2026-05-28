@@ -434,7 +434,9 @@ function normalizeData(data) {
       isPrivate: Boolean(appointment?.isPrivate ?? appointment?.is_private),
       privateTitle: String(appointment?.privateTitle || appointment?.private_title || "").trim(),
       privateDetails: String(appointment?.privateDetails || appointment?.private_details || "").trim(),
-      privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || ""
+      privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || "",
+      recurrenceGroupId: appointment?.recurrenceGroupId || appointment?.recurrence_group_id || null,
+      recurrenceRule: appointment?.recurrenceRule || appointment?.recurrence_rule || "none"
     };
   }) : [];
 
@@ -686,6 +688,43 @@ function timeStringFromMinutes(totalMinutes) {
 
 function isPrivateAppointment(appointment) {
   return Boolean(appointment?.isPrivate ?? appointment?.is_private);
+}
+
+function getVirtualPrivateRecurrenceAppointments(data = getData()) {
+  const appointments = Array.isArray(data?.appointments) ? data.appointments : [];
+  const counts = { daily: 365, weekly: 52, yearly: 5 };
+  const stepDays = { daily: 1, weekly: 7 };
+
+  return appointments.flatMap(appointment => {
+    const rule = appointment?.recurrenceRule || appointment?.recurrence_rule || "none";
+    if (!isPrivateAppointment(appointment) || rule === "none" || appointment.recurrenceGroupId || appointment.recurrence_group_id) {
+      return [appointment];
+    }
+
+    const startDate = new Date((appointment.date || appointment.appointment_date || todayStr) + "T00:00:00");
+    if (Number.isNaN(startDate.getTime())) return [appointment];
+
+    const total = counts[rule] || 1;
+    return Array.from({ length: total }, (_, index) => {
+      const d = new Date(startDate);
+      if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
+      else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
+
+      return {
+        ...appointment,
+        id: index === 0 ? appointment.id : `${appointment.id}__${rule}_${index}`,
+        sourceAppointmentId: appointment.id,
+        date: formatDateInput(d),
+        isVirtualRecurrence: index > 0
+      };
+    });
+  });
+}
+
+function getAppointmentsForDate(dateStr, data = getData()) {
+  return getVirtualPrivateRecurrenceAppointments(data)
+    .filter(appointment => appointment.date === dateStr)
+    .sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
 }
 
 function getAppointmentDisplayEndTime(appointment, breakMinutes = 0) {
@@ -1845,7 +1884,7 @@ function renderCalendar() {
 
   for (let day = 1; day <= last.getDate(); day++) {
     const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = data.appointments.filter(a => a.date === dateStr);
+    const appts = getAppointmentsForDate(dateStr, data);
 
     const cell = document.createElement("div");
     const isSelected = dateStr === state.selectedDate;
@@ -1987,7 +2026,7 @@ function fillCalendarPreview(preview, year, month) {
 
   for (let day = 1; day <= last.getDate(); day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = data.appointments.filter(a => a.date === dateStr);
+    const appts = getAppointmentsForDate(dateStr, data);
     const cell = document.createElement("div");
     const isToday = dateStr === todayStr;
     cell.className = `day-cell${isToday ? " today" : ""}`;
@@ -2580,9 +2619,7 @@ function renderAgendaList() {
     jumpBtn.classList.toggle("hidden", state.selectedDate === todayStr);
   }
 
-  const appts = data.appointments
-    .filter(a => a.date === state.selectedDate)
-    .sort((a, b) => a.time.localeCompare(b.time));
+  const appts = getAppointmentsForDate(state.selectedDate, data);
 
   if (!appts.length) {
     list.innerHTML = `<div class="empty-state">${t("noAppointmentsOnDay")}</div>`;
@@ -2631,7 +2668,7 @@ function renderAgendaList() {
     row.addEventListener("click", (e) => {
       if (e.target.closest(".price-chip")) return;
       if (privateApp) {
-        openEditAppointmentDialog(app.id);
+        openEditAppointmentDialog(app.sourceAppointmentId || app.id);
         return;
       }
       openAppointmentActionPopover(app.id, row);
@@ -3196,6 +3233,142 @@ function syncPrivateEndTimeWithStart() {
   syncAppointmentDateTimeDisplays();
 }
 
+function getPrivateRepeatLabel(value, dateStr = document.getElementById("appointmentDate")?.value || state.selectedDate) {
+  const safe = value || "none";
+  if (safe === "none") return "Niet herhaald";
+  if (safe === "daily") return "Dagelijks";
+  if (safe === "yearly") return "Jaarlijks";
+  const d = new Date((dateStr || todayStr) + "T00:00:00");
+  const day = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "long" }).format(d);
+  return `Wekelijks op ${day}`;
+}
+
+function updatePrivateRepeatWeeklyLabel() {
+  const weekly = document.getElementById("appointmentPrivateRepeatWeeklyOption");
+  if (weekly) weekly.textContent = getPrivateRepeatLabel("weekly");
+}
+
+function createRecurrenceGroupId() {
+  return (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/-/g, "");
+}
+
+function buildPrivateRecurrenceOccurrences(payload, repeatValue) {
+  const rule = repeatValue || "none";
+  if (rule === "none") return [{ ...payload, recurrenceRule: "none", recurrenceGroupId: null }];
+  const groupId = createRecurrenceGroupId();
+  const counts = { daily: 365, weekly: 52, yearly: 5 };
+  const stepDays = { daily: 1, weekly: 7 };
+  const startDate = new Date(payload.date + "T00:00:00");
+  const total = counts[rule] || 1;
+  return Array.from({ length: total }, (_, index) => {
+    const d = new Date(startDate);
+    if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
+    else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
+    return {
+      ...payload,
+      date: formatDateInput(d),
+      recurrenceRule: rule,
+      recurrenceGroupId: groupId
+    };
+  });
+}
+
+function findFirstOverlapForAppointments(payloads, appointments, breakMinutes = 0, excludeId = null) {
+  for (const payload of payloads) {
+    const overlap = findAppointmentOverlap(payload, appointments, breakMinutes, excludeId);
+    if (overlap) return { payload, overlap };
+  }
+  return null;
+}
+
+function syncFollowUpDisplays() {
+  const dateInput = document.getElementById("followUpAppointmentDate");
+  const timeInput = document.getElementById("followUpAppointmentTime");
+  const dateBtn = document.getElementById("followUpAppointmentDateDisplayBtn");
+  const timeBtn = document.getElementById("followUpAppointmentTimeDisplayBtn");
+  if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value);
+  if (timeBtn && timeInput) timeBtn.textContent = formatAppointmentTimeLabel(timeInput.value);
+}
+
+function openFollowUpAppointmentDialog(sourceId) {
+  const data = getData();
+  const app = data.appointments.find(a => String(a.id) === String(sourceId));
+  if (!app || isPrivateAppointment(app)) return;
+  closeAppointmentActionPopover();
+  document.getElementById("followUpSourceAppointmentId").value = app.id;
+  document.getElementById("followUpAppointmentDate").value = app.date || state.selectedDate || todayStr;
+  document.getElementById("followUpAppointmentTime").value = app.time || "10:00";
+  const customer = customerById(data, app.customerId);
+  const service = serviceById(data, app.serviceId);
+  const info = document.getElementById("followUpAppointmentInfo");
+  if (info) info.textContent = `${customer ? fullName(customer) : "Klant"}${service ? ` · ${service.name}` : ""}`;
+  syncFollowUpDisplays();
+  document.getElementById("followUpAppointmentDialog")?.showModal();
+}
+
+async function saveFollowUpAppointmentFromForm(event) {
+  event.preventDefault();
+  const user = await getCurrentUser();
+  const data = getData();
+  const sourceId = document.getElementById("followUpSourceAppointmentId")?.value;
+  const source = data.appointments.find(a => String(a.id) === String(sourceId));
+  if (!source) return;
+  const payload = {
+    customerId: source.customerId,
+    date: document.getElementById("followUpAppointmentDate")?.value || state.selectedDate,
+    time: document.getElementById("followUpAppointmentTime")?.value || source.time || "10:00",
+    serviceId: source.serviceId,
+    duration: Number(source.duration || 0),
+    price: Number(source.price || 0),
+    status: "gepland",
+    remarks: source.remarks || "",
+    isPrivate: false,
+    privateTitle: "",
+    privateDetails: "",
+    privateEndTime: ""
+  };
+  const settings = getSettings();
+  if (settings.overlapWarningsEnabled) {
+    const overlapApp = findAppointmentOverlap(payload, data.appointments, settings.defaultBreakMinutes, null);
+    if (overlapApp) {
+      const confirmed = await appConfirm(buildOverlapMessage(payload, overlapApp, data.appointments, settings.defaultBreakMinutes, null), { title: "Overlap gedetecteerd", confirmText: t("save"), cancelText: t("cancel"), variant: "warning" });
+      if (!confirmed) return;
+    }
+  }
+  if (!user) {
+    data.appointments.push({ id: nextId(data.appointments), ...payload, paid: false, paymentMethodName: null, currency: source.currency || getCurrentCurrency() });
+    saveData(data);
+  } else {
+    const dbPayload = {
+      user_id: user.id,
+      customer_id: payload.customerId,
+      appointment_date: payload.date,
+      appointment_time: payload.time,
+      service_id: payload.serviceId,
+      duration: payload.duration,
+      price: payload.price,
+      status: payload.status,
+      paid: false,
+      payment_method_label: null,
+      currency: normalizeCurrency(source.currency || getCurrentCurrency()),
+      appointment_remarks: payload.remarks,
+      is_private: false,
+      private_title: null,
+      private_details: null,
+      private_end_time: null
+    };
+    const { error } = await supabaseClient.from("appointments").insert(dbPayload);
+    if (error) { await appAlert("Vervolgafspraak opslaan mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" }); return; }
+    await loadAllDataFromSupabase();
+  }
+  closeDialog("followUpAppointmentDialog");
+  state.selectedDate = payload.date;
+  const picked = new Date(payload.date + "T00:00:00");
+  state.currentYear = picked.getFullYear();
+  state.currentMonth = picked.getMonth();
+  rerenderAll();
+}
+
 function getAppointmentPickerYears(selectedYear) {
   const data = getData();
   const appointmentYears = (data.appointments || [])
@@ -3213,7 +3386,8 @@ function openAppointmentWheelPicker(mode, targetInputId = null) {
   const columnsWrap = document.getElementById("appointmentWheelColumns");
   if (!dialog || !title || !columnsWrap) return;
 
-  const dateValue = document.getElementById("appointmentDate")?.value || state.selectedDate || todayStr;
+  const dateTargetId = mode === "date" ? (targetInputId || "appointmentDate") : "appointmentDate";
+  const dateValue = document.getElementById(dateTargetId)?.value || state.selectedDate || todayStr;
   const timeTargetId = targetInputId || "appointmentTime";
   const timeValue = document.getElementById(timeTargetId)?.value || "10:00";
   const date = new Date(dateValue + "T00:00:00");
@@ -3225,7 +3399,7 @@ function openAppointmentWheelPicker(mode, targetInputId = null) {
   const selectedMinute = Math.max(0, Math.min(59, Number(rawMinute) || 0));
 
   appointmentPickerState.mode = mode;
-  appointmentPickerState.targetInputId = timeTargetId;
+  appointmentPickerState.targetInputId = mode === "time" ? timeTargetId : dateTargetId;
   appointmentPickerState.selected = {};
 
   const shell = dialog.querySelector(".revenue-wheel-shell");
@@ -3276,12 +3450,15 @@ function applyAppointmentWheelPickerSelection() {
     if (timeInput) timeInput.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
     syncPrivateEndTimeWithStart();
     syncAppointmentDateTimeDisplays();
+    syncFollowUpDisplays();
     return;
   }
 
-  const dateInput = document.getElementById("appointmentDate");
+  const dateInput = document.getElementById(appointmentPickerState.targetInputId || "appointmentDate");
   if (dateInput) dateInput.value = appointmentPickerState.selected.date || dateInput.value || state.selectedDate || todayStr;
   syncAppointmentDateTimeDisplays();
+  syncFollowUpDisplays();
+  updatePrivateRepeatWeeklyLabel();
 }
 
 function getRevenueMonthWeekStart(year, monthIndex) {
@@ -3329,10 +3506,11 @@ function buildCalendarPickerDayButton({ date, visibleMonthIndex, selectedDateStr
   const isOtherMonth = date.getMonth() !== visibleMonthIndex;
   const isSelectedDay = mode === "day" && value === selectedDateStr;
   const isSelectedWeek = mode === "week" && selectedBounds && value >= selectedBounds.start && value <= selectedBounds.end;
-  const appointmentCount = (getData().appointments || []).filter(appointment => appointment.date === value).length;
+  const dayAppointments = getAppointmentsForDate(value, getData());
+  const appointmentCount = dayAppointments.length;
   const maxDots = 4;
   const dots = appointmentCount
-    ? `<span class="revenue-calendar-dots" aria-hidden="true">${Array.from({ length: Math.min(appointmentCount, maxDots) }, () => "<i></i>").join("")}${appointmentCount > maxDots ? '<em>+</em>' : ''}</span>`
+    ? `<span class="revenue-calendar-dots" aria-hidden="true">${dayAppointments.slice(0, maxDots).map(appointment => `<i class="${isPrivateAppointment(appointment) ? "private-dot" : ""}"></i>`).join("")}${appointmentCount > maxDots ? '<em>+</em>' : ''}</span>`
     : "";
 
   return `<button class="revenue-calendar-day${isOtherMonth ? " is-other-month" : ""}${isSelectedDay ? " selected" : ""}${isSelectedWeek ? " selected-week" : ""}" type="button" data-${datasetName}="${value}"><span class="revenue-calendar-day-number">${date.getDate()}</span>${dots}</button>`;
@@ -5848,6 +6026,7 @@ function setAppointmentPrivateMode(isPrivate) {
   if (startTime) startTime.required = true;
   if (endTime) endTime.required = Boolean(isPrivate);
   if (timeLabel) timeLabel.textContent = isPrivate ? "Tijd van" : t("time");
+  updatePrivateRepeatWeeklyLabel();
   if (isPrivate) syncPrivateEndTimeWithStart();
   updateAppointmentOpenCustomerButton();
 }
@@ -5909,6 +6088,8 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   document.getElementById("appointmentPrivateEndTime").value = "10:00";
   document.getElementById("appointmentPrivateTitle").value = "";
   document.getElementById("appointmentPrivateDetails").value = "";
+  document.getElementById("appointmentPrivateRepeat").value = "none";
+  updatePrivateRepeatWeeklyLabel();
   document.getElementById("appointmentStatus").value = "gepland";
   document.getElementById("appointmentStatusWrap").style.display = "none";
   document.getElementById("appointmentOpenCustomerBtn")?.classList.add("hidden");
@@ -5931,7 +6112,8 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
 
 function openEditAppointmentDialog(id) {
   const data = getData();
-  const app = data.appointments.find(a => String(a.id) === String(id));
+  const sourceId = String(id || "").split("__")[0];
+  const app = data.appointments.find(a => String(a.id) === String(sourceId));
   if (!app) return;
 
   populateAppointmentForm(app.customerId);
@@ -5956,6 +6138,8 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentPrivateEndTime").value = app.privateEndTime || getAppointmentDisplayEndTime(app, 0) || "";
   document.getElementById("appointmentPrivateTitle").value = app.privateTitle || "";
   document.getElementById("appointmentPrivateDetails").value = app.privateDetails || "";
+  document.getElementById("appointmentPrivateRepeat").value = app.recurrenceRule || "none";
+  updatePrivateRepeatWeeklyLabel();
   setAppointmentService(app.serviceId, { updateSearch: true, updateDefaults: false });
   hideAppointmentServiceResults();
   document.getElementById("appointmentDuration").value = app.duration;
@@ -6108,6 +6292,7 @@ function openAppointmentActionPopover(id, anchorEl = null) {
   }
 
   const detailsBtn = document.getElementById("appointmentActionDetailsBtn");
+  const followUpBtn = document.getElementById("appointmentActionFollowUpBtn");
   const customerBtn = document.getElementById("appointmentActionCustomerBtn");
   const customer = customerById(data, app.customerId);
 
@@ -6118,6 +6303,13 @@ function openAppointmentActionPopover(id, anchorEl = null) {
       event.stopPropagation();
       closeAppointmentActionPopover();
       openEditAppointmentDialog(id);
+    };
+  }
+
+  if (followUpBtn) {
+    followUpBtn.onclick = event => {
+      event.stopPropagation();
+      openFollowUpAppointmentDialog(id);
     };
   }
 
@@ -6926,7 +7118,9 @@ async function saveAppointmentFromForm(event) {
     isPrivate,
     privateTitle: isPrivate ? privateTitle : "",
     privateDetails: isPrivate ? String(document.getElementById("appointmentPrivateDetails")?.value || "").trim() : "",
-    privateEndTime: isPrivate ? privateEndTime : ""
+    privateEndTime: isPrivate ? privateEndTime : "",
+    recurrenceRule: isPrivate ? (document.getElementById("appointmentPrivateRepeat")?.value || "none") : "none",
+    recurrenceGroupId: null
   };
 
   if (isAppointmentInPast(localPayload)) {
@@ -6939,10 +7133,14 @@ async function saveAppointmentFromForm(event) {
     if (!confirmedPast) return;
   }
 
+  const recurrenceOccurrences = (isPrivate && !id)
+    ? buildPrivateRecurrenceOccurrences(localPayload, localPayload.recurrenceRule)
+    : [localPayload];
+
   if (settings.overlapWarningsEnabled) {
-    const overlapApp = findAppointmentOverlap(localPayload, data.appointments, settings.defaultBreakMinutes, id);
-    if (overlapApp) {
-      const confirmed = await appConfirm(buildOverlapMessage(localPayload, overlapApp, data.appointments, settings.defaultBreakMinutes, id), {
+    const foundOverlap = findFirstOverlapForAppointments(recurrenceOccurrences, data.appointments, settings.defaultBreakMinutes, id);
+    if (foundOverlap) {
+      const confirmed = await appConfirm(buildOverlapMessage(foundOverlap.payload, foundOverlap.overlap, data.appointments, settings.defaultBreakMinutes, id), {
         title: "Overlap gedetecteerd",
         confirmText: t("save"),
         cancelText: t("cancel"),
@@ -6957,12 +7155,15 @@ async function saveAppointmentFromForm(event) {
       const existingApp = data.appointments.find(a => Number(a.id) === id);
       Object.assign(existingApp, { ...localPayload, currency: existingApp.currency || getCurrentCurrency() });
     } else {
-      data.appointments.push({
-        id: nextId(data.appointments),
-        ...localPayload,
-        paid: false,
-        paymentMethodName: null,
-        currency: getCurrentCurrency()
+      let nextLocalId = nextId(data.appointments);
+      recurrenceOccurrences.forEach(item => {
+        data.appointments.push({
+          id: nextLocalId++,
+          ...item,
+          paid: false,
+          paymentMethodName: null,
+          currency: getCurrentCurrency()
+        });
       });
     }
 
@@ -6999,7 +7200,9 @@ async function saveAppointmentFromForm(event) {
     is_private: localPayload.isPrivate,
     private_title: localPayload.privateTitle || null,
     private_details: localPayload.privateDetails || null,
-    private_end_time: localPayload.privateEndTime || null
+    private_end_time: localPayload.privateEndTime || null,
+    recurrence_group_id: localPayload.recurrenceGroupId || null,
+    recurrence_rule: localPayload.recurrenceRule || "none"
   };
 
   let error;
@@ -7011,9 +7214,17 @@ async function saveAppointmentFromForm(event) {
       .eq("id", Number(id))
       .eq("user_id", user.id));
   } else {
+    const rows = (isPrivate && recurrenceOccurrences.length > 1)
+      ? recurrenceOccurrences.map(item => ({
+          ...payload,
+          appointment_date: item.date,
+          recurrence_group_id: item.recurrenceGroupId || null,
+          recurrence_rule: item.recurrenceRule || "none"
+        }))
+      : payload;
     ({ error } = await supabaseClient
       .from("appointments")
-      .insert(payload));
+      .insert(rows));
   }
 
   if (error) {
@@ -7776,8 +7987,14 @@ function registerEvents() {
     document.getElementById(id)?.addEventListener("input", syncPrivateEndTimeWithStart);
   });
   document.getElementById("appointmentIsPrivate")?.addEventListener("change", event => setAppointmentPrivateMode(event.target.checked));
-  document.getElementById("appointmentDate")?.addEventListener("change", syncAppointmentDateTimeDisplays);
+  document.getElementById("appointmentDate")?.addEventListener("change", () => { syncAppointmentDateTimeDisplays(); updatePrivateRepeatWeeklyLabel(); });
+  document.getElementById("appointmentPrivateRepeat")?.addEventListener("change", updatePrivateRepeatWeeklyLabel);
   document.getElementById("appointmentTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
+  document.getElementById("followUpAppointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "followUpAppointmentDate"));
+  document.getElementById("followUpAppointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "followUpAppointmentTime"));
+  document.getElementById("followUpAppointmentDate")?.addEventListener("change", syncFollowUpDisplays);
+  document.getElementById("followUpAppointmentTime")?.addEventListener("change", syncFollowUpDisplays);
+  document.getElementById("followUpAppointmentForm")?.addEventListener("submit", saveFollowUpAppointmentFromForm);
 
   const appointmentWheelPickerForm = document.getElementById("appointmentWheelPickerForm");
   if (appointmentWheelPickerForm) {
@@ -8101,7 +8318,9 @@ async function loadAppointmentsFromSupabase() {
     isPrivate: Boolean(a.is_private),
     privateTitle: String(a.private_title || "").trim(),
     privateDetails: String(a.private_details || "").trim(),
-    privateEndTime: a.private_end_time ? String(a.private_end_time).slice(0, 5) : ""
+    privateEndTime: a.private_end_time ? String(a.private_end_time).slice(0, 5) : "",
+    recurrenceGroupId: a.recurrence_group_id || null,
+    recurrenceRule: a.recurrence_rule || "none"
   }));
 }
 

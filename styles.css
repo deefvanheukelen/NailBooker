@@ -7496,6 +7496,7 @@ button.is-action-locked .app-action-nav-label {
   font-weight: 800;
 }
 
-.day-dots i.private-dot {
-  background: #d8a33a;
+.day-cell .day-dots i.private-dot,
+.revenue-calendar-dots i.private-dot {
+  background: #d8a33a !important;
 }

@@ -804,6 +804,16 @@
         </div>
 
         <div class="appointment-form-field appointment-form-field-wide appointment-private-field">
+          <label class="field-label" for="appointmentPrivateRepeat">Herhalen</label>
+          <select id="appointmentPrivateRepeat" class="field">
+            <option value="none">Niet herhaald</option>
+            <option value="daily">Dagelijks</option>
+            <option id="appointmentPrivateRepeatWeeklyOption" value="weekly">Wekelijks</option>
+            <option value="yearly">Jaarlijks</option>
+          </select>
+        </div>
+
+        <div class="appointment-form-field appointment-form-field-wide appointment-private-field">
           <label class="field-label" for="appointmentPrivateTitle">Titel</label>
           <input id="appointmentPrivateTitle" class="field" type="text" autocomplete="off" />
         </div>
@@ -957,6 +967,29 @@
     </form>
   </dialog>
 
+
+  <!-- ===================== VERVOLGAFSPRAAK ======================= -->
+  <dialog id="followUpAppointmentDialog" class="modal modal-small">
+    <form method="dialog" id="followUpAppointmentForm" class="modal-card">
+      <div class="modal-head">
+        <h3>Vervolgafspraak</h3>
+        <button class="icon-btn" type="button" data-close="followUpAppointmentDialog">✕</button>
+      </div>
+      <input type="hidden" id="followUpSourceAppointmentId" />
+      <label class="field-label" for="followUpAppointmentDate">Datum</label>
+      <input id="followUpAppointmentDate" class="field appointment-native-picker-input" type="date" tabindex="-1" aria-hidden="true" />
+      <button id="followUpAppointmentDateDisplayBtn" class="field appointment-picker-display" type="button">Kies datum</button>
+      <label class="field-label" for="followUpAppointmentTime">Tijd</label>
+      <input id="followUpAppointmentTime" class="field appointment-native-picker-input" type="time" tabindex="-1" aria-hidden="true" />
+      <button id="followUpAppointmentTimeDisplayBtn" class="field appointment-picker-display" type="button">Kies tijd</button>
+      <p id="followUpAppointmentInfo" class="settings-info-text"></p>
+      <div class="modal-actions two-buttons">
+        <button class="btn btn-secondary action-btn" type="button" data-close="followUpAppointmentDialog">Annuleren</button>
+        <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- ===================== AFSPRAAK ACTIES ======================= -->
   <div id="appointmentActionPopover" class="payment-popover appointment-action-popover hidden" aria-hidden="true">
     <div class="payment-popover-card">
@@ -968,11 +1001,14 @@
       </div>
 
       <div class="payment-method-popup-list appointment-action-list" role="menu" aria-label="Afspraak acties">
-        <button id="appointmentActionCustomerBtn" class="payment-method-popup-item" type="button" role="menuitem">
-          <span>Klantfiche</span>
-        </button>
         <button id="appointmentActionDetailsBtn" class="payment-method-popup-item" type="button" role="menuitem">
           <span>Afspraak details</span>
+        </button>
+        <button id="appointmentActionFollowUpBtn" class="payment-method-popup-item" type="button" role="menuitem">
+          <span>Vervolgafspraak</span>
+        </button>
+        <button id="appointmentActionCustomerBtn" class="payment-method-popup-item" type="button" role="menuitem">
+          <span>Klantfiche</span>
         </button>
       </div>
     </div>
