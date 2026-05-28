@@ -6511,7 +6511,7 @@ function renderPaymentQrTooltip(app, data = getData()) {
   button.disabled = false;
   button.dataset.qrPayload = payload;
   button.dataset.appointmentId = app?.id ? String(app.id) : "";
-  hint.textContent = "Toon bank-QR";
+  hint.textContent = "";
 }
 
 function openPaymentQrModal(event = null) {
