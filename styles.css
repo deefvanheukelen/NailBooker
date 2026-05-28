@@ -7335,15 +7335,48 @@ button.is-action-locked .app-action-nav-label {
 }
 
 /* =========================================================
-   FIX: datumkiezers afspraak/omzet met afspraak-bolletjes + swipe
+   FIX: datumkiezers afspraak/omzet met afspraak-bolletjes + vloeiende swipe
 ========================================================= */
-.revenue-calendar-picker {
+.revenue-calendar-picker,
+.revenue-month-picker {
+  position: relative;
+  overflow: hidden;
   touch-action: pan-y;
-  transition: transform 180ms ease;
 }
 
-.revenue-calendar-picker.is-swiping {
-  transform: translate3d(var(--picker-swipe-x, 0px), 0, 0);
+.revenue-calendar-picker.is-swiping > :not(.revenue-calendar-swipe-preview),
+.revenue-calendar-picker.is-swipe-animating > :not(.revenue-calendar-swipe-preview),
+.revenue-month-picker.is-swiping > :not(.revenue-calendar-swipe-preview),
+.revenue-month-picker.is-swipe-animating > :not(.revenue-calendar-swipe-preview) {
+  transform: translate3d(var(--picker-current-x, 0px), 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.revenue-calendar-swipe-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: 10px;
+  transform: translate3d(var(--picker-preview-x, 100%), 0, 0);
+  opacity: var(--picker-swipe-opacity, 0.35);
+  pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.revenue-calendar-swipe-preview .icon-btn,
+.revenue-calendar-swipe-preview button {
+  pointer-events: none;
+}
+
+.revenue-calendar-picker.is-swipe-animating > :not(.revenue-calendar-swipe-preview),
+.revenue-calendar-picker.is-swipe-animating .revenue-calendar-swipe-preview,
+.revenue-month-picker.is-swipe-animating > :not(.revenue-calendar-swipe-preview),
+.revenue-month-picker.is-swipe-animating .revenue-calendar-swipe-preview {
+  transition:
+    transform 230ms cubic-bezier(0.22, 0.72, 0.18, 1),
+    opacity 190ms ease;
 }
 
 .revenue-calendar-day {

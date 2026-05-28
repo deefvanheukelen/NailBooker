@@ -3516,100 +3516,15 @@ function buildCalendarPickerDayButton({ date, visibleMonthIndex, selectedDateStr
   return `<button class="revenue-calendar-day${isOtherMonth ? " is-other-month" : ""}${isSelectedDay ? " selected" : ""}${isSelectedWeek ? " selected-week" : ""}" type="button" data-${datasetName}="${value}"><span class="revenue-calendar-day-number">${date.getDate()}</span>${dots}</button>`;
 }
 
-function attachCalendarPickerSwipe(picker, goToMonth) {
-  if (!picker || picker.dataset.calendarPickerSwipeReady === "true") return;
-  picker.dataset.calendarPickerSwipeReady = "true";
-
-  let startX = 0;
-  let startY = 0;
-  let lastX = 0;
-  let tracking = false;
-  let horizontal = false;
-  let swiped = false;
-  const threshold = 44;
-  const intentThreshold = 10;
-
-  picker.addEventListener("touchstart", event => {
-    if (event.touches.length !== 1) return;
-    tracking = true;
-    horizontal = false;
-    startX = event.touches[0].clientX;
-    startY = event.touches[0].clientY;
-    lastX = startX;
-  }, { passive: true });
-
-  picker.addEventListener("touchmove", event => {
-    if (!tracking || event.touches.length !== 1) return;
-    const x = event.touches[0].clientX;
-    const y = event.touches[0].clientY;
-    const dx = x - startX;
-    const dy = y - startY;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
-    if (!horizontal) {
-      if (absX < intentThreshold && absY < intentThreshold) return;
-      if (absY > absX) {
-        tracking = false;
-        return;
-      }
-      horizontal = true;
-      swiped = true;
-      picker.classList.add("is-swiping");
-    }
-
-    const limitedDx = Math.max(-90, Math.min(90, dx));
-    picker.style.setProperty("--picker-swipe-x", `${limitedDx}px`);
-    event.preventDefault();
-    lastX = x;
-  }, { passive: false });
-
-  const finish = () => {
-    if (!tracking || !horizontal) {
-      tracking = false;
-      horizontal = false;
-      picker.classList.remove("is-swiping");
-      picker.style.removeProperty("--picker-swipe-x");
-      return;
-    }
-
-    const dx = lastX - startX;
-    tracking = false;
-    horizontal = false;
-    picker.classList.remove("is-swiping");
-    picker.style.removeProperty("--picker-swipe-x");
-
-    if (Math.abs(dx) >= threshold) {
-      goToMonth(dx < 0 ? 1 : -1);
-    }
-  };
-
-  picker.addEventListener("touchend", finish, { passive: true });
-  picker.addEventListener("touchcancel", finish, { passive: true });
-  picker.addEventListener("click", event => {
-    if (!swiped) return;
-    swiped = false;
-    event.preventDefault();
-    event.stopPropagation();
-  }, true);
-}
-
-function renderSharedCalendarPicker({
-  columnsWrapId,
-  pickerState,
+function buildSharedCalendarPickerHtml({
   mode,
   year,
   monthIndex,
   selectedDateStr,
   datasetName,
   prevAttr,
-  nextAttr,
-  onMonthChange,
-  onDaySelect
+  nextAttr
 }) {
-  const columnsWrap = document.getElementById(columnsWrapId);
-  if (!columnsWrap) return;
-
   const first = new Date(year, monthIndex, 1);
   const last = new Date(year, monthIndex + 1, 0);
   const firstWeekdayIndex = (first.getDay() + 6) % 7;
@@ -3654,8 +3569,239 @@ function renderSharedCalendarPicker({
     </div>
   `;
 
+  return html;
+}
+
+function buildCalendarPickerSwipePreviewHtml({
+  mode,
+  year,
+  monthIndex,
+  delta,
+  selectedDateStr,
+  datasetName,
+  prevAttr,
+  nextAttr
+}) {
+  const next = new Date(year, monthIndex + delta, 1);
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = buildSharedCalendarPickerHtml({
+    mode,
+    year: next.getFullYear(),
+    monthIndex: next.getMonth(),
+    selectedDateStr,
+    datasetName,
+    prevAttr,
+    nextAttr
+  });
+
+  const picker = wrapper.querySelector(".revenue-calendar-picker");
+  if (!picker) return "";
+  picker.querySelectorAll("button").forEach(button => {
+    button.setAttribute("tabindex", "-1");
+    button.setAttribute("aria-hidden", "true");
+  });
+  return picker.innerHTML;
+}
+
+function attachCalendarPickerSwipe(picker, goToMonth, buildPreviewHtml) {
+  if (!picker || picker.dataset.calendarPickerSwipeReady === "true") return;
+  picker.dataset.calendarPickerSwipeReady = "true";
+
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let tracking = false;
+  let horizontal = false;
+  let swiped = false;
+  let dragPreview = null;
+  let dragStep = 0;
+  const threshold = 44;
+  const intentThreshold = 10;
+
+  const resetTracking = () => {
+    tracking = false;
+    horizontal = false;
+    startX = 0;
+    startY = 0;
+    lastX = 0;
+  };
+
+  const clearDragStyles = () => {
+    if (dragPreview) {
+      dragPreview.remove();
+      dragPreview = null;
+    }
+    dragStep = 0;
+    picker.classList.remove("is-swiping", "is-swipe-animating");
+    picker.style.removeProperty("--picker-current-x");
+    picker.style.removeProperty("--picker-preview-x");
+    picker.style.removeProperty("--picker-swipe-opacity");
+    delete picker.dataset.swipeAnimating;
+  };
+
+  const prepareDragPreview = dx => {
+    const step = dx < 0 ? 1 : -1;
+    if (dragPreview && dragStep === step) return true;
+
+    if (dragPreview) dragPreview.remove();
+    dragStep = step;
+
+    const previewHtml = typeof buildPreviewHtml === "function" ? buildPreviewHtml(step) : "";
+    if (!previewHtml) return false;
+
+    dragPreview = document.createElement("div");
+    dragPreview.className = "revenue-calendar-swipe-preview";
+    dragPreview.innerHTML = previewHtml;
+    picker.appendChild(dragPreview);
+
+    picker.dataset.swipeAnimating = "true";
+    picker.classList.remove("is-swipe-animating");
+    picker.classList.add("is-swiping");
+    return true;
+  };
+
+  const updateDragPosition = dx => {
+    if (!prepareDragPreview(dx)) return false;
+    const width = picker.clientWidth || window.innerWidth || 360;
+    const limitedDx = Math.max(-width, Math.min(width, dx));
+    const previewStart = dragStep > 0 ? width : -width;
+    const progress = Math.min(1, Math.abs(limitedDx) / Math.max(width, 1));
+
+    picker.style.setProperty("--picker-current-x", `${limitedDx}px`);
+    picker.style.setProperty("--picker-preview-x", `${previewStart + limitedDx}px`);
+    picker.style.setProperty("--picker-swipe-opacity", String(0.35 + (progress * 0.65)));
+    return true;
+  };
+
+  const finishInteractiveSwipe = commit => {
+    const step = dragStep;
+    const width = picker.clientWidth || window.innerWidth || 360;
+
+    if (!dragPreview || !step) {
+      clearDragStyles();
+      return;
+    }
+
+    picker.classList.remove("is-swiping");
+    picker.classList.add("is-swipe-animating");
+
+    if (commit) {
+      picker.style.setProperty("--picker-current-x", `${step > 0 ? -width : width}px`);
+      picker.style.setProperty("--picker-preview-x", "0px");
+      picker.style.setProperty("--picker-swipe-opacity", "1");
+    } else {
+      picker.style.setProperty("--picker-current-x", "0px");
+      picker.style.setProperty("--picker-preview-x", `${step > 0 ? width : -width}px`);
+      picker.style.setProperty("--picker-swipe-opacity", "0.35");
+    }
+
+    const finish = () => {
+      picker.removeEventListener("transitionend", onTransitionEnd);
+      if (commit) goToMonth(step);
+      clearDragStyles();
+    };
+
+    const onTransitionEnd = event => {
+      if (event.target !== dragPreview && !event.target.closest(".revenue-calendar-swipe-preview") && !event.target.closest(".revenue-calendar-picker")) return;
+      if (event.propertyName !== "transform") return;
+      finish();
+    };
+
+    picker.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(() => {
+      if (picker.dataset.swipeAnimating === "true") finish();
+    }, 360);
+  };
+
+  picker.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    if (event.target.closest(".revenue-calendar-nav")) return;
+    if (picker.dataset.swipeAnimating === "true") return;
+
+    tracking = true;
+    horizontal = false;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+    lastX = startX;
+  }, { passive: true });
+
+  picker.addEventListener("touchmove", event => {
+    if (!tracking || event.touches.length !== 1) return;
+    const x = event.touches[0].clientX;
+    const y = event.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (!horizontal) {
+      if (absX < intentThreshold && absY < intentThreshold) return;
+      if (absY > absX) {
+        resetTracking();
+        clearDragStyles();
+        return;
+      }
+      horizontal = true;
+      swiped = true;
+    }
+
+    if (!updateDragPosition(dx)) return;
+    event.preventDefault();
+    lastX = x;
+  }, { passive: false });
+
+  picker.addEventListener("touchend", () => {
+    if (!tracking || !horizontal) {
+      resetTracking();
+      clearDragStyles();
+      return;
+    }
+
+    const dx = lastX - startX;
+    const commit = Math.abs(dx) >= threshold;
+    resetTracking();
+    finishInteractiveSwipe(commit);
+  }, { passive: true });
+
+  picker.addEventListener("touchcancel", () => {
+    resetTracking();
+    finishInteractiveSwipe(false);
+  }, { passive: true });
+
+  picker.addEventListener("click", event => {
+    if (!swiped) return;
+    swiped = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+}
+
+function renderSharedCalendarPicker({
+  columnsWrapId,
+  pickerState,
+  mode,
+  year,
+  monthIndex,
+  selectedDateStr,
+  datasetName,
+  prevAttr,
+  nextAttr,
+  onMonthChange,
+  onDaySelect
+}) {
+  const columnsWrap = document.getElementById(columnsWrapId);
+  if (!columnsWrap) return;
+
   columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
-  columnsWrap.innerHTML = html;
+  columnsWrap.innerHTML = buildSharedCalendarPickerHtml({
+    mode,
+    year,
+    monthIndex,
+    selectedDateStr,
+    datasetName,
+    prevAttr,
+    nextAttr
+  });
 
   const picker = columnsWrap.querySelector(".revenue-calendar-picker");
   const goToMonth = (delta) => {
@@ -3665,7 +3811,20 @@ function renderSharedCalendarPicker({
 
   picker?.querySelector(`[${prevAttr}]`)?.addEventListener("click", () => goToMonth(-1));
   picker?.querySelector(`[${nextAttr}]`)?.addEventListener("click", () => goToMonth(1));
-  attachCalendarPickerSwipe(picker, goToMonth);
+  attachCalendarPickerSwipe(
+    picker,
+    goToMonth,
+    delta => buildCalendarPickerSwipePreviewHtml({
+      mode,
+      year,
+      monthIndex,
+      delta,
+      selectedDateStr: pickerState.selected.date || selectedDateStr,
+      datasetName,
+      prevAttr,
+      nextAttr
+    })
+  );
 
   picker?.querySelectorAll(`[data-${datasetName}]`).forEach(button => {
     button.addEventListener("click", () => {
@@ -3723,17 +3882,13 @@ function renderAppointmentCalendarPicker(year, monthIndex, selectedDateStr = app
   });
 }
 
-function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getMonth()) {
-  const columnsWrap = document.getElementById("revenueWheelColumns");
-  if (!columnsWrap) return;
-
+function buildRevenueMonthPickerHtml(year, selectedMonthIndex = 0) {
   const selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr;
   const selectedDate = new Date(selectedDateStr + "T00:00:00");
   const selectedYear = selectedDate.getFullYear();
   const currentMonthIndex = selectedDate.getMonth();
 
-  columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
-  columnsWrap.innerHTML = `
+  return `
     <div class="revenue-month-picker" data-year="${year}">
       <div class="revenue-calendar-picker-head">
         <button class="icon-btn revenue-calendar-nav" type="button" data-revenue-month-prev aria-label="Vorig jaar">‹</button>
@@ -3749,10 +3904,39 @@ function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePi
       </div>
     </div>
   `;
+}
+
+function buildRevenueMonthPickerPreviewHtml(year, delta, selectedMonthIndex = 0) {
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = buildRevenueMonthPickerHtml(year + delta, selectedMonthIndex);
+  const picker = wrapper.querySelector(".revenue-month-picker");
+  if (!picker) return "";
+  picker.querySelectorAll("button").forEach(button => {
+    button.setAttribute("tabindex", "-1");
+    button.setAttribute("aria-hidden", "true");
+  });
+  return picker.innerHTML;
+}
+
+function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getMonth()) {
+  const columnsWrap = document.getElementById("revenueWheelColumns");
+  if (!columnsWrap) return;
+
+  const selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr;
+  const selectedDate = new Date(selectedDateStr + "T00:00:00");
+
+  columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
+  columnsWrap.innerHTML = buildRevenueMonthPickerHtml(year, selectedMonthIndex);
 
   const picker = columnsWrap.querySelector(".revenue-month-picker");
-  picker?.querySelector("[data-revenue-month-prev]")?.addEventListener("click", () => renderRevenueMonthPicker(year - 1, selectedMonthIndex));
-  picker?.querySelector("[data-revenue-month-next]")?.addEventListener("click", () => renderRevenueMonthPicker(year + 1, selectedMonthIndex));
+  const goToYear = delta => renderRevenueMonthPicker(year + delta, selectedMonthIndex);
+  picker?.querySelector("[data-revenue-month-prev]")?.addEventListener("click", () => goToYear(-1));
+  picker?.querySelector("[data-revenue-month-next]")?.addEventListener("click", () => goToYear(1));
+  attachCalendarPickerSwipe(
+    picker,
+    goToYear,
+    delta => buildRevenueMonthPickerPreviewHtml(year, delta, selectedMonthIndex)
+  );
 
   picker?.querySelectorAll("[data-revenue-picker-month]").forEach(button => {
     button.addEventListener("click", () => {
@@ -6009,25 +6193,61 @@ function setupAppointmentServiceSearch() {
 
 
 function setAppointmentPrivateMode(isPrivate) {
+  const privateMode = Boolean(isPrivate);
   const form = document.getElementById("appointmentForm");
   const checkbox = document.getElementById("appointmentIsPrivate");
-  if (checkbox) checkbox.checked = Boolean(isPrivate);
-  if (form) form.classList.toggle("appointment-private-mode", Boolean(isPrivate));
+  if (checkbox) checkbox.checked = privateMode;
+  if (form) form.classList.toggle("appointment-private-mode", privateMode);
+
+  // Belangrijk: naast CSS ook expliciet met .hidden werken.
+  // Zo kunnen gewone klantvelden en privévelden niet opnieuw tegelijk zichtbaar worden
+  // door latere CSS-wijzigingen of browser-cache.
+  document.querySelectorAll("#appointmentForm .appointment-normal-field").forEach(field => {
+    field.classList.toggle("hidden", privateMode);
+    field.setAttribute("aria-hidden", String(privateMode));
+    field.querySelectorAll("input, select, textarea, button").forEach(control => {
+      if (control.id !== "appointmentOpenCustomerBtn") control.disabled = privateMode;
+    });
+  });
+
+  document.querySelectorAll("#appointmentForm .appointment-private-field").forEach(field => {
+    field.classList.toggle("hidden", !privateMode);
+    field.setAttribute("aria-hidden", String(!privateMode));
+    field.querySelectorAll("input, select, textarea, button").forEach(control => {
+      control.disabled = !privateMode;
+    });
+  });
 
   ["appointmentCustomer", "appointmentService", "appointmentDuration", "appointmentPrice"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.required = !isPrivate;
+    if (el) el.required = !privateMode;
   });
+
   const title = document.getElementById("appointmentPrivateTitle");
   const startTime = document.getElementById("appointmentTime");
   const endTime = document.getElementById("appointmentPrivateEndTime");
+  const repeat = document.getElementById("appointmentPrivateRepeat");
+  const details = document.getElementById("appointmentPrivateDetails");
   const timeLabel = document.getElementById("appointmentTimeLabel") || document.querySelector('label[for="appointmentTime"]');
-  if (title) title.required = Boolean(isPrivate);
-  if (startTime) startTime.required = true;
-  if (endTime) endTime.required = Boolean(isPrivate);
-  if (timeLabel) timeLabel.textContent = isPrivate ? "Tijd van" : t("time");
+
+  if (title) {
+    title.required = privateMode;
+    title.disabled = !privateMode;
+  }
+  if (startTime) {
+    startTime.required = true;
+    startTime.disabled = false;
+  }
+  if (endTime) {
+    endTime.required = privateMode;
+    endTime.disabled = !privateMode;
+  }
+  if (repeat) repeat.disabled = !privateMode;
+  if (details) details.disabled = !privateMode;
+  if (timeLabel) timeLabel.textContent = privateMode ? "Tijd van" : t("time");
+
   updatePrivateRepeatWeeklyLabel();
-  if (isPrivate) syncPrivateEndTimeWithStart();
+  if (privateMode) syncPrivateEndTimeWithStart();
   updateAppointmentOpenCustomerButton();
 }
 
