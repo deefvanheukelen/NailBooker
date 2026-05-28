@@ -232,7 +232,7 @@ function updateStaticI18n() {
   });
 
   const settingsLabels = document.querySelectorAll("#settingsScreen .detail-label");
-  [[0, "planning"], [1, "notifications"], [3, "extras"]].forEach(([index, key]) => {
+  [[0, "planning"], [1, "notifications"]].forEach(([index, key]) => {
     if (settingsLabels[index]) settingsLabels[index].textContent = t(key);
   });
 
@@ -410,7 +410,8 @@ function getDefaultSettings() {
     paymentBeneficiaryName: "",
     paymentIban: "",
     paymentBic: "",
-    paymentReferencePrefix: "Idle & Ease"
+    paymentReferencePrefix: "Idle & Ease",
+    calendarFeedToken: ""
   };
 }
 
@@ -429,7 +430,11 @@ function normalizeData(data) {
       ...appointment,
       paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null,
       currency: normalizeCurrency(appointment?.currency || safe.settings?.currency || DEFAULT_CURRENCY),
-      remarks: String(appointment?.remarks || appointment?.note || appointment?.appointment_remarks || "").trim()
+      remarks: String(appointment?.remarks || appointment?.note || appointment?.appointment_remarks || "").trim(),
+      isPrivate: Boolean(appointment?.isPrivate ?? appointment?.is_private),
+      privateTitle: String(appointment?.privateTitle || appointment?.private_title || "").trim(),
+      privateDetails: String(appointment?.privateDetails || appointment?.private_details || "").trim(),
+      privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || ""
     };
   }) : [];
 
@@ -679,14 +684,34 @@ function timeStringFromMinutes(totalMinutes) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+function isPrivateAppointment(appointment) {
+  return Boolean(appointment?.isPrivate ?? appointment?.is_private);
+}
+
+function getAppointmentDisplayEndTime(appointment, breakMinutes = 0) {
+  if (isPrivateAppointment(appointment)) {
+    return String(appointment.privateEndTime || appointment.private_end_time || "").slice(0, 5) || getAppointmentEndTime(appointment, 0);
+  }
+  return getAppointmentEndTime(appointment, breakMinutes);
+}
+
+function calculatePrivateDuration(startTime, endTime) {
+  const start = minutesFromTimeString(startTime || "00:00");
+  let end = minutesFromTimeString(endTime || startTime || "00:00");
+  if (end < start) end = start;
+  return Math.max(0, end - start);
+}
+
 function getSettings() {
   return getData().settings || getDefaultSettings();
 }
 
 function appointmentTimeRange(appointment, breakMinutes = 0) {
   const startMinutes = minutesFromTimeString(appointment.time || appointment.appointment_time || "00:00");
-  const duration = Number(appointment.duration || 0);
-  const buffer = Math.max(0, Number(breakMinutes) || 0);
+  const duration = isPrivateAppointment(appointment)
+    ? calculatePrivateDuration(appointment.time || appointment.appointment_time, appointment.privateEndTime || appointment.private_end_time)
+    : Number(appointment.duration || 0);
+  const buffer = isPrivateAppointment(appointment) ? 0 : Math.max(0, Number(breakMinutes) || 0);
   return {
     startMinutes,
     endMinutes: startMinutes + duration + buffer
@@ -694,10 +719,7 @@ function appointmentTimeRange(appointment, breakMinutes = 0) {
 }
 
 function findAppointmentOverlap(payload, appointments, breakMinutes = 0, excludeId = null) {
-  const newRange = appointmentTimeRange({
-    time: payload.time,
-    duration: payload.duration
-  }, breakMinutes);
+  const newRange = appointmentTimeRange(payload, breakMinutes);
 
   return appointments
     .filter(app => app.date === payload.date)
@@ -709,7 +731,8 @@ function findAppointmentOverlap(payload, appointments, breakMinutes = 0, exclude
 }
 
 function findNextAvailableStartTime(payload, appointments, breakMinutes = 0, excludeId = null) {
-  const durationWithBreak = Math.max(0, Number(payload.duration || 0)) + Math.max(0, Number(breakMinutes) || 0);
+  const payloadRange = appointmentTimeRange(payload, breakMinutes);
+  const durationWithBreak = Math.max(0, payloadRange.endMinutes - payloadRange.startMinutes);
   const dayAppointments = appointments
     .filter(app => app.date === payload.date)
     .filter(app => String(app.id) !== String(excludeId || ""))
@@ -737,17 +760,21 @@ function findNextAvailableStartTime(payload, appointments, breakMinutes = 0, exc
 
 function buildOverlapMessage(payload, overlapApp, appointments, breakMinutes = 0, excludeId = null) {
   const data = getData();
-  const customer = customerById(data, overlapApp.customerId);
-  const service = serviceById(data, overlapApp.serviceId);
+  const privateOverlap = isPrivateAppointment(overlapApp);
+  const customer = privateOverlap ? null : customerById(data, overlapApp.customerId);
+  const service = privateOverlap ? null : serviceById(data, overlapApp.serviceId);
   const range = appointmentTimeRange(overlapApp, breakMinutes);
   const nextPossibleStart = findNextAvailableStartTime(payload, appointments, breakMinutes, excludeId);
+  const overlapTitle = privateOverlap
+    ? `${overlapApp.privateTitle || "Privé-afspraak"}${overlapApp.privateDetails ? ` (${overlapApp.privateDetails})` : ""}`
+    : `${customer ? fullName(customer) : "Onbekende klant"}${service ? ` (${service.name})` : ""}`;
 
   return [
     "Deze afspraak overlapt met een bestaande afspraak.",
     "",
-    `${overlapApp.time} - ${timeStringFromMinutes(range.endMinutes)} · ${customer ? fullName(customer) : "Onbekende klant"}${service ? ` (${service.name})` : ""}`,
+    `${overlapApp.time} - ${timeStringFromMinutes(range.endMinutes)} · ${overlapTitle}`,
     "",
-    `Eerstvolgend mogelijk tijdstip voor deze behandeling: ${timeStringFromMinutes(nextPossibleStart)}`,
+    `Eerstvolgend mogelijk tijdstip: ${timeStringFromMinutes(nextPossibleStart)}`,
     "",
     "Wil je deze afspraak toch opslaan?"
   ].join("\n");
@@ -775,146 +802,128 @@ function buildPastAppointmentMessage(payload) {
 }
 
 
-/* =========================
-   KALENDEREXPORT (.ICS)
-   Simpele koppeling: app -> Google/Apple/Outlook via importbestand
-========================= */
-
-function padIcs(value) {
-  return String(value).padStart(2, "0");
+function getSupabaseProjectUrl() {
+  if (typeof SUPABASE_URL !== "undefined" && SUPABASE_URL) return SUPABASE_URL;
+  if (typeof supabaseClient !== "undefined" && supabaseClient?.supabaseUrl) return supabaseClient.supabaseUrl;
+  return "";
 }
 
-function formatIcsDateTimeLocal(date) {
-  return [
-    date.getFullYear(),
-    padIcs(date.getMonth() + 1),
-    padIcs(date.getDate()),
-    "T",
-    padIcs(date.getHours()),
-    padIcs(date.getMinutes()),
-    "00"
-  ].join("");
-}
-
-function formatIcsDateTimeUtc(date = new Date()) {
-  return [
-    date.getUTCFullYear(),
-    padIcs(date.getUTCMonth() + 1),
-    padIcs(date.getUTCDate()),
-    "T",
-    padIcs(date.getUTCHours()),
-    padIcs(date.getUTCMinutes()),
-    padIcs(date.getUTCSeconds()),
-    "Z"
-  ].join("");
-}
-
-function escapeIcsText(value) {
-  return String(value ?? "")
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
-}
-
-function foldIcsLine(line) {
-  const safeLine = String(line || "");
-  if (safeLine.length <= 74) return safeLine;
-
-  const chunks = [];
-  let remaining = safeLine;
-  while (remaining.length > 74) {
-    chunks.push(remaining.slice(0, 74));
-    remaining = remaining.slice(74);
+function createCalendarFeedToken() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID().replace(/-/g, "");
   }
-  chunks.push(remaining);
-  return chunks.join("\r\n ");
+
+  const bytes = new Uint8Array(24);
+  if (window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
 }
 
-function buildIcsAppointmentEvent(appointment, data) {
-  const customer = customerById(data, appointment.customerId);
-  const service = serviceById(data, appointment.serviceId);
-  const start = new Date(`${appointment.date}T${appointment.time || "00:00"}:00`);
-  const duration = Math.max(1, Number(appointment.duration || service?.duration || 60));
-  const end = new Date(start.getTime() + duration * 60000);
-  const customerName = customer ? fullName(customer) : t("unknownCustomer");
-  const serviceName = service?.name || t("service");
-  const status = String(appointment.status || "").trim();
-  const paidText = appointment.paid ? t("paid") : t("unpaid");
-  const paymentMethod = paymentMethodNameForAppointment(appointment, data);
-  const currency = appointment.currency || getCurrentCurrency();
-
-  const description = [
-    `${t("customer")}: ${customerName}`,
-    customer?.phone ? `${t("phone")}: ${customer.phone}` : "",
-    customer?.email ? `${t("email")}: ${customer.email}` : "",
-    `${t("service")}: ${serviceName}`,
-    `${t("duration")}: ${duration} min`,
-    `${t("price")}: ${euro(appointment.price, currency)}`,
-    `${t("paymentMethod")}: ${paidText}${paymentMethod ? ` (${paymentMethod})` : ""}`,
-    status ? `${t("status")}: ${status}` : "",
-    appointment.remarks ? `${t("appointmentRemarks")}: ${appointment.remarks}` : "",
-    "",
-    "Aangemaakt vanuit NailBooker."
-  ].filter(Boolean).join("\n");
-
-  const uidSource = `${appointment.id || `${appointment.date}-${appointment.time}-${customerName}-${serviceName}`}@nailbooker`;
-
-  return [
-    "BEGIN:VEVENT",
-    `UID:${escapeIcsText(uidSource)}`,
-    `DTSTAMP:${formatIcsDateTimeUtc(new Date())}`,
-    `DTSTART:${formatIcsDateTimeLocal(start)}`,
-    `DTEND:${formatIcsDateTimeLocal(end)}`,
-    `SUMMARY:${escapeIcsText(`${customerName} - ${serviceName}`)}`,
-    `DESCRIPTION:${escapeIcsText(description)}`,
-    `CATEGORIES:${escapeIcsText("NailBooker")}`,
-    "END:VEVENT"
-  ].map(foldIcsLine).join("\r\n");
+function getCalendarFeedUrl(token = getSettings().calendarFeedToken) {
+  const projectUrl = getSupabaseProjectUrl().replace(/\/$/, "");
+  const safeToken = String(token || "").trim();
+  if (!projectUrl || !safeToken) return "";
+  return `${projectUrl}/functions/v1/calendar-feed?token=${encodeURIComponent(safeToken)}`;
 }
 
-function buildAppointmentsIcs(data = getData()) {
-  const appointments = (data.appointments || [])
-    .filter(appointment => appointment?.date && appointment?.time)
-    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+async function ensureCalendarFeedToken({ forceNew = false } = {}) {
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Log eerst in om een automatische kalenderlink te maken.", { title: "Google kalender", variant: "warning" });
+    return "";
+  }
 
-  const events = appointments.map(appointment => buildIcsAppointmentEvent(appointment, data));
+  const currentSettings = getSettings();
+  const token = forceNew || !currentSettings.calendarFeedToken
+    ? createCalendarFeedToken()
+    : currentSettings.calendarFeedToken;
 
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//NailBooker//Calendar Export//NL",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "X-WR-CALNAME:NailBooker afspraken",
-    "X-WR-TIMEZONE:Europe/Brussels",
-    ...events,
-    "END:VCALENDAR"
-  ].join("\r\n");
-}
+  const payload = {
+    user_id: user.id,
+    default_break_minutes: Number(currentSettings.defaultBreakMinutes ?? 10),
+    notifications_enabled: Boolean(currentSettings.notificationsEnabled),
+    reminder_minutes: Number(currentSettings.reminderMinutes ?? 30),
+    overlap_warnings_enabled: currentSettings.overlapWarningsEnabled !== false,
+    language: normalizeLanguage(currentSettings.language || getCurrentLanguage()),
+    currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
+    payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
+    payment_iban: currentSettings.paymentIban || null,
+    payment_bic: currentSettings.paymentBic || null,
+    payment_reference_prefix: currentSettings.paymentReferencePrefix || "Idle & Ease",
+    calendar_feed_token: token,
+    updated_at: new Date().toISOString()
+  };
 
-function downloadAppointmentsIcs() {
+  const { error } = await supabaseClient
+    .from("user_settings")
+    .upsert(payload, { onConflict: "user_id" });
+
+  if (error) {
+    await appAlert("Kalenderlink maken mislukt: " + error.message, { title: "Google kalender", variant: "danger" });
+    return "";
+  }
+
   const data = getData();
-  const appointments = (data.appointments || []).filter(appointment => appointment?.date && appointment?.time);
-  if (!appointments.length) {
-    appAlert("Er zijn nog geen afspraken om te exporteren.", { title: "Kalender exporteren", variant: "warning" });
-    return;
-  }
-
-  const ics = buildAppointmentsIcs(data);
-  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `nailbooker-afspraken-${formatDateInput(new Date())}.ics`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  data.settings = { ...currentSettings, calendarFeedToken: token };
+  saveData(data);
+  renderCalendarFeedSettings();
+  return token;
 }
 
-function openGoogleCalendarImportPage() {
-  window.open("https://calendar.google.com/calendar/u/0/r/settings/import", "_blank", "noopener,noreferrer");
+function renderCalendarFeedSettings() {
+  const input = document.getElementById("calendarFeedUrl");
+  const status = document.getElementById("calendarFeedStatus");
+  const token = getSettings().calendarFeedToken;
+  const url = getCalendarFeedUrl(token);
+
+  if (input) input.value = url || "";
+  if (status) {
+    status.textContent = url
+      ? "Deze link kun je één keer toevoegen in Google Calendar via ‘Via URL’. Nieuwe wijzigingen in NailBooker komen daarna automatisch mee zodra Google de feed ververst."
+      : "Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.";
+  }
+}
+
+async function createOrCopyCalendarFeedUrl() {
+  const token = await ensureCalendarFeedToken();
+  const url = getCalendarFeedUrl(token);
+  if (!url) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    await appAlert("Kalenderlink gekopieerd. Voeg deze in Google Calendar toe via: Andere agenda’s → Via URL.", { title: "Google kalender", variant: "success" });
+  } catch (error) {
+    const input = document.getElementById("calendarFeedUrl");
+    if (input) {
+      input.focus();
+      input.select();
+    }
+    await appAlert("De kalenderlink staat in het tekstvak. Kopieer hem manueel en voeg hem toe in Google Calendar via ‘Via URL’.", { title: "Google kalender", variant: "info" });
+  }
+}
+
+async function openGoogleCalendarSubscribePage() {
+  await ensureCalendarFeedToken();
+  renderCalendarFeedSettings();
+  window.open("https://calendar.google.com/calendar/u/0/r/settings/addbyurl", "_blank", "noopener,noreferrer");
+}
+
+async function regenerateCalendarFeedUrl() {
+  const confirmed = await appConfirm(
+    "Wil je een nieuwe kalenderlink maken? De oude link werkt daarna niet meer. Je moet de nieuwe link opnieuw toevoegen in Google Calendar.",
+    { title: "Nieuwe kalenderlink", confirmText: "Nieuwe link maken" }
+  );
+  if (!confirmed) return;
+
+  const token = await ensureCalendarFeedToken({ forceNew: true });
+  const url = getCalendarFeedUrl(token);
+  if (url) {
+    try { await navigator.clipboard.writeText(url); } catch (error) {}
+    await appAlert("Nieuwe kalenderlink gemaakt en gekopieerd. Voeg deze opnieuw toe in Google Calendar.", { title: "Google kalender", variant: "success" });
+  }
 }
 
 function jumpToToday() {
@@ -1851,8 +1860,9 @@ function renderCalendar() {
       const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
       const visibleDots = Math.min(appts.length, maxVisibleDots);
 
-      Array.from({ length: visibleDots }).forEach(() => {
+      appts.slice(0, visibleDots).forEach(appointment => {
         const i = document.createElement("i");
+        if (isPrivateAppointment(appointment)) i.classList.add("private-dot");
         dots.appendChild(i);
       });
 
@@ -2587,19 +2597,23 @@ function renderAgendaList() {
   appts.forEach(app => {
     const customer = customerById(data, app.customerId);
     const service = serviceById(data, app.serviceId);
+    const privateApp = isPrivateAppointment(app);
 
     const row = document.createElement("div");
-    row.className = "appointment-row";
-    const endTime = getAppointmentEndTime(app, getSettings().defaultBreakMinutes);
+    row.className = `appointment-row${privateApp ? " private-appointment-row" : ""}`;
+    const endTime = getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes);
 
     const appointmentMetaParts = [];
-    if (service?.name) {
-      appointmentMetaParts.push(service.name);
-    }
-    if ((app.status || "").toLowerCase() === "no-show") {
-      appointmentMetaParts.push("no show");
-    } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
-      appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
+    if (privateApp) {
+      if (app.privateDetails) appointmentMetaParts.push(app.privateDetails);
+      else appointmentMetaParts.push("Privé-afspraak");
+    } else {
+      if (service?.name) appointmentMetaParts.push(service.name);
+      if ((app.status || "").toLowerCase() === "no-show") {
+        appointmentMetaParts.push("no show");
+      } else if (app.paid && paymentMethodNameForAppointment(app, data)) {
+        appointmentMetaParts.push(paymentMethodNameForAppointment(app, data));
+      }
     }
 
     row.innerHTML = `
@@ -2608,14 +2622,18 @@ function renderAgendaList() {
         <div class="time-end">tot ${endTime}</div>
       </div>
       <div>
-        <div class="main-name appointment-main-name">${customer ? fullName(customer) : "Onbekend"}${String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : ""}</div>
-        <div class="meta">${appointmentMetaParts.join(" · ")}</div>
+        <div class="main-name appointment-main-name">${privateApp ? htmlEscape(app.privateTitle || "Privé") : `${customer ? fullName(customer) : "Onbekend"}${String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : ""}`}</div>
+        <div class="meta">${htmlEscape(appointmentMetaParts.join(" · "))}</div>
       </div>
-      <button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>
+      ${privateApp ? '<span class="private-chip">Privé</span>' : `<button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>`}
     `;
 
     row.addEventListener("click", (e) => {
       if (e.target.closest(".price-chip")) return;
+      if (privateApp) {
+        openEditAppointmentDialog(app.id);
+        return;
+      }
       openAppointmentActionPopover(app.id, row);
     });
 
@@ -3153,11 +3171,29 @@ function formatAppointmentTimeLabel(timeStr) {
 function syncAppointmentDateTimeDisplays() {
   const dateInput = document.getElementById("appointmentDate");
   const timeInput = document.getElementById("appointmentTime");
+  const privateEndTimeInput = document.getElementById("appointmentPrivateEndTime");
   const dateBtn = document.getElementById("appointmentDateDisplayBtn");
   const timeBtn = document.getElementById("appointmentTimeDisplayBtn");
+  const privateEndTimeBtn = document.getElementById("appointmentPrivateEndTimeDisplayBtn");
 
   if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value);
   if (timeBtn && timeInput) timeBtn.textContent = formatAppointmentTimeLabel(timeInput.value);
+  if (privateEndTimeBtn && privateEndTimeInput) privateEndTimeBtn.textContent = formatAppointmentTimeLabel(privateEndTimeInput.value);
+}
+
+function syncPrivateEndTimeWithStart() {
+  const isPrivate = Boolean(document.getElementById("appointmentIsPrivate")?.checked);
+  if (!isPrivate) return;
+
+  const startInput = document.getElementById("appointmentTime");
+  const endInput = document.getElementById("appointmentPrivateEndTime");
+  if (!startInput || !endInput || !startInput.value) return;
+
+  if (!endInput.value || minutesFromTimeString(endInput.value) < minutesFromTimeString(startInput.value)) {
+    endInput.value = startInput.value;
+  }
+
+  syncAppointmentDateTimeDisplays();
 }
 
 function getAppointmentPickerYears(selectedYear) {
@@ -3171,14 +3207,15 @@ function getAppointmentPickerYears(selectedYear) {
   return Array.from({ length: (maxYear - minYear + 7) }, (_, i) => minYear - 3 + i);
 }
 
-function openAppointmentWheelPicker(mode) {
+function openAppointmentWheelPicker(mode, targetInputId = null) {
   const dialog = document.getElementById("appointmentWheelPickerDialog");
   const title = document.getElementById("appointmentWheelPickerTitle");
   const columnsWrap = document.getElementById("appointmentWheelColumns");
   if (!dialog || !title || !columnsWrap) return;
 
   const dateValue = document.getElementById("appointmentDate")?.value || state.selectedDate || todayStr;
-  const timeValue = document.getElementById("appointmentTime")?.value || "10:00";
+  const timeTargetId = targetInputId || "appointmentTime";
+  const timeValue = document.getElementById(timeTargetId)?.value || "10:00";
   const date = new Date(dateValue + "T00:00:00");
   const selectedYear = date.getFullYear();
   const selectedMonthIndex = date.getMonth();
@@ -3188,6 +3225,7 @@ function openAppointmentWheelPicker(mode) {
   const selectedMinute = Math.max(0, Math.min(59, Number(rawMinute) || 0));
 
   appointmentPickerState.mode = mode;
+  appointmentPickerState.targetInputId = timeTargetId;
   appointmentPickerState.selected = {};
 
   const shell = dialog.querySelector(".revenue-wheel-shell");
@@ -3234,8 +3272,9 @@ function applyAppointmentWheelPickerSelection() {
   if (appointmentPickerState.mode === "time") {
     const hour = Math.max(0, Math.min(23, Number(appointmentPickerState.selected.hour) || 0));
     const minute = Math.max(0, Math.min(59, Number(appointmentPickerState.selected.minute) || 0));
-    const timeInput = document.getElementById("appointmentTime");
+    const timeInput = document.getElementById(appointmentPickerState.targetInputId || "appointmentTime");
     if (timeInput) timeInput.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    syncPrivateEndTimeWithStart();
     syncAppointmentDateTimeDisplays();
     return;
   }
@@ -5110,6 +5149,7 @@ function renderSettings() {
   refreshAppSelect(reminderSelect);
   refreshAppSelect(languageSelect);
   refreshAppSelect(currencySelect);
+  renderCalendarFeedSettings();
   const notificationsEnabled = Boolean(settings.notificationsEnabled);
   const permissionState = notificationsPermissionState();
 
@@ -5137,7 +5177,7 @@ async function loadSettingsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_iban, payment_bic, payment_reference_prefix")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_iban, payment_bic, payment_reference_prefix, calendar_feed_token")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -5156,7 +5196,8 @@ async function loadSettingsFromSupabase() {
     paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
     paymentIban: normalizeIban(data?.payment_iban || ""),
     paymentBic: String(data?.payment_bic || "").trim().toUpperCase(),
-    paymentReferencePrefix: String(data?.payment_reference_prefix || "Idle & Ease").trim() || "Idle & Ease"
+    paymentReferencePrefix: String(data?.payment_reference_prefix || "Idle & Ease").trim() || "Idle & Ease",
+    calendarFeedToken: String(data?.calendar_feed_token || "")
   };
 }
 
@@ -5173,7 +5214,8 @@ async function saveSettingsFromForm(event) {
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
     paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
     paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
-    paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "Idle & Ease").trim() || "Idle & Ease"
+    paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "Idle & Ease").trim() || "Idle & Ease",
+    calendarFeedToken: getSettings().calendarFeedToken || ""
   };
 
   if (settings.paymentIban && !isValidIban(settings.paymentIban)) {
@@ -5219,6 +5261,7 @@ async function saveSettingsFromForm(event) {
     payment_iban: settings.paymentIban || null,
     payment_bic: settings.paymentBic || null,
     payment_reference_prefix: settings.paymentReferencePrefix || "Idle & Ease",
+    calendar_feed_token: settings.calendarFeedToken || null,
     updated_at: new Date().toISOString()
   };
 
@@ -5596,12 +5639,26 @@ function setupAppointmentCustomerSearch() {
 
   searchInput.addEventListener("input", () => {
     customerSelect.value = "";
-    rebuildCustomerDropdown();
+    refreshAppSelect(customerSelect);
+    renderAppointmentCustomerResults(searchInput.value, true);
   });
 
   searchInput.addEventListener("focus", () => {
-    if (resultsWrap) resultsWrap.classList.add("hidden");
+    renderAppointmentCustomerResults(searchInput.value, true);
   });
+
+  if (resultsWrap && resultsWrap.dataset.ready !== "true") {
+    resultsWrap.dataset.ready = "true";
+    resultsWrap.addEventListener("click", event => {
+      const button = event.target.closest("[data-customer-id]");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setAppointmentCustomer(button.dataset.customerId);
+      hideAppointmentCustomerResults();
+      if (typeof updateAppointmentOpenCustomerButton === "function") updateAppointmentOpenCustomerButton();
+    });
+  }
 
   customerSelect.addEventListener("change", () => {
     const customer = customerById(getData(), customerSelect.value);
@@ -5741,12 +5798,25 @@ function setupAppointmentServiceSearch() {
 
   searchInput.addEventListener("input", () => {
     serviceSelect.value = "";
-    rebuildServiceDropdown();
+    refreshAppSelect(serviceSelect);
+    renderAppointmentServiceResults(searchInput.value, true);
   });
 
   searchInput.addEventListener("focus", () => {
-    if (resultsWrap) resultsWrap.classList.add("hidden");
+    renderAppointmentServiceResults(searchInput.value, true);
   });
+
+  if (resultsWrap && resultsWrap.dataset.ready !== "true") {
+    resultsWrap.dataset.ready = "true";
+    resultsWrap.addEventListener("click", event => {
+      const button = event.target.closest("[data-service-id]");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setAppointmentService(button.dataset.serviceId);
+      hideAppointmentServiceResults();
+    });
+  }
 
   serviceSelect.addEventListener("change", () => {
     const service = serviceById(getData(), serviceSelect.value);
@@ -5758,6 +5828,37 @@ function setupAppointmentServiceSearch() {
   serviceSelect.dataset.rebuildAppointmentDropdown = "true";
 }
 
+
+
+function setAppointmentPrivateMode(isPrivate) {
+  const form = document.getElementById("appointmentForm");
+  const checkbox = document.getElementById("appointmentIsPrivate");
+  if (checkbox) checkbox.checked = Boolean(isPrivate);
+  if (form) form.classList.toggle("appointment-private-mode", Boolean(isPrivate));
+
+  ["appointmentCustomer", "appointmentService", "appointmentDuration", "appointmentPrice"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.required = !isPrivate;
+  });
+  const title = document.getElementById("appointmentPrivateTitle");
+  const startTime = document.getElementById("appointmentTime");
+  const endTime = document.getElementById("appointmentPrivateEndTime");
+  const timeLabel = document.getElementById("appointmentTimeLabel") || document.querySelector('label[for="appointmentTime"]');
+  if (title) title.required = Boolean(isPrivate);
+  if (startTime) startTime.required = true;
+  if (endTime) endTime.required = Boolean(isPrivate);
+  if (timeLabel) timeLabel.textContent = isPrivate ? "Tijd van" : t("time");
+  if (isPrivate) syncPrivateEndTimeWithStart();
+  updateAppointmentOpenCustomerButton();
+}
+
+function updateAppointmentOpenCustomerButton() {
+  const btn = document.getElementById("appointmentOpenCustomerBtn");
+  if (!btn) return;
+  const isPrivate = document.getElementById("appointmentIsPrivate")?.checked;
+  const hasCustomer = Boolean(document.getElementById("appointmentCustomer")?.value);
+  btn.classList.toggle("hidden", Boolean(isPrivate) || !hasCustomer);
+}
 
 function populateAppointmentForm(customerId = null) {
   const data = getData();
@@ -5771,6 +5872,7 @@ function populateAppointmentForm(customerId = null) {
 
   setupAppointmentCustomerSearch();
   setupAppointmentServiceSearch();
+  setAppointmentPrivateMode(false);
 
   if (customerId) {
     setAppointmentCustomer(customerId);
@@ -5799,10 +5901,14 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   populateAppointmentForm(prefillCustomerId);
 
   document.getElementById("appointmentForm")?.classList.remove("appointment-form-edit");
+  setAppointmentPrivateMode(false);
   document.getElementById("appointmentModalTitle").textContent = t("newAppointment");
   document.getElementById("appointmentId").value = "";
   document.getElementById("appointmentDate").value = state.selectedDate;
   document.getElementById("appointmentTime").value = "10:00";
+  document.getElementById("appointmentPrivateEndTime").value = "10:00";
+  document.getElementById("appointmentPrivateTitle").value = "";
+  document.getElementById("appointmentPrivateDetails").value = "";
   document.getElementById("appointmentStatus").value = "gepland";
   document.getElementById("appointmentStatusWrap").style.display = "none";
   document.getElementById("appointmentOpenCustomerBtn")?.classList.add("hidden");
@@ -5841,11 +5947,15 @@ function openEditAppointmentDialog(id) {
 
   document.getElementById("appointmentForm")?.classList.add("appointment-form-edit");
   document.getElementById("appointmentModalTitle").textContent = t("editAppointment");
+  setAppointmentPrivateMode(isPrivateAppointment(app));
   document.getElementById("appointmentId").value = app.id;
   setAppointmentCustomer(app.customerId);
   hideAppointmentCustomerResults();
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
+  document.getElementById("appointmentPrivateEndTime").value = app.privateEndTime || getAppointmentDisplayEndTime(app, 0) || "";
+  document.getElementById("appointmentPrivateTitle").value = app.privateTitle || "";
+  document.getElementById("appointmentPrivateDetails").value = app.privateDetails || "";
   setAppointmentService(app.serviceId, { updateSearch: true, updateDefaults: false });
   hideAppointmentServiceResults();
   document.getElementById("appointmentDuration").value = app.duration;
@@ -5853,8 +5963,8 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentStatus").value = app.status;
   const remarksInput = document.getElementById("appointmentRemarks");
   if (remarksInput) remarksInput.value = app.remarks || "";
-  document.getElementById("appointmentStatusWrap").style.display = "block";
-  document.getElementById("appointmentOpenCustomerBtn")?.classList.remove("hidden");
+  document.getElementById("appointmentStatusWrap").style.display = isPrivateAppointment(app) ? "none" : "block";
+  updateAppointmentOpenCustomerButton();
   syncAppointmentDateTimeDisplays();
 
   document.getElementById("deleteAppointmentBtn").style.visibility = "visible";
@@ -5983,6 +6093,11 @@ function openAppointmentActionPopover(id, anchorEl = null) {
   const data = getData();
   const app = data.appointments.find(a => String(a.id) === String(id));
   if (!app) return;
+
+  if (isPrivateAppointment(app)) {
+    openEditAppointmentDialog(id);
+    return;
+  }
 
   closePaymentPopover();
 
@@ -6778,22 +6893,40 @@ async function saveAppointmentFromForm(event) {
   const settings = getSettings();
 
   const selectedCustomerId = document.getElementById("appointmentCustomer").value;
+  const isPrivate = Boolean(document.getElementById("appointmentIsPrivate")?.checked);
+  if (isPrivate) syncPrivateEndTimeWithStart();
 
-  if (!selectedCustomerId) {
+  if (!isPrivate && !selectedCustomerId) {
     await appAlert("Kies eerst een klant uit de zoekresultaten.", { title: "Klant kiezen", variant: "warning" });
     document.getElementById("appointmentCustomerSearch")?.focus();
     return;
   }
 
+  const privateStartTime = document.getElementById("appointmentTime")?.value || "";
+  const privateEndTime = document.getElementById("appointmentPrivateEndTime")?.value || "";
+  const privateTitle = String(document.getElementById("appointmentPrivateTitle")?.value || "").trim();
+  if (isPrivate && (!privateTitle || !privateStartTime || !privateEndTime)) {
+    await appAlert("Vul voor een privé-afspraak minstens Tijd van, Tijd tot en een titel in.", { title: "Privé-afspraak", variant: "warning" });
+    return;
+  }
+  if (isPrivate && minutesFromTimeString(privateEndTime) < minutesFromTimeString(privateStartTime)) {
+    await appAlert("Tijd tot mag niet vroeger zijn dan Tijd van.", { title: "Privé-afspraak", variant: "warning" });
+    return;
+  }
+
   const localPayload = {
-    customerId: Number(selectedCustomerId),
+    customerId: isPrivate ? null : Number(selectedCustomerId),
     date: document.getElementById("appointmentDate").value,
     time: document.getElementById("appointmentTime").value,
-    serviceId: Number(document.getElementById("appointmentService").value),
-    duration: Number(document.getElementById("appointmentDuration").value),
-    price: Number(document.getElementById("appointmentPrice").value),
-    status: id ? document.getElementById("appointmentStatus").value : "gepland",
-    remarks: String(document.getElementById("appointmentRemarks")?.value || "").trim()
+    serviceId: isPrivate ? null : Number(document.getElementById("appointmentService").value),
+    duration: isPrivate ? calculatePrivateDuration(privateStartTime, privateEndTime) : Number(document.getElementById("appointmentDuration").value),
+    price: isPrivate ? 0 : Number(document.getElementById("appointmentPrice").value),
+    status: isPrivate ? "gepland" : (id ? document.getElementById("appointmentStatus").value : "gepland"),
+    remarks: isPrivate ? "" : String(document.getElementById("appointmentRemarks")?.value || "").trim(),
+    isPrivate,
+    privateTitle: isPrivate ? privateTitle : "",
+    privateDetails: isPrivate ? String(document.getElementById("appointmentPrivateDetails")?.value || "").trim() : "",
+    privateEndTime: isPrivate ? privateEndTime : ""
   };
 
   if (isAppointmentInPast(localPayload)) {
@@ -6859,10 +6992,14 @@ async function saveAppointmentFromForm(event) {
     duration: localPayload.duration,
     price: localPayload.price,
     status: localPayload.status,
-    paid: isPaid,
-    payment_method_label: isPaid ? existingPaymentMethodName : null,
+    paid: localPayload.isPrivate ? false : isPaid,
+    payment_method_label: localPayload.isPrivate ? null : (isPaid ? existingPaymentMethodName : null),
     currency: appointmentCurrency,
-    appointment_remarks: localPayload.remarks
+    appointment_remarks: localPayload.remarks,
+    is_private: localPayload.isPrivate,
+    private_title: localPayload.privateTitle || null,
+    private_details: localPayload.privateDetails || null,
+    private_end_time: localPayload.privateEndTime || null
   };
 
   let error;
@@ -7601,8 +7738,9 @@ function registerEvents() {
   document.getElementById("serviceSearch")?.addEventListener("input", renderServices);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
   document.getElementById("settingsForm")?.addEventListener("submit", withActionLock(saveSettingsFromForm));
-  document.getElementById("downloadCalendarIcsBtn")?.addEventListener("click", downloadAppointmentsIcs);
-  document.getElementById("openGoogleCalendarImportBtn")?.addEventListener("click", openGoogleCalendarImportPage);
+  document.getElementById("copyCalendarFeedUrlBtn")?.addEventListener("click", withActionLock(createOrCopyCalendarFeedUrl));
+  document.getElementById("openGoogleCalendarSubscribeBtn")?.addEventListener("click", withActionLock(openGoogleCalendarSubscribePage));
+  document.getElementById("regenerateCalendarFeedUrlBtn")?.addEventListener("click", withActionLock(regenerateCalendarFeedUrl));
   document.getElementById("settingsLanguage")?.addEventListener("change", event => {
     currentProfilePreferences.language = normalizeLanguage(event.target.value);
     const data = getData();
@@ -7631,7 +7769,13 @@ function registerEvents() {
   });
 
   document.getElementById("appointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date"));
-  document.getElementById("appointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time"));
+  document.getElementById("appointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentTime"));
+  document.getElementById("appointmentPrivateEndTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentPrivateEndTime"));
+  ["appointmentTime", "appointmentPrivateEndTime"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", syncPrivateEndTimeWithStart);
+    document.getElementById(id)?.addEventListener("input", syncPrivateEndTimeWithStart);
+  });
+  document.getElementById("appointmentIsPrivate")?.addEventListener("change", event => setAppointmentPrivateMode(event.target.checked));
   document.getElementById("appointmentDate")?.addEventListener("change", syncAppointmentDateTimeDisplays);
   document.getElementById("appointmentTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
 
@@ -7953,7 +8097,11 @@ async function loadAppointmentsFromSupabase() {
     paid: Boolean(a.paid),
     paymentMethodName: a.payment_method_label ?? null,
     currency: normalizeCurrency(a.currency || DEFAULT_CURRENCY),
-    remarks: String(a.appointment_remarks || a.remarks || "").trim()
+    remarks: String(a.appointment_remarks || a.remarks || "").trim(),
+    isPrivate: Boolean(a.is_private),
+    privateTitle: String(a.private_title || "").trim(),
+    privateDetails: String(a.private_details || "").trim(),
+    privateEndTime: a.private_end_time ? String(a.private_end_time).slice(0, 5) : ""
   }));
 }
 
@@ -8177,6 +8325,10 @@ function refreshAppSelect(select) {
 
 function enhanceAppSelect(select) {
   if (!select || select.dataset.appSelectReady === 'true') return;
+  if (isAppointmentPickerFallbackSelect(select)) {
+    unwrapHiddenAppointmentPickerSelect(select);
+    return;
+  }
   if (select.multiple) return;
 
   select.dataset.appSelectReady = 'true';
@@ -8258,13 +8410,57 @@ function rebuildSettingsSelectOptions() {
   }
 }
 
+function isAppointmentPickerFallbackSelect(select) {
+  return Boolean(select?.classList?.contains("appointment-customer-select-fallback") || select?.classList?.contains("appointment-service-select-fallback"));
+}
+
+function unwrapHiddenAppointmentPickerSelect(select) {
+  if (!isAppointmentPickerFallbackSelect(select)) return;
+
+  const wrap = select.closest(".app-select-wrap");
+  if (wrap) {
+    wrap.parentNode.insertBefore(select, wrap);
+    wrap.remove();
+  }
+
+  delete select.dataset.appSelectReady;
+  select.tabIndex = -1;
+  select.setAttribute("aria-hidden", "true");
+}
+
+function setupAppointmentPickerOutsideClose() {
+  if (document.body.dataset.appointmentPickerOutsideCloseReady === "true") return;
+  document.body.dataset.appointmentPickerOutsideCloseReady = "true";
+
+  document.addEventListener("pointerdown", event => {
+    if (!event.target.closest(".appointment-customer-picker")) {
+      hideAppointmentCustomerResults();
+    }
+    if (!event.target.closest(".appointment-service-picker")) {
+      hideAppointmentServiceResults();
+    }
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    hideAppointmentCustomerResults();
+    hideAppointmentServiceResults();
+  });
+}
+
 function setupAppSelectDropdowns() {
   rebuildSettingsSelectOptions();
 
   document.querySelectorAll('select').forEach(select => {
     select.removeAttribute('size');
-    enhanceAppSelect(select);
+    if (isAppointmentPickerFallbackSelect(select)) {
+      unwrapHiddenAppointmentPickerSelect(select);
+    } else {
+      enhanceAppSelect(select);
+    }
   });
+
+  setupAppointmentPickerOutsideClose();
 
   if (appSelectsReady) return;
   appSelectsReady = true;

@@ -5387,25 +5387,6 @@ body.auth-locked .fab {
   line-height: 1.45;
 }
 
-
-.calendar-export-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.calendar-export-actions .btn {
-  width: 100%;
-  text-align: center;
-}
-
-@media (min-width: 430px) {
-  .calendar-export-actions {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
 /* =========================================================
    OMZET: dynamische staafbreedte voor daggrafiek
 ========================================================= */
@@ -7311,6 +7292,49 @@ button.is-action-locked .app-action-nav-label {
 }
 
 /* =========================================================
+   GOOGLE KALENDER - automatische ICS-feed
+========================================================= */
+.calendar-feed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.calendar-feed-url-field {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-feed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.calendar-feed-actions .btn {
+  width: auto;
+}
+
+.calendar-feed-reset-btn {
+  margin-top: 0;
+}
+
+@media (max-width: 420px) {
+  .calendar-feed-row {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-feed-row .btn,
+  .calendar-feed-actions .btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
    FIX: datumkiezers afspraak/omzet met afspraak-bolletjes + swipe
 ========================================================= */
 .revenue-calendar-picker {
@@ -7379,4 +7403,99 @@ button.is-action-locked .app-action-nav-label {
     height: 3.5px;
     flex-basis: 3.5px;
   }
+}
+
+/* =========================================================
+   FIX: afspraak zoeklijsten zonder zichtbare select-dropdown
+========================================================= */
+#appointmentForm .appointment-customer-select-fallback,
+#appointmentForm .appointment-service-select-fallback {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#appointmentForm .appointment-customer-results:not(.hidden),
+#appointmentForm .appointment-service-results:not(.hidden) {
+  display: block !important;
+}
+
+/* =========================================================
+   PRIVÉ-AFSPRAKEN
+========================================================= */
+.appointment-private-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff8fb;
+  color: var(--primary-dark);
+  font-weight: 700;
+  user-select: none;
+}
+
+.appointment-private-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.appointment-private-field {
+  display: none;
+}
+
+#appointmentForm.appointment-private-mode .appointment-normal-field {
+  display: none !important;
+}
+
+#appointmentForm.appointment-private-mode .appointment-private-field {
+  display: block;
+}
+
+#appointmentForm.appointment-private-mode .appointment-date-field {
+  grid-column: 1 / -1;
+}
+
+#appointmentForm.appointment-private-mode .appointment-time-start-field {
+  grid-column: 1;
+}
+
+#appointmentForm.appointment-private-mode .appointment-private-end-field {
+  grid-column: 2;
+}
+
+.private-appointment-row {
+  background: #fff7e8;
+  border-left: 4px solid #d8a33a;
+}
+
+.private-appointment-row .main-name {
+  color: #8a5d00;
+}
+
+.private-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f2d88f;
+  color: #6f4a00;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.day-dots i.private-dot {
+  background: #d8a33a;
 }

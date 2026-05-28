@@ -386,16 +386,25 @@
 
                 <p class="settings-info-text">Deze gegevens worden gebruikt om een SEPA/bank-QR-code te maken. Klanten scannen de QR met hun bankapp.</p>
               </div>
+
               <div class="settings-group">
                 <div class="detail-label">Google kalender</div>
-                <p class="settings-info-text">Exporteer je NailBooker-afspraken als kalenderbestand (.ics). Importeer dit bestand daarna in Google Calendar.</p>
-                <div class="calendar-export-actions">
-                  <button id="downloadCalendarIcsBtn" class="btn btn-secondary action-btn" type="button">Download kalenderbestand</button>
-                  <button id="openGoogleCalendarImportBtn" class="btn btn-secondary action-btn" type="button">Open Google Calendar import</button>
-                </div>
-                <p class="settings-info-text">Dit is een eenvoudige éénrichtingskoppeling: wijzigingen in NailBooker exporteer je opnieuw naar Google Calendar.</p>
-              </div>
+                <p class="settings-info-text">Maak een persoonlijke kalenderlink en voeg die één keer toe in Google Calendar via <strong>Andere agenda’s → Via URL</strong>. Google haalt daarna automatisch de actuele NailBooker-afspraken op.</p>
 
+                <label class="field-label" for="calendarFeedUrl">Persoonlijke kalenderlink</label>
+                <div class="calendar-feed-row">
+                  <input id="calendarFeedUrl" class="field calendar-feed-url-field" type="text" readonly placeholder="Maak eerst een kalenderlink" />
+                  <button id="copyCalendarFeedUrlBtn" class="btn btn-secondary action-btn" type="button">Maak/kopieer link</button>
+                </div>
+
+                <div class="calendar-feed-actions">
+                  <button id="openGoogleCalendarSubscribeBtn" class="btn btn-secondary action-btn" type="button">Open Google Calendar</button>
+                  <button id="regenerateCalendarFeedUrlBtn" class="text-link-btn calendar-feed-reset-btn" type="button">Nieuwe link maken</button>
+                </div>
+
+                <p id="calendarFeedStatus" class="settings-info-text">Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.</p>
+                <p class="settings-info-text">Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.</p>
+              </div>
               <div class="settings-actions">
                 <span id="settingsSaveHint" class="settings-save-hint">Instellingen worden per gebruiker bewaard.</span>
                 <button class="btn btn-primary action-btn" type="submit" data-i18n="saveSettings">Instellingen opslaan</button>
@@ -704,8 +713,13 @@
 
       <input type="hidden" id="appointmentId" />
 
+      <label class="appointment-private-toggle" for="appointmentIsPrivate">
+        <input id="appointmentIsPrivate" type="checkbox" />
+        <span>Privé</span>
+      </label>
+
       <div class="appointment-form-grid">
-        <div class="appointment-form-field appointment-form-field-wide">
+        <div class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentCustomerSearch">Klant</label>
           <div class="appointment-customer-picker">
             <input
@@ -730,19 +744,19 @@
             </button>
         </div>
 
-        <div class="appointment-form-field">
+        <div class="appointment-form-field appointment-shared-field appointment-date-field">
           <label class="field-label" for="appointmentDate">Datum</label>
           <input id="appointmentDate" class="field appointment-native-picker-input" type="date" required tabindex="-1" aria-hidden="true" />
           <button id="appointmentDateDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Datum kiezen">Kies datum</button>
         </div>
 
-        <div class="appointment-form-field">
-          <label class="field-label" for="appointmentTime">Tijd</label>
+        <div class="appointment-form-field appointment-shared-field appointment-time-start-field">
+          <label id="appointmentTimeLabel" class="field-label" for="appointmentTime">Tijd</label>
           <input id="appointmentTime" class="field appointment-native-picker-input" type="time" required tabindex="-1" aria-hidden="true" />
           <button id="appointmentTimeDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Tijd kiezen">Kies tijd</button>
         </div>
 
-        <div class="appointment-form-field appointment-form-field-wide">
+        <div class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentServiceSearch">Dienst</label>
           <div class="appointment-service-picker">
             <input
@@ -759,17 +773,17 @@
           </div>
         </div>
 
-        <div class="appointment-form-field">
+        <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentDuration">Duur (min)</label>
           <input id="appointmentDuration" class="field" type="number" min="0" required />
         </div>
 
-        <div class="appointment-form-field">
+        <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentPrice">Prijs</label>
           <input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required />
         </div>
 
-        <div id="appointmentStatusWrap" class="appointment-form-field appointment-form-field-wide">
+        <div id="appointmentStatusWrap" class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentStatus">Status</label>
           <select id="appointmentStatus" class="field">
             <option value="gepland">Gepland</option>
@@ -778,9 +792,25 @@
           </select>
         </div>
 
-        <div class="appointment-form-field appointment-form-field-wide">
+        <div class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentRemarks">Opmerkingen</label>
           <textarea id="appointmentRemarks" class="field textarea" rows="3"></textarea>
+        </div>
+
+        <div class="appointment-form-field appointment-private-field appointment-private-end-field">
+          <label class="field-label" for="appointmentPrivateEndTime">Tijd tot</label>
+          <input id="appointmentPrivateEndTime" class="field appointment-native-picker-input" type="time" tabindex="-1" aria-hidden="true" />
+          <button id="appointmentPrivateEndTimeDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Eindtijd kiezen">Kies tijd</button>
+        </div>
+
+        <div class="appointment-form-field appointment-form-field-wide appointment-private-field">
+          <label class="field-label" for="appointmentPrivateTitle">Titel</label>
+          <input id="appointmentPrivateTitle" class="field" type="text" autocomplete="off" />
+        </div>
+
+        <div class="appointment-form-field appointment-form-field-wide appointment-private-field">
+          <label class="field-label" for="appointmentPrivateDetails">Details</label>
+          <textarea id="appointmentPrivateDetails" class="field textarea" rows="4"></textarea>
         </div>
       </div>
 
