@@ -1030,14 +1030,19 @@ function showAppDialog({
     const card = dialog?.querySelector(".app-message-card");
 
     if (!dialog || !titleEl || !messageEl || !confirmBtn || !cancelBtn || !card) {
+      const suspendedBusyDepth = suspendGlobalActionBusyForDialog();
       if (showCancel) {
-        resolve(window.confirm(message));
+        const result = window.confirm(message);
+        if (result) resumeGlobalActionBusyAfterDialog(suspendedBusyDepth);
+        resolve(result);
         return;
       }
       window.alert(message);
       resolve(true);
       return;
     }
+
+    const suspendedBusyDepth = suspendGlobalActionBusyForDialog();
 
     titleEl.textContent = title;
     setDialogMessage(messageEl, message);
@@ -1056,6 +1061,9 @@ function showAppDialog({
       confirmBtn.removeEventListener("click", onConfirm);
       cancelBtn.removeEventListener("click", onCancelClick);
       closeStyledDialog(dialog);
+      if (result === true && showCancel) {
+        resumeGlobalActionBusyAfterDialog(suspendedBusyDepth);
+      }
       resolve(result);
     };
 
@@ -1162,10 +1170,15 @@ function chooseRecurringAppointmentScope(action = "update") {
     const actions = dialog?.querySelector(".modal-actions") || dialog?.querySelector(".app-message-actions");
 
     if (!dialog || !titleEl || !messageEl || !confirmBtn || !cancelBtn || !card || !actions) {
+      const suspendedBusyDepth = suspendGlobalActionBusyForDialog();
       const wholeSeries = window.confirm(`Deze afspraak maakt deel uit van een herhalende reeks. OK = hele reeks ${actionLabel}, Annuleren = enkel deze afspraak.`);
-      resolve(wholeSeries ? "series" : "single");
+      const result = wholeSeries ? "series" : "single";
+      resumeGlobalActionBusyAfterDialog(suspendedBusyDepth);
+      resolve(result);
       return;
     }
+
+    const suspendedBusyDepth = suspendGlobalActionBusyForDialog();
 
     titleEl.textContent = action === "delete" ? "Herhalende afspraak verwijderen" : "Herhalende afspraak aanpassen";
     setDialogMessage(messageEl, `Deze afspraak maakt deel uit van een herhalende reeks. Wat wil je ${action === "delete" ? "verwijderen" : "aanpassen"}?`);
@@ -1201,6 +1214,9 @@ function chooseRecurringAppointmentScope(action = "update") {
       seriesBtn.remove();
       actions.classList.remove("recurrence-choice-actions");
       closeStyledDialog(dialog);
+      if (result) {
+        resumeGlobalActionBusyAfterDialog(suspendedBusyDepth);
+      }
       resolve(result);
     };
 
@@ -7033,7 +7049,7 @@ function renderPaymentPopoverOptions(app, data = getData()) {
   }).join("");
 
   list.querySelectorAll(".payment-method-popup-item").forEach(button => {
-    button.addEventListener("click", async event => {
+    button.addEventListener("click", withActionLock(async event => {
       event.stopPropagation();
       const methodName = button.dataset.paymentValue || "";
       const type = button.dataset.paymentType || "payment";
@@ -7046,7 +7062,7 @@ function renderPaymentPopoverOptions(app, data = getData()) {
         return;
       }
       await confirmPaymentSelection(methodName);
-    });
+    }));
   });
 }
 
@@ -8534,7 +8550,7 @@ function registerEvents() {
   document.getElementById("followUpAppointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "followUpAppointmentTime"));
   document.getElementById("followUpAppointmentDate")?.addEventListener("change", syncFollowUpDisplays);
   document.getElementById("followUpAppointmentTime")?.addEventListener("change", syncFollowUpDisplays);
-  document.getElementById("followUpAppointmentForm")?.addEventListener("submit", saveFollowUpAppointmentFromForm);
+  document.getElementById("followUpAppointmentForm")?.addEventListener("submit", withActionLock(saveFollowUpAppointmentFromForm));
 
   const appointmentWheelPickerForm = document.getElementById("appointmentWheelPickerForm");
   if (appointmentWheelPickerForm) {
@@ -8646,12 +8662,12 @@ function registerEvents() {
 
   const revenueExportCsvBtn = document.getElementById("revenueExportCsvBtn");
   if (revenueExportCsvBtn) {
-    revenueExportCsvBtn.addEventListener("click", downloadRevenueCsv);
+    revenueExportCsvBtn.addEventListener("click", withActionLock(downloadRevenueCsv));
   }
 
   const revenueExportReportBtn = document.getElementById("revenueExportReportBtn");
   if (revenueExportReportBtn) {
-    revenueExportReportBtn.addEventListener("click", downloadRevenueStyledReport);
+    revenueExportReportBtn.addEventListener("click", withActionLock(downloadRevenueStyledReport));
   }
 
   const registerBtn = document.getElementById("registerBtn");
@@ -9242,6 +9258,117 @@ function setupAppSelectDropdowns() {
 }
 
 
+let globalActionLockDepth = 0;
+let globalActionBusyTimer = null;
+let globalActionBusyHideTimer = null;
+let globalActionBusyVisibleSince = 0;
+const GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS = 420;
+
+function getAppBusyOverlay() {
+  return document.getElementById("appBusyOverlay");
+}
+
+function setGlobalActionBusyVisible(visible) {
+  const overlay = getAppBusyOverlay();
+
+  if (globalActionBusyHideTimer) {
+    clearTimeout(globalActionBusyHideTimer);
+    globalActionBusyHideTimer = null;
+  }
+
+  if (visible) {
+    globalActionBusyVisibleSince = Date.now();
+  }
+
+  document.body?.classList.toggle("app-is-busy", Boolean(visible));
+  if (!overlay) return;
+  overlay.classList.toggle("hidden", !visible);
+  overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+}
+
+function suspendGlobalActionBusyForDialog() {
+  const suspendedDepth = globalActionLockDepth;
+
+  if (globalActionBusyTimer) {
+    clearTimeout(globalActionBusyTimer);
+    globalActionBusyTimer = null;
+  }
+  if (globalActionBusyHideTimer) {
+    clearTimeout(globalActionBusyHideTimer);
+    globalActionBusyHideTimer = null;
+  }
+
+  globalActionLockDepth = 0;
+  setGlobalActionBusyVisible(false);
+  return suspendedDepth;
+}
+
+function resumeGlobalActionBusyAfterDialog(suspendedDepth) {
+  if (!suspendedDepth || suspendedDepth <= 0) return;
+  globalActionLockDepth = Math.max(globalActionLockDepth, suspendedDepth);
+  requestGlobalActionBusy({ immediate: true });
+}
+
+function requestGlobalActionBusy({ immediate = true, delay = 0 } = {}) {
+  if (globalActionLockDepth <= 0) return;
+  if (globalActionBusyTimer) {
+    clearTimeout(globalActionBusyTimer);
+    globalActionBusyTimer = null;
+  }
+
+  const show = () => {
+    if (globalActionLockDepth > 0) setGlobalActionBusyVisible(true);
+  };
+
+  if (immediate || delay <= 0) show();
+  else globalActionBusyTimer = window.setTimeout(show, delay);
+}
+
+function beginGlobalActionLock() {
+  globalActionLockDepth += 1;
+  requestGlobalActionBusy({ immediate: true });
+}
+
+function endGlobalActionLock() {
+  globalActionLockDepth = Math.max(0, globalActionLockDepth - 1);
+  if (globalActionLockDepth === 0) {
+    if (globalActionBusyTimer) {
+      clearTimeout(globalActionBusyTimer);
+      globalActionBusyTimer = null;
+    }
+
+    const elapsed = globalActionBusyVisibleSince ? Date.now() - globalActionBusyVisibleSince : GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS;
+    const remaining = Math.max(0, GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS - elapsed);
+
+    if (remaining > 0 && getAppBusyOverlay() && !getAppBusyOverlay().classList.contains("hidden")) {
+      globalActionBusyHideTimer = window.setTimeout(() => {
+        globalActionBusyHideTimer = null;
+        if (globalActionLockDepth === 0) setGlobalActionBusyVisible(false);
+      }, remaining);
+    } else {
+      setGlobalActionBusyVisible(false);
+    }
+  }
+}
+
+function blockInteractionWhileBusy(event) {
+  if (globalActionLockDepth <= 0) return;
+  const overlay = getAppBusyOverlay();
+
+  // Zodra een actie-lock actief is, blokkeren we alle interactie buiten de busy-overlay.
+  // Niet wachten tot de browser de overlay visueel heeft getekend, want net die korte tussenfase
+  // liet op iPhone nog swipes/klikken door bij snelle submits.
+  if (overlay && overlay.contains(event.target)) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation?.();
+  event.stopPropagation();
+}
+
+["click", "dblclick", "pointerdown", "touchstart", "touchmove", "wheel", "keydown"].forEach(type => {
+  document.addEventListener(type, blockInteractionWhileBusy, { capture: true, passive: false });
+});
+
 function getActionLockButton(event) {
   if (!event?.target) return null;
   if (event.target.matches?.('button')) return event.target;
@@ -9263,22 +9390,100 @@ function setActionLocked(button, locked) {
   }
 }
 
+function waitForBusyOverlayPaint() {
+  return new Promise(resolve => {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
 function withActionLock(handler) {
   return async function actionLockWrapper(event) {
     const button = getActionLockButton(event) || this?.querySelector?.('button[type="submit"], .btn-primary, .btn-danger, button');
-    if (button?.dataset?.actionLocked === "true") {
+    if (button?.dataset?.actionLocked === "true" || globalActionLockDepth > 0) {
       event?.preventDefault?.();
+      event?.stopImmediatePropagation?.();
       event?.stopPropagation?.();
       return;
     }
 
+    beginGlobalActionLock();
     setActionLocked(button, true);
     try {
+      // Geef de browser eerst tijd om de overlay écht te tekenen.
+      // Zonder deze paint-pauze zijn korte/medium acties soms klaar vóór de gebruiker iets ziet,
+      // terwijl interactie in die fractie toch nog mogelijk voelt.
+      await waitForBusyOverlayPaint();
       return await handler.call(this, event);
     } finally {
       setActionLocked(button, false);
+      endGlobalActionLock();
     }
   };
+}
+
+async function runWithGlobalActionBusy(work) {
+  beginGlobalActionLock();
+  try {
+    await waitForBusyOverlayPaint();
+    return await work();
+  } finally {
+    endGlobalActionLock();
+  }
+}
+
+function wrapSupabaseWriteThenableWithBusy(query) {
+  if (!query || query.__nailbookerBusyWrapped) return query;
+  const originalThen = typeof query.then === "function" ? query.then.bind(query) : null;
+  if (!originalThen) return query;
+
+  Object.defineProperty(query, "__nailbookerBusyWrapped", { value: true, configurable: true });
+  query.then = function nailbookerBusyThen(onFulfilled, onRejected) {
+    beginGlobalActionLock();
+    return originalThen(
+      value => {
+        endGlobalActionLock();
+        return typeof onFulfilled === "function" ? onFulfilled(value) : value;
+      },
+      error => {
+        endGlobalActionLock();
+        if (typeof onRejected === "function") return onRejected(error);
+        throw error;
+      }
+    );
+  };
+  return query;
+}
+
+function installSupabaseWriteBusyPatch() {
+  if (typeof supabaseClient === "undefined" || !supabaseClient || supabaseClient.__nailbookerBusyPatchInstalled) return;
+
+  const originalFrom = typeof supabaseClient.from === "function" ? supabaseClient.from.bind(supabaseClient) : null;
+  if (originalFrom) {
+    supabaseClient.from = function nailbookerBusyFrom(...args) {
+      const builder = originalFrom(...args);
+      ["insert", "update", "upsert", "delete"].forEach(methodName => {
+        if (!builder || typeof builder[methodName] !== "function" || builder[methodName].__nailbookerBusyPatched) return;
+        const originalMethod = builder[methodName].bind(builder);
+        const patchedMethod = function nailbookerBusyWriteMethod(...methodArgs) {
+          return wrapSupabaseWriteThenableWithBusy(originalMethod(...methodArgs));
+        };
+        Object.defineProperty(patchedMethod, "__nailbookerBusyPatched", { value: true });
+        builder[methodName] = patchedMethod;
+      });
+      return builder;
+    };
+  }
+
+  if (supabaseClient.auth && typeof supabaseClient.auth.updateUser === "function") {
+    const originalUpdateUser = supabaseClient.auth.updateUser.bind(supabaseClient.auth);
+    supabaseClient.auth.updateUser = (...args) => runWithGlobalActionBusy(() => originalUpdateUser(...args));
+  }
+
+  Object.defineProperty(supabaseClient, "__nailbookerBusyPatchInstalled", { value: true, configurable: true });
 }
 
 async function initAppData() {
@@ -9292,6 +9497,7 @@ async function initAppData() {
 
 async function startApp() {
 	await registerServiceWorker();
+	installSupabaseWriteBusyPatch();
 	await initAppData();
 	registerEvents();
 	await syncAuthUI();

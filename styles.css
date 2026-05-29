@@ -7652,11 +7652,11 @@ button.is-action-locked .app-action-nav-label {
 
 .settings-hero-logo {
   display: block;
-  width: min(190px, 62vw);
-  max-height: 46px;
+  width: min(250px, 62vw);
+  max-height: 160px;
   object-fit: contain;
   object-position: left center;
-  margin: 0 0 8px;
+  margin: 0 0 15px;
 }
 
 .settings-kicker {
@@ -8058,4 +8058,86 @@ button.is-action-locked .app-action-nav-label {
   #appMessageDialogActions.recurrence-choice-actions #appMessageCancelBtn {
     grid-column: 1 / -1;
   }
+}
+
+
+/* =========================================================
+   GLOBALE ACTIE-OVERLAY
+   Blokkeert klikken, swipen en navigeren terwijl een actie bezig is.
+========================================================= */
+.app-busy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  background: rgba(255, 248, 251, 0.58);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.app-busy-overlay.hidden {
+  display: none !important;
+}
+
+body.app-is-busy {
+  cursor: wait;
+}
+
+body.app-is-busy .app-shell,
+body.app-is-busy .fab,
+body.app-is-busy .client-action-bar,
+body.app-is-busy .revenue-action-bar {
+  pointer-events: none;
+  user-select: none;
+}
+
+.app-busy-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 170px;
+  justify-content: center;
+  padding: 15px 18px;
+  border: 1px solid rgba(217, 145, 171, 0.28);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--primary-dark);
+  box-shadow: 0 18px 42px rgba(84, 48, 65, 0.18);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.app-busy-spinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 3px solid rgba(217, 145, 171, 0.28);
+  border-top-color: var(--primary-dark);
+  animation: appBusySpin 0.8s linear infinite;
+}
+
+@keyframes appBusySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Correctie: busy-overlay moet onmiddellijk alles blokkeren op iPhone/Android. */
+.app-busy-overlay {
+  pointer-events: auto !important;
+  z-index: 2147483000 !important;
+}
+
+body.app-is-busy {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
+  touch-action: none !important;
 }
