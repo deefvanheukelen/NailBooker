@@ -160,7 +160,7 @@
               id="serviceSearch"
               class="search-input"
               type="search"
-              placeholder="Zoek dienst..." data-i18n-placeholder="searchServicePlaceholder"
+              placeholder="Zoek op beschrijving of kernwoord" data-i18n-placeholder="searchServicePlaceholder"
             />
             <div id="serviceAlphabetFilter" class="alphabet-filter"></div>
           </div>
@@ -315,97 +315,139 @@
 
       <!-- ===================== INSTELLINGEN ================ -->
       <section id="settingsScreen" class="screen">
-        <section class="detail-panel">
-          <div class="scroll-list">
-            <form id="settingsForm" class="settings-card" method="dialog">
-              <div class="settings-group">
-                <div class="detail-label">Planning</div>
-
-                <label class="field-label" for="settingsDefaultBreakMinutes">Standaard pauze tussen 2 afspraken (min)</label>
-                <input id="settingsDefaultBreakMinutes" class="field" type="number" min="0" step="1" />
-
-                <label class="settings-switch-row" for="settingsOverlapWarningsEnabled">
-                  <span>
-                    <strong>Overlapwaarschuwingen</strong>
-                    <small>Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.</small>
-                  </span>
-                  <input id="settingsOverlapWarningsEnabled" type="checkbox" />
-                </label>
-              </div>
-
-              <div class="settings-group">
-                <div class="detail-label">Meldingen</div>
-
-                <label class="settings-switch-row" for="settingsNotificationsEnabled">
-                  <span>
-                    <strong>Meldingen inschakelen</strong>
-                    <small>Voorbereid voor afspraakherinneringen in de app.</small>
-                  </span>
-                  <input id="settingsNotificationsEnabled" type="checkbox" />
-                </label>
-
-                <div id="settingsReminderWrap">
-                  <label class="field-label" for="settingsReminderMinutes">Herinnering vóór afspraak</label>
-                  <select id="settingsReminderMinutes" class="field">
-                    <option value="5">5 minuten</option>
-                    <option value="10">10 minuten</option>
-                    <option value="15">15 minuten</option>
-                    <option value="30">30 minuten</option>
-                    <option value="60">1 uur</option>
-                    <option value="1440">24 uur</option>
-                  </select>
+        <section class="settings-page">
+          <div class="settings-scroll">
+            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog">
+              <div class="settings-hero">
+                <div>
+                  <img class="settings-hero-logo" src="img/logo-landscape.png" alt="NailBooker logo" />
+                  <h2>Instellingen</h2>
+                  <p>Beheer je planning, meldingen, app-voorkeuren, betaalgegevens en kalenderkoppeling op één overzichtelijke plaats.</p>
                 </div>
+                <span id="settingsDirtyBadge" class="settings-dirty-badge hidden">Niet opgeslagen</span>
               </div>
 
+              <div class="settings-section-grid">
+                <section class="settings-section-card">
+                  <div class="settings-section-head">
+                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.1-1.64a.5.5 0 0 0 .12-.64l-1.98-3.43a.5.5 0 0 0-.61-.22l-2.47 1a7.26 7.26 0 0 0-1.7-.98l-.38-2.63A.5.5 0 0 0 14.02 2h-4.04a.5.5 0 0 0-.49.42L9.11 5.1a7.26 7.26 0 0 0-1.7.98l-2.47-1a.5.5 0 0 0-.61.22L2.35 8.74a.5.5 0 0 0 .12.64l2.1 1.64c-.05.32-.07.65-.07.98s.02.66.07.98l-2.1 1.64a.5.5 0 0 0-.12.64l1.98 3.43a.5.5 0 0 0 .61.22l2.47-1c.52.4 1.09.73 1.7.98l.38 2.63a.5.5 0 0 0 .49.42h4.04a.5.5 0 0 0 .49-.42l.38-2.63c.61-.25 1.18-.58 1.7-.98l2.47 1a.5.5 0 0 0 .61-.22l1.98-3.43a.5.5 0 0 0-.12-.64l-2.1-1.64ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg></span>
+                    <div>
+                      <div class="detail-label" data-i18n="appPreferences">App-voorkeuren</div>
+                      <p>Taal en valuta voor nieuwe gegevens.</p>
+                    </div>
+                  </div>
 
-              <div class="settings-group">
-                <div class="detail-label" data-i18n="appPreferences">App-voorkeuren</div>
+                  <label class="field-label" for="settingsLanguage" data-i18n="language">Taal</label>
+                  <select id="settingsLanguage" class="field"></select>
 
-                <label class="field-label" for="settingsLanguage" data-i18n="language">Taal</label>
-                <select id="settingsLanguage" class="field"></select>
+                  <label class="field-label" for="settingsCurrency" data-i18n="currency">Valuta</label>
+                  <select id="settingsCurrency" class="field"></select>
+                  <p class="settings-info-text" data-i18n="currencyChangeWarning">Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.</p>
+                </section>
 
-                <label class="field-label" for="settingsCurrency" data-i18n="currency">Valuta</label>
-                <select id="settingsCurrency" class="field"></select>
-                <p class="settings-info-text" data-i18n="currencyChangeWarning">Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.</p>
+                <section class="settings-section-card">
+                  <div class="settings-section-head">
+                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="M2.39.08c-.14.001-.25.114-.255.254v.527h-.63c-.5 0-.906.407-.906.906V6.32c0 .498.407.904.906.904h4.63c.498 0 .906-.406.906-.904V1.767c0-.498-.408-.906-.906-.906h-.596V.336A.254.254 0 0 0 5.283.082a.254.254 0 0 0-.254.254v.525H2.644V.336A.254.254 0 0 0 2.39.082ZM1.504 1.207h.63v.252a.254.254 0 1 0 .51 0v-.252h2.385v.252a.254.254 0 1 0 .51 0v-.252h.595c.313 0 .561.247.561.56v.205H.944v-.205c0-.313.247-.56.56-.56Zm-.56 1.221h5.751v3.893c0 .313-.248.558-.561.558h-4.63c-.313 0-.56-.245-.56-.558Z"/><path d="M5.04 3.06a.33.33 0 0 0-.26.13L3.44 5.03l-.53-.55a.328.328 0 0 0-.463.457l1.07 1.11 1.792-2.47a.328.328 0 0 0-.273-.518Z"/></svg></span>
+                    <div>
+                      <div class="detail-label">Planning</div>
+                      <p>Standaardgedrag bij het maken en controleren van afspraken.</p>
+                    </div>
+                  </div>
+
+                  <label class="field-label" for="settingsDefaultBreakMinutes">Standaard pauze tussen 2 afspraken (min)</label>
+                  <input id="settingsDefaultBreakMinutes" class="field" type="number" min="0" step="1" />
+
+                  <label class="settings-switch-row" for="settingsOverlapWarningsEnabled">
+                    <span>
+                      <strong>Overlapwaarschuwingen</strong>
+                      <small>Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.</small>
+                    </span>
+                    <input id="settingsOverlapWarningsEnabled" type="checkbox" />
+                  </label>
+                </section>
+
+                <section class="settings-section-card">
+                  <div class="settings-section-head">
+                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22a2.4 2.4 0 0 0 2.35-1.9h-4.7A2.4 2.4 0 0 0 12 22Zm7.2-5.35-1.35-1.8V10a5.86 5.86 0 0 0-4.45-5.7V3a1.4 1.4 0 1 0-2.8 0v1.3A5.86 5.86 0 0 0 6.15 10v4.85l-1.35 1.8A1.25 1.25 0 0 0 5.8 18.65h12.4a1.25 1.25 0 0 0 1-2Z"/></svg></span>
+                    <div>
+                      <div class="detail-label">Meldingen</div>
+                      <p>Voorbereid voor afspraakherinneringen in de app.</p>
+                    </div>
+                  </div>
+
+                  <label class="settings-switch-row" for="settingsNotificationsEnabled">
+                    <span>
+                      <strong>Meldingen inschakelen</strong>
+                      <small>Voorbereid voor afspraakherinneringen in de app.</small>
+                    </span>
+                    <input id="settingsNotificationsEnabled" type="checkbox" />
+                  </label>
+
+                  <div id="settingsReminderWrap">
+                    <label class="field-label" for="settingsReminderMinutes">Herinnering vóór afspraak</label>
+                    <select id="settingsReminderMinutes" class="field">
+                      <option value="5">5 minuten</option>
+                      <option value="10">10 minuten</option>
+                      <option value="15">15 minuten</option>
+                      <option value="30">30 minuten</option>
+                      <option value="60">1 uur</option>
+                      <option value="1440">24 uur</option>
+                    </select>
+                  </div>
+                </section>
+
+                <section class="settings-section-card">
+                  <div class="settings-section-head">
+                    <span class="settings-section-icon settings-section-icon-qr" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm4 0h2v4h-4v-2h2v-2Zm-6 4h2v4h-2v-4Zm4 2h2v2h-2v-2Zm2-2h2v2h-2v-2Z"/></svg></span>
+                    <div>
+                      <div class="detail-label">Betaalgegevens QR-code</div>
+                      <p>Gegevens voor SEPA/bank-QR-codes bij betalingen.</p>
+                    </div>
+                  </div>
+
+                  <label class="field-label" for="settingsPaymentBeneficiaryName">Naam begunstigde</label>
+                  <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" />
+
+                  <label class="field-label" for="settingsPaymentIban">IBAN</label>
+                  <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
+
+                  <label class="field-label" for="settingsPaymentBic">BIC <span class="optional-label">optioneel</span></label>
+                  <input id="settingsPaymentBic" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Bijv. GEBABEBB" />
+
+                  <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling/prefix</label>
+                  <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" placeholder="Idle & Ease" />
+
+                  <p class="settings-info-text">Deze gegevens worden gebruikt om een SEPA/bank-QR-code te maken. Klanten scannen de QR met hun bankapp.</p>
+                </section>
+
+                <section class="settings-section-card settings-section-card-wide">
+                  <div class="settings-section-head">
+                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H6V3a1 1 0 0 1 1-1ZM4 9v9.5c0 .28.22.5.5.5h15a.5.5 0 0 0 .5-.5V9H4Zm11.2 2.6a1 1 0 0 1 1.4 1.43l-4.5 4.4a1 1 0 0 1-1.4 0l-2.25-2.2a1 1 0 1 1 1.4-1.43l1.55 1.52 3.8-3.72Z"/></svg></span>
+                    <div>
+                      <div class="detail-label">Google kalender</div>
+                      <p>Synchroniseer NailBooker-afspraken via een persoonlijke kalenderlink.</p>
+                    </div>
+                  </div>
+
+                  <p class="settings-info-text">Maak een persoonlijke kalenderlink en voeg die één keer toe in Google Calendar via <strong>Andere agenda’s → Via URL</strong>. Google haalt daarna automatisch de actuele NailBooker-afspraken op.</p>
+
+                  <label class="field-label" for="calendarFeedUrl">Persoonlijke kalenderlink</label>
+                  <div class="calendar-feed-row">
+                    <input id="calendarFeedUrl" class="field calendar-feed-url-field" type="text" readonly placeholder="Maak eerst een kalenderlink" />
+                    <button id="copyCalendarFeedUrlBtn" class="btn btn-secondary action-btn" type="button">Maak/kopieer link</button>
+                  </div>
+
+                  <div class="calendar-feed-actions">
+                    <button id="openGoogleCalendarSubscribeBtn" class="btn btn-secondary action-btn" type="button">Open Google Calendar</button>
+                    <button id="regenerateCalendarFeedUrlBtn" class="text-link-btn calendar-feed-reset-btn" type="button">Nieuwe link maken</button>
+                  </div>
+
+                  <p id="calendarFeedStatus" class="settings-info-text">Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.</p>
+                  <p class="settings-info-text">Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.</p>
+                </section>
               </div>
 
-              <div class="settings-group">
-                <div class="detail-label">Betaalgegevens QR-code</div>
-
-                <label class="field-label" for="settingsPaymentBeneficiaryName">Naam begunstigde</label>
-                <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" />
-
-                <label class="field-label" for="settingsPaymentIban">IBAN</label>
-                <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
-
-                <label class="field-label" for="settingsPaymentBic">BIC <span class="optional-label">optioneel</span></label>
-                <input id="settingsPaymentBic" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Bijv. GEBABEBB" />
-
-                <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling/prefix</label>
-                <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" placeholder="Idle & Ease" />
-
-                <p class="settings-info-text">Deze gegevens worden gebruikt om een SEPA/bank-QR-code te maken. Klanten scannen de QR met hun bankapp.</p>
-              </div>
-
-              <div class="settings-group">
-                <div class="detail-label">Google kalender</div>
-                <p class="settings-info-text">Maak een persoonlijke kalenderlink en voeg die één keer toe in Google Calendar via <strong>Andere agenda’s → Via URL</strong>. Google haalt daarna automatisch de actuele NailBooker-afspraken op.</p>
-
-                <label class="field-label" for="calendarFeedUrl">Persoonlijke kalenderlink</label>
-                <div class="calendar-feed-row">
-                  <input id="calendarFeedUrl" class="field calendar-feed-url-field" type="text" readonly placeholder="Maak eerst een kalenderlink" />
-                  <button id="copyCalendarFeedUrlBtn" class="btn btn-secondary action-btn" type="button">Maak/kopieer link</button>
-                </div>
-
-                <div class="calendar-feed-actions">
-                  <button id="openGoogleCalendarSubscribeBtn" class="btn btn-secondary action-btn" type="button">Open Google Calendar</button>
-                  <button id="regenerateCalendarFeedUrlBtn" class="text-link-btn calendar-feed-reset-btn" type="button">Nieuwe link maken</button>
-                </div>
-
-                <p id="calendarFeedStatus" class="settings-info-text">Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.</p>
-                <p class="settings-info-text">Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.</p>
-              </div>
-              <div class="settings-actions">
+              <div class="settings-actions settings-actions-sticky">
                 <span id="settingsSaveHint" class="settings-save-hint">Instellingen worden per gebruiker bewaard.</span>
                 <button class="btn btn-primary action-btn" type="submit" data-i18n="saveSettings">Instellingen opslaan</button>
               </div>
@@ -763,7 +805,7 @@
               id="appointmentServiceSearch"
               class="field appointment-service-search"
               type="search"
-              placeholder="Zoek dienst..." data-i18n-placeholder="searchServicePlaceholder"
+              placeholder="Zoek op beschrijving of kernwoord" data-i18n-placeholder="searchServicePlaceholder"
               autocomplete="off"
               aria-controls="appointmentServiceResults"
               aria-expanded="false"
@@ -808,7 +850,12 @@
           <select id="appointmentPrivateRepeat" class="field">
             <option value="none">Niet herhaald</option>
             <option value="daily">Dagelijks</option>
-            <option id="appointmentPrivateRepeatWeeklyOption" value="weekly">Wekelijks</option>
+            <option value="weekly">Wekelijks</option>
+            <option value="biweekly">Om de 2 weken</option>
+            <option value="triweekly">Om de 3 weken</option>
+            <option value="monthly">Maandelijks</option>
+            <option value="quarterly">Om de 3 maanden</option>
+            <option value="semiannual">Om de 6 maanden</option>
             <option value="yearly">Jaarlijks</option>
           </select>
         </div>

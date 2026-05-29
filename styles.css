@@ -7602,3 +7602,460 @@ button.is-action-locked .app-action-nav-label {
   display: none !important;
 }
 
+
+
+/* =========================================================
+   INSTELLINGEN - OVERZICHTELIJKE APP-LAYOUT
+========================================================= */
+#settingsScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+  background: #fbf7f9;
+}
+
+.settings-page {
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(248, 232, 238, 0.88), transparent 34%),
+    linear-gradient(180deg, #fffdfd 0%, #fbf7f9 100%);
+}
+
+.settings-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 12px 108px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-card-modern {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.settings-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+}
+
+.settings-hero-logo {
+  display: block;
+  width: min(190px, 62vw);
+  max-height: 46px;
+  object-fit: contain;
+  object-position: left center;
+  margin: 0 0 8px;
+}
+
+.settings-kicker {
+  margin: 0 0 5px;
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-hero h2 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.settings-hero p {
+  margin: 8px 0 0;
+  max-width: 34rem;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.settings-dirty-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 7px 10px;
+  border: 1px solid #eac9d5;
+  border-radius: 999px;
+  background: #fff5f8;
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.settings-section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-section-card {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+}
+
+.settings-section-card .field {
+  background: #fffdfd;
+}
+
+.settings-section-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.settings-section-head .detail-label {
+  margin: 0 0 4px;
+  color: var(--primary-dark);
+}
+
+.settings-section-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.settings-section-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #f0dce5;
+  border-radius: 15px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  line-height: 1;
+}
+
+.settings-svg-icon {
+  width: 23px;
+  height: 23px;
+  display: block;
+  fill: currentColor;
+}
+
+.settings-section-icon-qr .settings-svg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.settings-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #f1e2e9;
+  border-radius: 18px;
+  background: #fffafb;
+}
+
+.settings-switch-row span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.settings-switch-row strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.settings-switch-row small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-switch-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.settings-info-text {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.calendar-feed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.calendar-feed-url-field {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.calendar-feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.calendar-feed-reset-btn {
+  margin-top: 0;
+}
+
+.settings-actions {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-actions-sticky {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-top: 2px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -6px 18px rgba(170, 120, 145, 0.10);
+  backdrop-filter: blur(10px);
+}
+
+.settings-save-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-card-modern.is-dirty .settings-actions-sticky {
+  display: grid;
+  border-color: #e7bfd0;
+  background: #fff8fb;
+}
+
+.settings-card-modern.is-dirty .settings-save-hint {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+@media (min-width: 700px) {
+  .settings-section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-section-card-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .settings-scroll {
+    padding: 12px 8px 104px;
+  }
+
+  .settings-hero,
+  .settings-section-card {
+    border-radius: 18px;
+  }
+
+  .settings-hero {
+    flex-direction: column;
+    padding: 16px 14px;
+  }
+
+  .settings-dirty-badge {
+    align-self: flex-start;
+  }
+
+  .settings-section-card {
+    padding: 14px 12px;
+  }
+
+  .settings-section-head {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .settings-section-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+  }
+
+  .settings-svg-icon {
+    width: 21px;
+    height: 21px;
+  }
+
+  .calendar-feed-row {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-feed-row .btn {
+    width: 100%;
+  }
+
+  .calendar-feed-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* =========================================================
+   MOBIELE POP-UPS / IPHONE VIEWPORT FIX
+   Zorgt dat dialogs, wheel-pickers en popovers nooit buiten het scherm vallen.
+========================================================= */
+.modal {
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  overflow: hidden;
+}
+
+.modal-card,
+.revenue-wheel-card,
+.appointment-wheel-card,
+.payment-qr-dialog-card,
+.app-message-card {
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal .field,
+.modal input,
+.modal select,
+.modal textarea {
+  font-size: 16px;
+}
+
+.payment-popover,
+.appointment-action-popover {
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--bottom-nav-height) - 16px);
+  overflow: visible;
+}
+
+.payment-popover-card {
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payment-method-popup-list,
+.appointment-action-list {
+  max-height: min(280px, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--bottom-nav-height) - 150px));
+}
+
+.appointment-customer-results,
+.appointment-service-results {
+  max-height: min(260px, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px));
+}
+
+@media (max-width: 420px) {
+  .modal {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+  }
+
+  .modal-card,
+  .revenue-wheel-card,
+  .appointment-wheel-card,
+  .payment-qr-dialog-card,
+  .app-message-card {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+  }
+
+  .payment-qr-dialog-image {
+    width: min(230px, 62vw);
+    height: min(230px, 62vw);
+  }
+
+  .payment-qr-dialog-code-wrap {
+    width: min(260px, 100%);
+    padding: 10px;
+  }
+
+  #paymentQrPopover.payment-qr-popover {
+    right: max(8px, env(safe-area-inset-right)) !important;
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 8px) !important;
+  }
+}
+
+@media (max-height: 700px) {
+  .revenue-wheel-column {
+    height: min(220px, 34dvh);
+    padding-top: 72px;
+    padding-bottom: 72px;
+  }
+
+  .revenue-wheel-shell {
+    padding: 10px 0;
+  }
+
+  .modal-head {
+    margin-bottom: 6px;
+  }
+
+  .modal-actions {
+    margin-top: 12px;
+  }
+}
+
+/* Keuzevenster voor herhalende afspraken */
+#appMessageDialogActions.recurrence-choice-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  justify-content: stretch;
+}
+
+#appMessageDialogActions.recurrence-choice-actions .btn {
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+@media (min-width: 421px) {
+  #appMessageDialogActions.recurrence-choice-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #appMessageDialogActions.recurrence-choice-actions #appMessageCancelBtn {
+    grid-column: 1 / -1;
+  }
+}

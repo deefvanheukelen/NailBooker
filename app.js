@@ -63,7 +63,7 @@ Object.keys(i18nExtra).forEach(lang => Object.assign(i18n[lang], i18nExtra[lang]
 const i18nMore = {
   "nl-BE": {
     mondayShort:"Ma", tuesdayShort:"Di", wednesdayShort:"Wo", thursdayShort:"Do", fridayShort:"Vr", saturdayShort:"Za", sundayShort:"Zo",
-    searchClientPlaceholder:"Zoek klant...", searchAppointmentCustomerPlaceholder:"Zoek op naam, telefoon of e-mail...", searchServicePlaceholder:"Zoek dienst...",
+    searchClientPlaceholder:"Zoek klant...", searchAppointmentCustomerPlaceholder:"Zoek op naam, telefoon of e-mail...", searchServicePlaceholder:"Zoek op beschrijving of kernwoord",
     delete:"Verwijderen", edit:"Bewerk", editClient:"Klant bewerken", editService:"Dienst bewerken", editPaymentMethod:"Betaalwijze bewerken", reactivateService:"Dienst opnieuw actief zetten", reactivateServiceHint:"De dienst verschijnt opnieuw in de actieve dienstenlijst en bij nieuwe afspraken.",
     customerNumber:"Klantnummer", appointments:"Afspraken", totalLower:"totaal", noAppointmentsYet:"Nog geen afspraken.", noPaymentMethods:"Nog geen betaalwijzen.", paymentSingular:"betaling", paymentPlural:"betalingen",
     customerCount:"Aantal klanten", pastAppointments:"Afgeronde afspraken", futureAppointments:"Geplande afspraken", totalRevenueUntilToday:"Totale omzet tot vandaag", chosenServices:"Gekozen behandelingen", revenueByService:"Omzet per behandeling", chosenPaymentMethod:"Gekozen betaalwijze", topCustomers:"Top klanten", all:"Alle", noCustomerStats:"Nog geen klantgegevens beschikbaar.", more:"Meer...", less:"Minder",
@@ -232,7 +232,7 @@ function updateStaticI18n() {
   });
 
   const settingsLabels = document.querySelectorAll("#settingsScreen .detail-label");
-  [[0, "planning"], [1, "notifications"]].forEach(([index, key]) => {
+  [[1, "planning"], [2, "notifications"]].forEach(([index, key]) => {
     if (settingsLabels[index]) settingsLabels[index].textContent = t(key);
   });
 
@@ -330,6 +330,8 @@ const state = {
   clientLetter: "",
   serviceLetter: "",
   settingsSavePending: false,
+  settingsDirty: false,
+  settingsInitialSignature: "",
   statsTopCustomersVisible: 10,
   revenueInitialized: false,
   revenueSelectedDateSynced: null,
@@ -692,8 +694,18 @@ function isPrivateAppointment(appointment) {
 
 function getVirtualPrivateRecurrenceAppointments(data = getData()) {
   const appointments = Array.isArray(data?.appointments) ? data.appointments : [];
-  const counts = { daily: 365, weekly: 52, yearly: 5 };
-  const stepDays = { daily: 1, weekly: 7 };
+  const counts = {
+    daily: 365,
+    weekly: 52,
+    biweekly: 26,
+    triweekly: 18,
+    monthly: 24,
+    quarterly: 12,
+    semiannual: 10,
+    yearly: 5
+  };
+  const stepDays = { daily: 1, weekly: 7, biweekly: 14, triweekly: 21 };
+  const stepMonths = { monthly: 1, quarterly: 3, semiannual: 6 };
 
   return appointments.flatMap(appointment => {
     const rule = appointment?.recurrenceRule || appointment?.recurrence_rule || "none";
@@ -708,6 +720,7 @@ function getVirtualPrivateRecurrenceAppointments(data = getData()) {
     return Array.from({ length: total }, (_, index) => {
       const d = new Date(startDate);
       if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
+      else if (stepMonths[rule]) d.setMonth(startDate.getMonth() + (stepMonths[rule] * index));
       else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
 
       return {
@@ -1092,6 +1105,118 @@ async function appConfirm(message, options = {}) {
     cancelText: options.cancelText || t("cancel"),
     showCancel: true,
     variant: options.variant || "warning"
+  });
+}
+
+
+function isRecurringAppointment(appointment) {
+  return Boolean(appointment?.recurrenceGroupId || appointment?.recurrence_group_id) && String(appointment?.recurrenceRule || appointment?.recurrence_rule || "none") !== "none";
+}
+
+function getAppointmentRecurrenceGroupId(appointment) {
+  return appointment?.recurrenceGroupId || appointment?.recurrence_group_id || null;
+}
+
+function dayDiff(dateA, dateB) {
+  const a = new Date(String(dateA || todayStr) + "T00:00:00");
+  const b = new Date(String(dateB || todayStr) + "T00:00:00");
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+
+function applyRecurringEditToAppointment(appointment, localPayload, originalAppointment, scope = "single") {
+  const dateShift = scope === "single" ? 0 : dayDiff(localPayload.date, originalAppointment.date);
+  const nextDate = scope === "single" ? localPayload.date : addDaysStr(appointment.date, dateShift);
+  return {
+    ...appointment,
+    ...localPayload,
+    id: appointment.id,
+    date: nextDate,
+    paid: appointment.paid,
+    paymentMethodName: appointment.paymentMethodName ?? paymentMethodNameForAppointment(appointment),
+    currency: appointment.currency || getCurrentCurrency(),
+    recurrenceGroupId: getAppointmentRecurrenceGroupId(originalAppointment),
+    recurrenceRule: localPayload.recurrenceRule || originalAppointment.recurrenceRule || "none"
+  };
+}
+
+function getRecurringAffectedAppointments(data, originalAppointment, scope = "single") {
+  if (!isRecurringAppointment(originalAppointment) || scope === "single") return [originalAppointment];
+  const groupId = getAppointmentRecurrenceGroupId(originalAppointment);
+  return (data.appointments || []).filter(appointment => {
+    if (String(getAppointmentRecurrenceGroupId(appointment)) !== String(groupId)) return false;
+    if (scope === "following") return String(appointment.date || "") >= String(originalAppointment.date || "");
+    return true;
+  });
+}
+
+function chooseRecurringAppointmentScope(action = "update") {
+  const actionLabel = action === "delete" ? "verwijderd" : "aangepast";
+  return new Promise(resolve => {
+    const dialog = document.getElementById("appMessageDialog");
+    const titleEl = document.getElementById("appMessageDialogTitle");
+    const messageEl = document.getElementById("appMessageDialogText");
+    const confirmBtn = document.getElementById("appMessageConfirmBtn");
+    const cancelBtn = document.getElementById("appMessageCancelBtn");
+    const card = dialog?.querySelector(".app-message-card");
+    const actions = dialog?.querySelector(".modal-actions") || dialog?.querySelector(".app-message-actions");
+
+    if (!dialog || !titleEl || !messageEl || !confirmBtn || !cancelBtn || !card || !actions) {
+      const wholeSeries = window.confirm(`Deze afspraak maakt deel uit van een herhalende reeks. OK = hele reeks ${actionLabel}, Annuleren = enkel deze afspraak.`);
+      resolve(wholeSeries ? "series" : "single");
+      return;
+    }
+
+    titleEl.textContent = action === "delete" ? "Herhalende afspraak verwijderen" : "Herhalende afspraak aanpassen";
+    setDialogMessage(messageEl, `Deze afspraak maakt deel uit van een herhalende reeks. Wat wil je ${action === "delete" ? "verwijderen" : "aanpassen"}?`);
+    card.dataset.variant = action === "delete" ? "danger" : "warning";
+    confirmBtn.textContent = "Enkel deze afspraak";
+    cancelBtn.textContent = t("cancel");
+    cancelBtn.classList.remove("hidden");
+
+    const followingBtn = document.createElement("button");
+    followingBtn.type = "button";
+    followingBtn.className = "btn btn-secondary";
+    followingBtn.textContent = "Deze en volgende";
+
+    const seriesBtn = document.createElement("button");
+    seriesBtn.type = "button";
+    seriesBtn.className = action === "delete" ? "btn btn-danger" : "btn btn-primary";
+    seriesBtn.textContent = "De hele reeks";
+
+    actions.insertBefore(followingBtn, cancelBtn);
+    actions.insertBefore(seriesBtn, cancelBtn);
+    actions.classList.add("recurrence-choice-actions");
+
+    let settled = false;
+    const cleanup = (result) => {
+      if (settled) return;
+      settled = true;
+      dialog.removeEventListener("cancel", onCancel);
+      confirmBtn.removeEventListener("click", onSingle);
+      followingBtn.removeEventListener("click", onFollowing);
+      seriesBtn.removeEventListener("click", onSeries);
+      cancelBtn.removeEventListener("click", onCancelClick);
+      followingBtn.remove();
+      seriesBtn.remove();
+      actions.classList.remove("recurrence-choice-actions");
+      closeStyledDialog(dialog);
+      resolve(result);
+    };
+
+    const onSingle = () => cleanup("single");
+    const onFollowing = () => cleanup("following");
+    const onSeries = () => cleanup("series");
+    const onCancel = (event) => { event.preventDefault(); cleanup(null); };
+    const onCancelClick = () => cleanup(null);
+
+    dialog.addEventListener("cancel", onCancel);
+    confirmBtn.addEventListener("click", onSingle);
+    followingBtn.addEventListener("click", onFollowing);
+    seriesBtn.addEventListener("click", onSeries);
+    cancelBtn.addEventListener("click", onCancelClick);
+    openStyledDialog(dialog);
+    confirmBtn.focus();
   });
 }
 
@@ -1792,6 +1917,11 @@ function updateTopbar(screenId, title) {
 
 function switchScreen(screenId, title, options = {}) {
   const previousScreen = state.currentScreen;
+
+  if (previousScreen === "settingsScreen" && screenId !== "settingsScreen" && !confirmLeaveSettingsIfDirty()) {
+    pushCurrentAppHistoryGuard?.();
+    return;
+  }
 
   if (isAuthLocked() && screenId !== "accountScreen") {
     screenId = "accountScreen";
@@ -2642,7 +2772,7 @@ function renderAgendaList() {
 
     const appointmentMetaParts = [];
     if (privateApp) {
-      if (app.privateDetails) appointmentMetaParts.push(app.privateDetails);
+      if (String(app.privateDetails || "").trim()) appointmentMetaParts.push("Meer details ...");
       else appointmentMetaParts.push("Privé-afspraak");
     } else {
       if (service?.name) appointmentMetaParts.push(service.name);
@@ -3233,19 +3363,27 @@ function syncPrivateEndTimeWithStart() {
   syncAppointmentDateTimeDisplays();
 }
 
-function getPrivateRepeatLabel(value, dateStr = document.getElementById("appointmentDate")?.value || state.selectedDate) {
-  const safe = value || "none";
-  if (safe === "none") return "Niet herhaald";
-  if (safe === "daily") return "Dagelijks";
-  if (safe === "yearly") return "Jaarlijks";
-  const d = new Date((dateStr || todayStr) + "T00:00:00");
-  const day = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "long" }).format(d);
-  return `Wekelijks op ${day}`;
+function getPrivateRepeatLabel(value) {
+  const labels = {
+    none: "Niet herhaald",
+    daily: "Dagelijks",
+    weekly: "Wekelijks",
+    biweekly: "Om de 2 weken",
+    triweekly: "Om de 3 weken",
+    monthly: "Maandelijks",
+    quarterly: "Om de 3 maanden",
+    semiannual: "Om de 6 maanden",
+    yearly: "Jaarlijks"
+  };
+  return labels[value || "none"] || labels.none;
 }
 
 function updatePrivateRepeatWeeklyLabel() {
-  const weekly = document.getElementById("appointmentPrivateRepeatWeeklyOption");
-  if (weekly) weekly.textContent = getPrivateRepeatLabel("weekly");
+  const repeat = document.getElementById("appointmentPrivateRepeat");
+  if (!repeat) return;
+  Array.from(repeat.options || []).forEach(option => {
+    option.textContent = getPrivateRepeatLabel(option.value);
+  });
 }
 
 function createRecurrenceGroupId() {
@@ -3256,13 +3394,24 @@ function buildPrivateRecurrenceOccurrences(payload, repeatValue) {
   const rule = repeatValue || "none";
   if (rule === "none") return [{ ...payload, recurrenceRule: "none", recurrenceGroupId: null }];
   const groupId = createRecurrenceGroupId();
-  const counts = { daily: 365, weekly: 52, yearly: 5 };
-  const stepDays = { daily: 1, weekly: 7 };
+  const counts = {
+    daily: 365,
+    weekly: 52,
+    biweekly: 26,
+    triweekly: 18,
+    monthly: 24,
+    quarterly: 12,
+    semiannual: 10,
+    yearly: 5
+  };
+  const stepDays = { daily: 1, weekly: 7, biweekly: 14, triweekly: 21 };
+  const stepMonths = { monthly: 1, quarterly: 3, semiannual: 6 };
   const startDate = new Date(payload.date + "T00:00:00");
   const total = counts[rule] || 1;
   return Array.from({ length: total }, (_, index) => {
     const d = new Date(startDate);
     if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
+    else if (stepMonths[rule]) d.setMonth(startDate.getMonth() + (stepMonths[rule] * index));
     else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
     return {
       ...payload,
@@ -5479,6 +5628,85 @@ async function syncNotificationState(options = {}) {
   return true;
 }
 
+
+function getSettingsFormSnapshot() {
+  const form = document.getElementById("settingsForm");
+  if (!form) return "";
+  const ids = [
+    "settingsDefaultBreakMinutes",
+    "settingsNotificationsEnabled",
+    "settingsReminderMinutes",
+    "settingsOverlapWarningsEnabled",
+    "settingsLanguage",
+    "settingsCurrency",
+    "settingsPaymentBeneficiaryName",
+    "settingsPaymentIban",
+    "settingsPaymentBic",
+    "settingsPaymentReferencePrefix"
+  ];
+
+  const snapshot = ids.reduce((acc, id) => {
+    const el = document.getElementById(id);
+    if (!el) return acc;
+    acc[id] = el.type === "checkbox" ? Boolean(el.checked) : String(el.value || "");
+    return acc;
+  }, {});
+
+  return JSON.stringify(snapshot);
+}
+
+function updateSettingsDirtyState(isDirty = null) {
+  const form = document.getElementById("settingsForm");
+  const badge = document.getElementById("settingsDirtyBadge");
+  const saveHint = document.getElementById("settingsSaveHint");
+  const dirty = isDirty === null
+    ? Boolean(state.settingsInitialSignature && getSettingsFormSnapshot() !== state.settingsInitialSignature)
+    : Boolean(isDirty);
+
+  state.settingsDirty = dirty;
+  if (form) form.classList.toggle("is-dirty", dirty);
+  if (badge) badge.classList.toggle("hidden", !dirty);
+  if (saveHint && dirty && !state.settingsSavePending) {
+    saveHint.textContent = "Je hebt niet-opgeslagen wijzigingen.";
+  }
+}
+
+function markSettingsCleanFromCurrentForm() {
+  state.settingsInitialSignature = getSettingsFormSnapshot();
+  updateSettingsDirtyState(false);
+}
+
+function hasUnsavedSettingsChanges() {
+  return state.currentScreen === "settingsScreen" && Boolean(state.settingsDirty);
+}
+
+function confirmLeaveSettingsIfDirty() {
+  if (!hasUnsavedSettingsChanges()) return true;
+  return window.confirm("Je hebt wijzigingen in Instellingen die nog niet opgeslagen zijn.\n\nWil je deze pagina verlaten zonder op te slaan?");
+}
+
+function setupSettingsDirtyTracking() {
+  const form = document.getElementById("settingsForm");
+  if (!form || form.dataset.dirtyTrackingReady === "true") return;
+  form.dataset.dirtyTrackingReady = "true";
+
+  form.addEventListener("input", event => {
+    const target = event.target;
+    if (target && target.id !== "calendarFeedUrl") updateSettingsDirtyState();
+  });
+
+  form.addEventListener("change", event => {
+    const target = event.target;
+    if (target && target.id !== "calendarFeedUrl") updateSettingsDirtyState();
+  });
+
+  window.addEventListener("beforeunload", event => {
+    if (!hasUnsavedSettingsChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+}
+
 function renderSettings() {
   const settings = getSettings();
 
@@ -5530,6 +5758,8 @@ function renderSettings() {
   } else {
     saveHint.textContent = t("notificationsPermissionHint");
   }
+
+  markSettingsCleanFromCurrentForm();
 }
 
 
@@ -5601,6 +5831,8 @@ async function saveSettingsFromForm(event) {
     currentProfilePreferences = { language: settings.language, currency: settings.currency };
     saveData(data);
     state.settingsSavePending = false;
+    state.settingsDirty = false;
+    markSettingsCleanFromCurrentForm();
     await syncNotificationState({ requestPermission: settings.notificationsEnabled });
     rerenderAll();
     await appAlert(t("settingsSavedDevice"), { title: t("settingsSaved"), variant: "success" });
@@ -5650,6 +5882,8 @@ async function saveSettingsFromForm(event) {
   data.settings = settings;
   currentProfilePreferences = { language: settings.language, currency: settings.currency };
   saveData(data);
+  state.settingsDirty = false;
+  markSettingsCleanFromCurrentForm();
   await syncNotificationState({ requestPermission: settings.notificationsEnabled });
   rerenderAll();
   await appAlert(t("settingsSaved"), { title: t("settingsSaved"), variant: "success" });
@@ -6148,13 +6382,13 @@ function setupAppointmentServiceSearch() {
       if (currentService) services.unshift(currentService);
     }
 
-    serviceSelect.innerHTML = services.map(service => {
+    serviceSelect.innerHTML = `<option value="">${t("chooseService")}</option>` + services.map(service => {
       const suffix = service.isActive === false ? ` (${t("inactive")})` : "";
       return `<option value="${service.id}">${htmlEscape((service.name || "Naamloze dienst") + suffix)}</option>`;
     }).join("");
     serviceSelect.value = currentValue && Array.from(serviceSelect.options).some(option => option.value === String(currentValue))
       ? String(currentValue)
-      : (serviceSelect.options[0]?.value || "");
+      : "";
     refreshAppSelect(serviceSelect);
   };
 
@@ -6267,7 +6501,8 @@ function populateAppointmentForm(customerId = null) {
   customerSelect.innerHTML = `<option value="">${t("chooseCustomer")}</option>` +
     data.customers.map(c => `<option value="${c.id}">${fullName(c)}</option>`).join("");
   const activeServices = (data.services || []).filter(service => service.isActive !== false);
-  serviceSelect.innerHTML = activeServices.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  serviceSelect.innerHTML = `<option value="">${t("chooseService")}</option>` +
+    activeServices.map(s => `<option value="${s.id}">${htmlEscape(s.name || "Naamloze dienst")}</option>`).join("");
 
   setupAppointmentCustomerSearch();
   setupAppointmentServiceSearch();
@@ -6317,14 +6552,12 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   if (remarksInput) remarksInput.value = "";
   syncAppointmentDateTimeDisplays();
 
-  const serviceSelect = document.getElementById("appointmentService");
-  if (serviceSelect.options.length) {
-    setAppointmentService(serviceSelect.options[0].value, { updateSearch: true, updateDefaults: false });
-  } else {
-    setAppointmentService("", { updateSearch: true, updateDefaults: false });
-  }
+  setAppointmentService("", { updateSearch: true, updateDefaults: false });
 
-  syncServiceDefaults();
+  const durationInput = document.getElementById("appointmentDuration");
+  const priceInput = document.getElementById("appointmentPrice");
+  if (durationInput) durationInput.value = "";
+  if (priceInput) priceInput.value = "";
   hideAppointmentServiceResults();
   document.getElementById("deleteAppointmentBtn").style.visibility = "hidden";
   document.getElementById("appointmentDialog").showModal();
@@ -7314,6 +7547,13 @@ async function saveAppointmentFromForm(event) {
     return;
   }
 
+  const selectedServiceId = document.getElementById("appointmentService")?.value || "";
+  if (!isPrivate && !selectedServiceId) {
+    await appAlert("Kies eerst een dienst uit de zoekresultaten.", { title: "Dienst kiezen", variant: "warning" });
+    document.getElementById("appointmentServiceSearch")?.focus();
+    return;
+  }
+
   const privateStartTime = document.getElementById("appointmentTime")?.value || "";
   const privateEndTime = document.getElementById("appointmentPrivateEndTime")?.value || "";
   const privateTitle = String(document.getElementById("appointmentPrivateTitle")?.value || "").trim();
@@ -7326,11 +7566,15 @@ async function saveAppointmentFromForm(event) {
     return;
   }
 
+  const existingStoredApp = id ? data.appointments.find(a => String(a.id) === String(id)) : null;
+  const existingRecurrenceGroupId = getAppointmentRecurrenceGroupId(existingStoredApp);
+  const existingRecurrenceRule = existingStoredApp?.recurrenceRule || "none";
+
   const localPayload = {
     customerId: isPrivate ? null : Number(selectedCustomerId),
     date: document.getElementById("appointmentDate").value,
     time: document.getElementById("appointmentTime").value,
-    serviceId: isPrivate ? null : Number(document.getElementById("appointmentService").value),
+    serviceId: isPrivate ? null : Number(selectedServiceId),
     duration: isPrivate ? calculatePrivateDuration(privateStartTime, privateEndTime) : Number(document.getElementById("appointmentDuration").value),
     price: isPrivate ? 0 : Number(document.getElementById("appointmentPrice").value),
     status: isPrivate ? "gepland" : (id ? document.getElementById("appointmentStatus").value : "gepland"),
@@ -7339,8 +7583,8 @@ async function saveAppointmentFromForm(event) {
     privateTitle: isPrivate ? privateTitle : "",
     privateDetails: isPrivate ? String(document.getElementById("appointmentPrivateDetails")?.value || "").trim() : "",
     privateEndTime: isPrivate ? privateEndTime : "",
-    recurrenceRule: isPrivate ? (document.getElementById("appointmentPrivateRepeat")?.value || "none") : "none",
-    recurrenceGroupId: null
+    recurrenceRule: isPrivate ? (document.getElementById("appointmentPrivateRepeat")?.value || existingRecurrenceRule || "none") : "none",
+    recurrenceGroupId: existingRecurrenceGroupId || null
   };
 
   if (isAppointmentInPast(localPayload)) {
@@ -7353,9 +7597,21 @@ async function saveAppointmentFromForm(event) {
     if (!confirmedPast) return;
   }
 
+  let recurrenceEditScope = "single";
+  if (id && isRecurringAppointment(existingStoredApp)) {
+    recurrenceEditScope = await chooseRecurringAppointmentScope("update");
+    if (!recurrenceEditScope) return;
+  }
+
+  const recurringAffectedAppointments = id && isRecurringAppointment(existingStoredApp)
+    ? getRecurringAffectedAppointments(data, existingStoredApp, recurrenceEditScope)
+    : [];
+
   const recurrenceOccurrences = (isPrivate && !id)
     ? buildPrivateRecurrenceOccurrences(localPayload, localPayload.recurrenceRule)
-    : [localPayload];
+    : (recurringAffectedAppointments.length
+        ? recurringAffectedAppointments.map(appointment => applyRecurringEditToAppointment(appointment, localPayload, existingStoredApp, recurrenceEditScope))
+        : [localPayload]);
 
   if (settings.overlapWarningsEnabled) {
     const foundOverlap = findFirstOverlapForAppointments(recurrenceOccurrences, data.appointments, settings.defaultBreakMinutes, id);
@@ -7372,8 +7628,17 @@ async function saveAppointmentFromForm(event) {
 
   if (!user) {
     if (id) {
-      const existingApp = data.appointments.find(a => Number(a.id) === id);
-      Object.assign(existingApp, { ...localPayload, currency: existingApp.currency || getCurrentCurrency() });
+      if (recurringAffectedAppointments.length) {
+        recurringAffectedAppointments.forEach(appointment => {
+          const index = data.appointments.findIndex(a => String(a.id) === String(appointment.id));
+          if (index >= 0) {
+            data.appointments[index] = applyRecurringEditToAppointment(data.appointments[index], localPayload, existingStoredApp, recurrenceEditScope);
+          }
+        });
+      } else {
+        const existingApp = data.appointments.find(a => Number(a.id) === id);
+        if (existingApp) Object.assign(existingApp, { ...localPayload, currency: existingApp.currency || getCurrentCurrency() });
+      }
     } else {
       let nextLocalId = nextId(data.appointments);
       recurrenceOccurrences.forEach(item => {
@@ -7399,7 +7664,7 @@ async function saveAppointmentFromForm(event) {
     return;
   }
 
-  const existingApp = data.appointments.find(a => String(a.id) === String(id));
+  const existingApp = existingStoredApp;
   const isPaid = existingApp ? Boolean(existingApp.paid) : false;
   const existingPaymentMethodName = paymentMethodNameForAppointment(existingApp, data) || null;
   const appointmentCurrency = normalizeCurrency(existingApp?.currency || getCurrentCurrency());
@@ -7428,11 +7693,40 @@ async function saveAppointmentFromForm(event) {
   let error;
 
   if (id) {
-    ({ error } = await supabaseClient
-      .from("appointments")
-      .update(payload)
-      .eq("id", Number(id))
-      .eq("user_id", user.id));
+    if (recurringAffectedAppointments.length) {
+      for (const item of recurrenceOccurrences) {
+        const rowPayload = {
+          ...payload,
+          appointment_date: item.date,
+          appointment_time: item.time,
+          duration: item.duration,
+          price: item.price,
+          status: item.status,
+          appointment_remarks: item.remarks,
+          is_private: item.isPrivate,
+          private_title: item.privateTitle || null,
+          private_details: item.privateDetails || null,
+          private_end_time: item.privateEndTime || null,
+          recurrence_group_id: item.recurrenceGroupId || null,
+          recurrence_rule: item.recurrenceRule || "none"
+        };
+        const result = await supabaseClient
+          .from("appointments")
+          .update(rowPayload)
+          .eq("id", Number(item.id))
+          .eq("user_id", user.id);
+        if (result.error) {
+          error = result.error;
+          break;
+        }
+      }
+    } else {
+      ({ error } = await supabaseClient
+        .from("appointments")
+        .update(payload)
+        .eq("id", Number(id))
+        .eq("user_id", user.id));
+    }
   } else {
     const rows = (isPrivate && recurrenceOccurrences.length > 1)
       ? recurrenceOccurrences.map(item => ({
@@ -7467,31 +7761,56 @@ async function deleteCurrentAppointment() {
   const id = document.getElementById("appointmentId").value;
   if (!id) return;
 
-  const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd.", {
-    title: "Afspraak verwijderen",
-    confirmText: t("delete"),
-    cancelText: t("cancel"),
-    variant: "danger"
-  });
+  const data = getData();
+  const existingApp = data.appointments.find(a => String(a.id) === String(id));
+  const recurring = isRecurringAppointment(existingApp);
+  let deleteScope = "single";
 
-  if (!confirmed) return;
+  if (recurring) {
+    deleteScope = await chooseRecurringAppointmentScope("delete");
+    if (!deleteScope) return;
+  } else {
+    const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd.", {
+      title: "Afspraak verwijderen",
+      confirmText: t("delete"),
+      cancelText: t("cancel"),
+      variant: "danger"
+    });
+    if (!confirmed) return;
+  }
+
+  const affectedAppointments = recurring
+    ? getRecurringAffectedAppointments(data, existingApp, deleteScope)
+    : [existingApp].filter(Boolean);
+  const affectedIds = affectedAppointments.map(appointment => Number(appointment.id)).filter(Number.isFinite);
 
   const user = await getCurrentUser();
 
   if (!user) {
-    const data = getData();
-    data.appointments = data.appointments.filter(a => String(a.id) !== String(id));
+    const affectedIdSet = new Set(affectedAppointments.map(appointment => String(appointment.id)));
+    data.appointments = data.appointments.filter(a => !affectedIdSet.has(String(a.id)));
     saveData(data);
     closeDialog("appointmentDialog");
     rerenderAll();
     return;
   }
 
-  const { error } = await supabaseClient
+  let query = supabaseClient
     .from("appointments")
     .delete()
-    .eq("id", Number(id))
     .eq("user_id", user.id);
+
+  if (recurring && deleteScope === "series") {
+    query = query.eq("recurrence_group_id", getAppointmentRecurrenceGroupId(existingApp));
+  } else if (recurring && deleteScope === "following") {
+    query = query
+      .eq("recurrence_group_id", getAppointmentRecurrenceGroupId(existingApp))
+      .gte("appointment_date", existingApp.date);
+  } else {
+    query = query.eq("id", Number(id));
+  }
+
+  const { error } = await query;
 
   if (error) {
     await appAlert("Verwijderen afspraak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
@@ -8169,6 +8488,7 @@ function registerEvents() {
   document.getElementById("serviceSearch")?.addEventListener("input", renderServices);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
   document.getElementById("settingsForm")?.addEventListener("submit", withActionLock(saveSettingsFromForm));
+  setupSettingsDirtyTracking();
   document.getElementById("copyCalendarFeedUrlBtn")?.addEventListener("click", withActionLock(createOrCopyCalendarFeedUrl));
   document.getElementById("openGoogleCalendarSubscribeBtn")?.addEventListener("click", withActionLock(openGoogleCalendarSubscribePage));
   document.getElementById("regenerateCalendarFeedUrlBtn")?.addEventListener("click", withActionLock(regenerateCalendarFeedUrl));
