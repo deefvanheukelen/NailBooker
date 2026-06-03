@@ -225,10 +225,24 @@ function updateStaticI18n() {
     if (key) el.textContent = t(key);
   });
 
-  const revenueMainKeys = ["total", "paid", "unpaid"];
-  document.querySelectorAll(".revenue-main-label").forEach((el, index) => {
-    const key = revenueMainKeys[index];
-    if (key) el.textContent = t(key);
+  const revenueAppointmentLabels = [
+    [".revenue-summary-appointments .revenue-main-label", "appointments"],
+    [".revenue-summary-completed .revenue-main-label", "completed"],
+    [".revenue-summary-planned-count .revenue-main-label", "planned"]
+  ];
+  revenueAppointmentLabels.forEach(([selector, key]) => {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = t(key);
+  });
+
+  const revenueMoneyLabels = [
+    [".revenue-summary-total .revenue-main-label", "total"],
+    [".revenue-summary-paid .revenue-main-label", "paid"],
+    [".revenue-summary-unpaid .revenue-main-label", "unpaid"]
+  ];
+  revenueMoneyLabels.forEach(([selector, key]) => {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = t(key);
   });
 
   const settingsLabels = document.querySelectorAll("#settingsScreen .detail-label");
@@ -3142,6 +3156,122 @@ function setRevenuePeriod(type, dateStr) {
   renderRevenue();
 }
 
+
+function attachRevenuePeriodSwipe(button, mode) {
+  if (!button || button.dataset.revenueSwipeReady === "1") return;
+  button.dataset.revenueSwipeReady = "1";
+
+  const threshold = 22;
+  const maxDrag = 12;
+  const resetSwipeVisual = () => {
+    button.classList.remove("is-revenue-swiping", "is-revenue-swipe-committing", "is-revenue-swipe-settling");
+    button.style.removeProperty("--revenue-swipe-y");
+    button.style.removeProperty("--revenue-swipe-opacity");
+  };
+
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let lastDeltaY = 0;
+  let isSwiping = false;
+  let moved = false;
+
+  const setSwipeVisual = (deltaY, opacity = 1) => {
+    button.style.setProperty("--revenue-swipe-y", `${deltaY}px`);
+    button.style.setProperty("--revenue-swipe-opacity", String(opacity));
+  };
+
+  const commitSwipe = (step) => {
+    const anchor = document.getElementById("revenueDate")?.value || todayStr;
+    const nextDate = shiftRevenueDate(anchor, mode, step);
+    const exitY = step > 0 ? -14 : 14;
+    const enterY = step > 0 ? 14 : -14;
+
+    button.dataset.revenueSwipeSuppressClick = "1";
+    window.setTimeout(() => delete button.dataset.revenueSwipeSuppressClick, 360);
+
+    button.classList.remove("is-revenue-swiping");
+    button.classList.add("is-revenue-swipe-committing");
+    setSwipeVisual(exitY, 0.25);
+
+    window.setTimeout(() => {
+      setRevenuePeriod(mode, nextDate);
+      button.classList.remove("is-revenue-swipe-committing");
+      button.classList.add("is-revenue-swipe-settling");
+      setSwipeVisual(enterY, 0.25);
+
+      requestAnimationFrame(() => {
+        setSwipeVisual(0, 1);
+        window.setTimeout(resetSwipeVisual, 230);
+      });
+    }, 105);
+  };
+
+  button.addEventListener("pointerdown", event => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    lastDeltaY = 0;
+    isSwiping = false;
+    moved = false;
+    button.classList.remove("is-revenue-swipe-committing", "is-revenue-swipe-settling");
+  });
+
+  button.addEventListener("pointermove", event => {
+    if (pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - startX;
+    const deltaY = event.clientY - startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (!isSwiping && absY > 8 && absY > absX * 1.15) {
+      isSwiping = true;
+      moved = true;
+      button.classList.add("is-revenue-swiping");
+      try { button.setPointerCapture(event.pointerId); } catch (error) {}
+    }
+
+    if (!isSwiping) return;
+    event.preventDefault();
+    lastDeltaY = deltaY;
+    const limitedY = Math.max(-maxDrag, Math.min(maxDrag, deltaY * 0.20));
+    const opacity = Math.max(0.86, 1 - (Math.abs(limitedY) / 180));
+    setSwipeVisual(limitedY, opacity);
+  }, { passive: false });
+
+  const finish = (event) => {
+    if (pointerId !== event.pointerId) return;
+    if (isSwiping) {
+      event.preventDefault();
+      const step = lastDeltaY < -threshold ? 1 : (lastDeltaY > threshold ? -1 : 0);
+      if (step) {
+        commitSwipe(step);
+      } else {
+        button.classList.remove("is-revenue-swiping");
+        button.classList.add("is-revenue-swipe-settling");
+        setSwipeVisual(0, 1);
+        window.setTimeout(resetSwipeVisual, 220);
+      }
+    }
+    pointerId = null;
+    isSwiping = false;
+    if (moved) {
+      button.dataset.revenueSwipeSuppressClick = "1";
+      window.setTimeout(() => delete button.dataset.revenueSwipeSuppressClick, 260);
+    }
+  };
+
+  button.addEventListener("pointerup", finish, { passive: false });
+  button.addEventListener("pointercancel", event => {
+    if (pointerId !== event.pointerId) return;
+    pointerId = null;
+    isSwiping = false;
+    resetSwipeVisual();
+  });
+}
+
 function syncRevenuePeriodChips() {
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
@@ -5160,6 +5290,17 @@ function renderRevenue() {
   const total = groupRevenueByCurrency(filtered);
   const open = groupRevenueByCurrency(filtered, a => !a.paid);
   const totalNumeric = filtered.reduce((sum, a) => sum + Number(a.price || 0), 0);
+  const appointmentCount = filtered.length;
+  const completedCount = filtered.filter(a => String(a.status || "").toLowerCase() === "afgerond").length;
+  const plannedCount = filtered.filter(a => String(a.status || "").toLowerCase() !== "afgerond").length;
+
+  const appointmentCountEl = document.getElementById("revenueAppointmentCount");
+  const completedCountEl = document.getElementById("revenueCompletedCount");
+  const plannedCountEl = document.getElementById("revenuePlannedCount");
+
+  if (appointmentCountEl) appointmentCountEl.textContent = String(appointmentCount);
+  if (completedCountEl) completedCountEl.textContent = String(completedCount);
+  if (plannedCountEl) plannedCountEl.textContent = String(plannedCount);
 
   document.getElementById("plannedRevenue").textContent = formatCurrencyTotals(total);
   document.getElementById("paidRevenue").textContent = formatCurrencyTotals(paid);
@@ -8620,9 +8761,11 @@ function registerEvents() {
     const button = document.getElementById(id);
     if (!button) return;
 
+    attachRevenuePeriodSwipe(button, mode);
     button.addEventListener("contextmenu", event => event.preventDefault());
     button.addEventListener("click", event => {
       event.preventDefault();
+      if (button.dataset.revenueSwipeSuppressClick === "1") return;
 
       const currentMode = document.getElementById("revenuePeriodType")?.value || "day";
       const anchor = document.getElementById("revenueDate")?.value || todayStr;

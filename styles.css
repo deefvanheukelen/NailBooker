@@ -8141,3 +8141,73 @@ body.app-is-busy {
 body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
   touch-action: none !important;
 }
+
+/* =========================================================
+   OMZET: verticale swipe op periodeknoppen
+   - Omhoog = volgende dag/week/maand/jaar
+   - Omlaag = vorige dag/week/maand/jaar
+========================================================= */
+.revenue-screen-shell .revenue-period-tile {
+  transform: translate3d(0, var(--revenue-swipe-y, 0px), 0) !important;
+  opacity: var(--revenue-swipe-opacity, 1);
+  will-change: transform, opacity;
+  touch-action: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.revenue-screen-shell .revenue-period-tile.is-revenue-swiping {
+  transition: none !important;
+  cursor: grabbing;
+}
+
+.revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing,
+.revenue-screen-shell .revenue-period-tile.is-revenue-swipe-settling {
+  transition:
+    transform 280ms cubic-bezier(0.20, 0.80, 0.20, 1),
+    opacity 240ms ease !important;
+}
+
+.revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing {
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   OMZET: extra overzichtstegels afspraken
+========================================================= */
+.revenue-appointment-summary-top {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.revenue-appointment-summary-top .revenue-summary-item {
+  background: #fffafb;
+}
+
+.revenue-appointment-summary-top .revenue-summary-item strong {
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+@media (max-width: 420px) {
+  .revenue-appointment-summary-top {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .revenue-appointment-summary-top .revenue-summary-item {
+    padding: 10px 4px;
+    text-align: center;
+    gap: 4px;
+  }
+
+  .revenue-appointment-summary-top .revenue-summary-item strong {
+    font-size: clamp(17px, 5vw, 22px);
+  }
+}
