@@ -3162,7 +3162,7 @@ function attachRevenuePeriodSwipe(button, mode) {
   button.dataset.revenueSwipeReady = "1";
 
   const threshold = 22;
-  const maxDrag = 12;
+  const maxDrag = 10;
   const resetSwipeVisual = () => {
     button.classList.remove("is-revenue-swiping", "is-revenue-swipe-committing", "is-revenue-swipe-settling");
     button.style.removeProperty("--revenue-swipe-y");
@@ -3236,7 +3236,7 @@ function attachRevenuePeriodSwipe(button, mode) {
     if (!isSwiping) return;
     event.preventDefault();
     lastDeltaY = deltaY;
-    const limitedY = Math.max(-maxDrag, Math.min(maxDrag, deltaY * 0.20));
+    const limitedY = Math.max(-maxDrag, Math.min(maxDrag, deltaY * 0.30));
     const opacity = Math.max(0.86, 1 - (Math.abs(limitedY) / 180));
     setSwipeVisual(limitedY, opacity);
   }, { passive: false });

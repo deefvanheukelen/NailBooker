@@ -8164,8 +8164,8 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing,
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-settling {
   transition:
-    transform 280ms cubic-bezier(0.20, 0.80, 0.20, 1),
-    opacity 240ms ease !important;
+    transform 160ms cubic-bezier(0.22, 0.72, 0.18, 1),
+    opacity 120ms ease !important;
 }
 
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing {
