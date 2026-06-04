@@ -8617,3 +8617,50 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 .cost-standard-suggestion.appointment-service-result {
   width: 100%;
 }
+
+/* =========================================================
+   KOSTEN - standaardkosten overzicht als lijst
+========================================================= */
+.standard-costs-card {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.standard-costs-search {
+  margin: 4px 0 0;
+}
+
+.standard-costs-alphabet-filter {
+  margin-top: 12px;
+  padding-bottom: 8px;
+}
+
+.standard-costs-manager-list {
+  gap: 0;
+  padding: 4px 0 0;
+}
+
+.standard-cost-manager-row {
+  padding: 0;
+  gap: 0;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 6px;
+}
+
+.standard-cost-manager-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 16px;
+}
+
+.standard-cost-manager-btn:hover,
+.standard-cost-manager-btn:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.standard-cost-manager-actions {
+  display: none;
+}

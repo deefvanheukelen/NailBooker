@@ -360,6 +360,8 @@ const state = {
   revenueLastRenderSignature: "",
   showInactiveServices: false,
   todoFilter: "all",
+  standardCostLetter: "",
+  standardCostSearch: "",
   appNavigationReady: false,
   appNavigationLastScreen: null
 };
@@ -1230,6 +1232,8 @@ function showAppDialog({
     setDialogMessage(messageEl, message);
     confirmBtn.textContent = confirmText;
     cancelBtn.textContent = cancelText;
+    cancelBtn.dataset.actionType = "cancel";
+    cancelBtn.dataset.actionLabel = cancelText;
     cancelBtn.classList.toggle("hidden", !showCancel);
     card.dataset.variant = variant;
 
@@ -8498,7 +8502,8 @@ function applyNavStyleActionButtons(root = document) {
 
     if (!action) return;
 
-    const label = t(action.key);
+    const explicitLabel = String(button.dataset.actionLabel || "").trim();
+    const label = explicitLabel || t(action.key);
     button.dataset.actionLabel = label;
     button.dataset.actionType = action.type;
     button.dataset.actionKey = action.key;
@@ -8863,37 +8868,72 @@ function refreshStandardCostsButton() {
   btn.classList.toggle("hidden", !(state.currentScreen === "costsScreen" && getStandardCosts(getData()).length > 0));
 }
 
+function getStandardCostSearchText(item) {
+  return [item?.description, `${Number(item?.vatRate || 21)}% btw`].join(" ").toLocaleLowerCase(getCurrentLanguage());
+}
+
+function renderStandardCostAlphabetFilter(items = getStandardCosts(getData())) {
+  const wrap = document.getElementById("standardCostsAlphabetFilter");
+  if (!wrap) return;
+  const letters = Array.from(new Set(items
+    .map(item => String(item.description || "").trim().charAt(0).toLocaleUpperCase(getCurrentLanguage()))
+    .filter(letter => /^[A-ZÀ-ÖØ-Þ]/i.test(letter))
+  )).sort((a, b) => a.localeCompare(b, getCurrentLanguage()));
+  const active = state.standardCostLetter || "";
+  wrap.innerHTML = [`<button class="alphabet-btn${active === "" ? " active" : ""}" type="button" data-standard-cost-letter="">Alle</button>`]
+    .concat(letters.map(letter => `<button class="alphabet-btn${active === letter ? " active" : ""}" type="button" data-standard-cost-letter="${escapeHtml(letter)}">${escapeHtml(letter)}</button>`))
+    .join("");
+  wrap.querySelectorAll("[data-standard-cost-letter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.standardCostLetter = btn.dataset.standardCostLetter || "";
+      renderStandardCostsManager();
+    });
+  });
+}
+
 function renderStandardCostsManager() {
   const list = document.getElementById("standardCostsManagerList");
   if (!list) return;
-  const items = getStandardCosts(getData()).slice().sort((a, b) => String(a.description || "").localeCompare(String(b.description || ""), "nl-BE"));
+  const searchInput = document.getElementById("standardCostsSearch");
+  if (searchInput && searchInput.value !== state.standardCostSearch) searchInput.value = state.standardCostSearch || "";
+
+  const allItems = getStandardCosts(getData()).slice().sort((a, b) => String(a.description || "").localeCompare(String(b.description || ""), getCurrentLanguage()));
+  renderStandardCostAlphabetFilter(allItems);
+
+  const filter = String(state.standardCostSearch || "").trim().toLocaleLowerCase(getCurrentLanguage());
+  let items = allItems;
+  if (state.standardCostLetter) {
+    items = items.filter(item => String(item.description || "").trim().charAt(0).toLocaleUpperCase(getCurrentLanguage()) === state.standardCostLetter);
+  }
+  if (filter) {
+    items = items.filter(item => getStandardCostSearchText(item).includes(filter));
+  }
+
   if (!items.length) {
     list.innerHTML = `<div class="empty-state">${t("noStandardCosts")}</div>`;
     refreshStandardCostsButton();
     return;
   }
+
   list.innerHTML = items.map(item => `
-    <article class="standard-cost-manager-item">
-      <div class="standard-cost-manager-main">
+    <article class="standard-cost-manager-item standard-cost-manager-row">
+      <button class="standard-cost-manager-main standard-cost-manager-btn" type="button" data-standard-cost-edit="${item.id}">
         <strong>${escapeHtml(item.description || "")}</strong>
         <small>${Number(item.vatRate || 21)}% btw</small>
-      </div>
-      <div class="standard-cost-manager-actions">
-        <button class="btn btn-secondary small action-btn" type="button" data-standard-cost-edit="${item.id}">Aanpassen</button>
-        <button class="btn btn-danger small action-btn" type="button" data-standard-cost-delete="${item.id}">Verwijderen</button>
-      </div>
+      </button>
     </article>
   `).join("");
   list.querySelectorAll("[data-standard-cost-edit]").forEach(btn => {
     btn.addEventListener("click", () => openEditStandardCostDialog(btn.dataset.standardCostEdit));
   });
-  list.querySelectorAll("[data-standard-cost-delete]").forEach(btn => {
-    btn.addEventListener("click", withActionLock(() => deleteStandardCost(btn.dataset.standardCostDelete)));
-  });
   refreshStandardCostsButton();
 }
 
 function openStandardCostsPopover() {
+  state.standardCostSearch = "";
+  state.standardCostLetter = "";
+  const searchInput = document.getElementById("standardCostsSearch");
+  if (searchInput) searchInput.value = "";
   renderStandardCostsManager();
   const title = document.querySelector("#standardCostsDialog h3");
   if (title) title.textContent = t("standardCosts");
@@ -8988,9 +9028,14 @@ async function deleteStandardCost(id) {
   });
 
   if (deleteFailed) return;
+  closeDialog("standardCostEditDialog");
   renderCosts();
   renderStandardCostsManager();
   renderCostStandardSuggestions(document.getElementById("costDescription")?.value || "");
+  if (getStandardCosts(getData()).length) {
+    const managerDialog = document.getElementById("standardCostsDialog");
+    if (managerDialog && !managerDialog.open) openStandardCostsPopover();
+  }
 }
 
 
@@ -9345,8 +9390,13 @@ function registerEvents() {
 
   document.getElementById("costForm")?.addEventListener("submit", withActionLock(saveCostFromForm));
   document.getElementById("deleteCostBtn")?.addEventListener("click", withActionLock(deleteCurrentCost));
+  document.getElementById("deleteStandardCostBtn")?.addEventListener("click", withActionLock(() => deleteStandardCost(document.getElementById("standardCostEditId")?.value)));
   document.getElementById("standardCostsBtn")?.addEventListener("click", openStandardCostsPopover);
   document.getElementById("standardCostEditForm")?.addEventListener("submit", withActionLock(saveStandardCostEditFromForm));
+  document.getElementById("standardCostsSearch")?.addEventListener("input", event => {
+    state.standardCostSearch = event.target.value || "";
+    renderStandardCostsManager();
+  });
   document.getElementById("costDescription")?.addEventListener("focus", event => renderCostStandardSuggestions(event.target.value, true));
   document.getElementById("costDescription")?.addEventListener("input", event => {
     document.getElementById("costStandardCostId").value = "";

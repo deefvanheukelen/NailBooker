@@ -807,7 +807,7 @@
       <div class="modal-actions triple-actions">
         <button id="deleteCostBtn" class="btn btn-danger action-btn hidden" type="button">Verwijderen</button>
         <div class="right-actions">
-          <button class="btn btn-secondary action-btn" type="button" data-close="costDialog">Nee</button>
+          <button class="btn btn-secondary action-btn" type="button" data-close="costDialog">Annuleren</button>
           <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
         </div>
       </div>
@@ -822,10 +822,15 @@
         <h3>Standaardkosten</h3>
         <button class="icon-btn" type="button" data-close="standardCostsDialog">✕</button>
       </div>
+      <input
+        id="standardCostsSearch"
+        class="search-input standard-costs-search"
+        type="search"
+        autocomplete="off"
+        placeholder="Zoek standaardkost..."
+      />
+      <div id="standardCostsAlphabetFilter" class="alphabet-filter standard-costs-alphabet-filter"></div>
       <div id="standardCostsManagerList" class="standard-costs-manager-list"></div>
-      <div class="modal-actions end-only">
-        <button class="btn btn-secondary action-btn" type="button" data-close="standardCostsDialog">Sluiten</button>
-      </div>
     </div>
   </dialog>
 
@@ -844,9 +849,12 @@
         <option value="12">12%</option>
         <option value="21" selected>21%</option>
       </select>
-      <div class="modal-actions two-buttons">
-        <button class="btn btn-secondary action-btn" type="button" data-close="standardCostEditDialog">Nee</button>
-        <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
+      <div class="modal-actions triple-actions">
+        <button id="deleteStandardCostBtn" class="btn btn-danger action-btn" type="button">Verwijderen</button>
+        <div class="right-actions">
+          <button class="btn btn-secondary action-btn" type="button" data-close="standardCostEditDialog">Annuleren</button>
+          <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
+        </div>
       </div>
     </form>
   </dialog>
