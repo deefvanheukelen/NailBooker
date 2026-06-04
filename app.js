@@ -1,4 +1,5 @@
 const STORAGE_KEY = "nailbooker_v1";
+const AGENDA_FAB_MENU_SETTING_KEY = "nailbooker_agenda_fab_menu_enabled";
 const today = new Date();
 
 function formatDateInput(d) {
@@ -49,13 +50,13 @@ const i18n = {
 
 const i18nExtra = {
   "nl-BE": {
-    planning: "Planning", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Maand kiezen", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
+    planning: "Planning", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", enableAgendaFabMenu: "Tab-menu activeren", enableAgendaFabMenuHint: "Toon rond de + knop snelle knoppen voor afspraak, kost, taak, klant, dienst en betaalwijze.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Maand kiezen", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
   },
   "en-GB": {
-    planning: "Planning", notifications: "Notifications", extras: "Useful extras", defaultBreak: "Default break between 2 appointments (min)", overlapWarnings: "Overlap warnings", overlapWarningsHint: "Warn when an appointment overlaps with an existing appointment, taking duration and break time into account.", enableNotifications: "Enable notifications", enableNotificationsHint: "Prepared for appointment reminders in the app.", reminderBefore: "Reminder before appointment", savePending: "Saving settings...", notificationsOff: "Notifications are disabled.", notificationsActive: "Notifications are active on this device while the browser or app supports notifications.", notificationsBlocked: "Notifications are blocked in your browser settings.", notificationsUnsupported: "This browser does not support web notifications.", notificationsPermissionHint: "Enable notifications and allow permission to show reminders.", appointmentsOn: "Appointments on", noAppointmentsOnDay: "No appointments on this day.", noClientsFound: "No clients found.", noPhone: "No mobile", appointmentSingular: "appointment", appointmentPlural: "appointments", noActiveServices: "No active services yet.", inactive: "inactive", showInactiveServices: "Show inactive services", allPaymentMethods: "All payment methods", allStatuses: "All statuses", day: "Day", week: "Week", month: "Month", year: "Year", today: "Today", total: "Total", revenueOn: "Revenue on", revenueReport: "Revenue report", paymentMethodTitle: "Payment method", unknownCustomer: "Unknown client", chooseMonth: "Choose month", choose: "Choose", newAppointment: "New appointment", editAppointment: "Edit appointment", customer: "Client", date: "Date", time: "Time", service: "Service", duration: "Duration (min)", price: "Price", status: "Status", planned: "Planned", completed: "Completed", newClient: "New client", phone: "Phone", note: "Note", appointmentRemarks: "Remarks", newService: "New service", serviceName: "Service name", newPaymentMethod: "New payment method", paymentMethodName: "Payment method name", editProfileTitle: "Edit profile", currentPassword: "Current password", newPassword: "New password", message: "Message", registerHere: "No account yet? Register here"
+    planning: "Planning", notifications: "Notifications", extras: "Useful extras", defaultBreak: "Default break between 2 appointments (min)", overlapWarnings: "Overlap warnings", overlapWarningsHint: "Warn when an appointment overlaps with an existing appointment, taking duration and break time into account.", enableNotifications: "Enable notifications", enableNotificationsHint: "Prepared for appointment reminders in the app.", enableAgendaFabMenu: "Enable tab menu", enableAgendaFabMenuHint: "Show quick buttons around the + button for appointment, cost, task, client, service and payment method.", reminderBefore: "Reminder before appointment", savePending: "Saving settings...", notificationsOff: "Notifications are disabled.", notificationsActive: "Notifications are active on this device while the browser or app supports notifications.", notificationsBlocked: "Notifications are blocked in your browser settings.", notificationsUnsupported: "This browser does not support web notifications.", notificationsPermissionHint: "Enable notifications and allow permission to show reminders.", appointmentsOn: "Appointments on", noAppointmentsOnDay: "No appointments on this day.", noClientsFound: "No clients found.", noPhone: "No mobile", appointmentSingular: "appointment", appointmentPlural: "appointments", noActiveServices: "No active services yet.", inactive: "inactive", showInactiveServices: "Show inactive services", allPaymentMethods: "All payment methods", allStatuses: "All statuses", day: "Day", week: "Week", month: "Month", year: "Year", today: "Today", total: "Total", revenueOn: "Revenue on", revenueReport: "Revenue report", paymentMethodTitle: "Payment method", unknownCustomer: "Unknown client", chooseMonth: "Choose month", choose: "Choose", newAppointment: "New appointment", editAppointment: "Edit appointment", customer: "Client", date: "Date", time: "Time", service: "Service", duration: "Duration (min)", price: "Price", status: "Status", planned: "Planned", completed: "Completed", newClient: "New client", phone: "Phone", note: "Note", appointmentRemarks: "Remarks", newService: "New service", serviceName: "Service name", newPaymentMethod: "New payment method", paymentMethodName: "Payment method name", editProfileTitle: "Edit profile", currentPassword: "Current password", newPassword: "New password", message: "Message", registerHere: "No account yet? Register here"
   },
   "fr-FR": {
-    planning: "Planning", notifications: "Notifications", extras: "Extras utiles", defaultBreak: "Pause standard entre 2 rendez-vous (min)", overlapWarnings: "Avertissements de chevauchement", overlapWarningsHint: "Avertir lorsqu’un rendez-vous chevauche un rendez-vous existant, en tenant compte de la durée et de la pause.", enableNotifications: "Activer les notifications", enableNotificationsHint: "Prévu pour les rappels de rendez-vous dans l’application.", reminderBefore: "Rappel avant le rendez-vous", savePending: "Enregistrement des paramètres...", notificationsOff: "Les notifications sont désactivées.", notificationsActive: "Les notifications sont actives sur cet appareil tant que le navigateur ou l’application les prend en charge.", notificationsBlocked: "Les notifications sont bloquées dans les paramètres de votre navigateur.", notificationsUnsupported: "Ce navigateur ne prend pas en charge les notifications web.", notificationsPermissionHint: "Activez les notifications et autorisez-les pour afficher les rappels.", appointmentsOn: "Rendez-vous le", noAppointmentsOnDay: "Aucun rendez-vous ce jour-là.", noClientsFound: "Aucun client trouvé.", noPhone: "Pas de GSM", appointmentSingular: "rendez-vous", appointmentPlural: "rendez-vous", noActiveServices: "Aucun service actif pour le moment.", inactive: "inactif", showInactiveServices: "Afficher les services inactifs", allPaymentMethods: "Tous les modes de paiement", allStatuses: "Tous les statuts", day: "Jour", week: "Semaine", month: "Mois", year: "Année", today: "Aujourd’hui", total: "Total", revenueOn: "Chiffre d’affaires le", revenueReport: "Rapport du chiffre d’affaires", paymentMethodTitle: "Mode de paiement", unknownCustomer: "Client inconnu", chooseMonth: "Choisir le mois", choose: "Choisir", newAppointment: "Nouveau rendez-vous", editAppointment: "Modifier le rendez-vous", customer: "Client", date: "Date", time: "Heure", service: "Service", duration: "Durée (min)", price: "Prix", status: "Statut", planned: "Planifié", completed: "Terminé", newClient: "Nouveau client", phone: "Téléphone", note: "Note", appointmentRemarks: "Remarques", newService: "Nouveau service", serviceName: "Nom du service", newPaymentMethod: "Nouveau mode de paiement", paymentMethodName: "Nom du mode de paiement", editProfileTitle: "Modifier le profil", currentPassword: "Mot de passe actuel", newPassword: "Nouveau mot de passe", message: "Message", registerHere: "Pas encore de compte ? Inscrivez-vous ici"
+    planning: "Planning", notifications: "Notifications", extras: "Extras utiles", defaultBreak: "Pause standard entre 2 rendez-vous (min)", overlapWarnings: "Avertissements de chevauchement", overlapWarningsHint: "Avertir lorsqu’un rendez-vous chevauche un rendez-vous existant, en tenant compte de la durée et de la pause.", enableNotifications: "Activer les notifications", enableNotificationsHint: "Prévu pour les rappels de rendez-vous dans l’application.", enableAgendaFabMenu: "Activer le menu d’onglets", enableAgendaFabMenuHint: "Afficher autour du bouton + des raccourcis pour rendez-vous, frais, tâche, client, service et mode de paiement.", reminderBefore: "Rappel avant le rendez-vous", savePending: "Enregistrement des paramètres...", notificationsOff: "Les notifications sont désactivées.", notificationsActive: "Les notifications sont actives sur cet appareil tant que le navigateur ou l’application les prend en charge.", notificationsBlocked: "Les notifications sont bloquées dans les paramètres de votre navigateur.", notificationsUnsupported: "Ce navigateur ne prend pas en charge les notifications web.", notificationsPermissionHint: "Activez les notifications et autorisez-les pour afficher les rappels.", appointmentsOn: "Rendez-vous le", noAppointmentsOnDay: "Aucun rendez-vous ce jour-là.", noClientsFound: "Aucun client trouvé.", noPhone: "Pas de GSM", appointmentSingular: "rendez-vous", appointmentPlural: "rendez-vous", noActiveServices: "Aucun service actif pour le moment.", inactive: "inactif", showInactiveServices: "Afficher les services inactifs", allPaymentMethods: "Tous les modes de paiement", allStatuses: "Tous les statuts", day: "Jour", week: "Semaine", month: "Mois", year: "Année", today: "Aujourd’hui", total: "Total", revenueOn: "Chiffre d’affaires le", revenueReport: "Rapport du chiffre d’affaires", paymentMethodTitle: "Mode de paiement", unknownCustomer: "Client inconnu", chooseMonth: "Choisir le mois", choose: "Choisir", newAppointment: "Nouveau rendez-vous", editAppointment: "Modifier le rendez-vous", customer: "Client", date: "Date", time: "Heure", service: "Service", duration: "Durée (min)", price: "Prix", status: "Statut", planned: "Planifié", completed: "Terminé", newClient: "Nouveau client", phone: "Téléphone", note: "Note", appointmentRemarks: "Remarques", newService: "Nouveau service", serviceName: "Nom du service", newPaymentMethod: "Nouveau mode de paiement", paymentMethodName: "Nom du mode de paiement", editProfileTitle: "Modifier le profil", currentPassword: "Mot de passe actuel", newPassword: "Nouveau mot de passe", message: "Message", registerHere: "Pas encore de compte ? Inscrivez-vous ici"
   }
 };
 Object.keys(i18nExtra).forEach(lang => Object.assign(i18n[lang], i18nExtra[lang]));
@@ -327,6 +328,11 @@ function updateStaticI18n() {
     if (strong) strong.textContent = t("enableNotifications");
     if (small) small.textContent = t("enableNotificationsHint");
   }
+  const agendaFabMenuLabel = document.querySelector('.settings-switch-row[for="settingsAgendaFabMenuEnabled"]');
+  if (agendaFabMenuLabel) {
+    const small = agendaFabMenuLabel.querySelector('small');
+    if (small) small.textContent = t("enableAgendaFabMenuHint");
+  }
   const serviceReactivate = document.querySelector('#serviceReactivateWrap');
   if (serviceReactivate) {
     const strong = serviceReactivate.querySelector('strong');
@@ -424,12 +430,34 @@ function addDaysStr(dateStr, days) {
   return formatDateInput(d);
 }
 
+function readAgendaFabMenuEnabledPreference() {
+  try {
+    const stored = localStorage.getItem(AGENDA_FAB_MENU_SETTING_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+  } catch (error) {}
+  return true;
+}
+
+function writeAgendaFabMenuEnabledPreference(enabled) {
+  try {
+    localStorage.setItem(AGENDA_FAB_MENU_SETTING_KEY, enabled ? "true" : "false");
+  } catch (error) {}
+}
+
+function isAgendaFabMenuEnabled() {
+  const settings = getData()?.settings || {};
+  if (typeof settings.agendaFabMenuEnabled === "boolean") return settings.agendaFabMenuEnabled;
+  return readAgendaFabMenuEnabledPreference();
+}
+
 function getDefaultSettings() {
   return {
     defaultBreakMinutes: 10,
     notificationsEnabled: false,
     reminderMinutes: 30,
     overlapWarningsEnabled: true,
+    agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
     language: DEFAULT_LANGUAGE,
     currency: DEFAULT_CURRENCY,
     paymentBeneficiaryName: "",
@@ -2097,6 +2125,137 @@ function getScreenTitle(screenId, fallback = "") {
   return key ? t(key) : fallback;
 }
 
+
+const agendaFabActions = [
+  { key: "agenda", screenId: "agendaScreen", labelKey: "newAppointment", iconScreen: "agendaScreen", dx: -92, dy: 0, open: () => openNewAppointmentDialog() },
+  { key: "costs", screenId: "costsScreen", labelKey: "newCost", iconScreen: "costsScreen", dx: -74, dy: -54, open: () => openNewCostDialog() },
+  { key: "todo", screenId: "todoScreen", labelKey: "newTodo", iconScreen: "todoScreen", dx: -28, dy: -88, open: () => openNewTodoDialog() },
+  { key: "clients", screenId: "clientsScreen", labelKey: "newClient", iconScreen: "clientsScreen", dx: 28, dy: -88, open: () => openNewClientDialog() },
+  { key: "services", screenId: "servicesScreen", labelKey: "newService", iconScreen: "servicesScreen", dx: 74, dy: -54, open: () => openNewServiceDialog() },
+  { key: "payment", screenId: "paymentMethodsScreen", labelKey: "newPaymentMethod", iconScreen: "paymentMethodsScreen", dx: 92, dy: 0, open: () => openNewPaymentMethodDialog() }
+];
+
+let agendaFabMenuDocumentHandlersInstalled = false;
+
+function getNavIconHtmlForScreen(screenId) {
+  const navIcon = document.querySelector(`.nav-btn[data-screen="${screenId}"] .nav-ico`);
+  return navIcon ? navIcon.innerHTML : "+";
+}
+
+function closeAgendaFabMenu() {
+  const menu = document.getElementById("agendaFabMenu");
+  const fab = document.getElementById("floatingAddBtn");
+  if (menu) menu.classList.remove("open");
+  if (fab) {
+    fab.classList.remove("fab-menu-open");
+    fab.setAttribute("aria-expanded", "false");
+  }
+}
+
+function openAgendaFabMenu() {
+  const menu = ensureAgendaFabMenu();
+  const fab = document.getElementById("floatingAddBtn");
+  if (!menu || !fab) return;
+  menu.classList.add("open");
+  fab.classList.add("fab-menu-open");
+  fab.setAttribute("aria-expanded", "true");
+}
+
+function toggleAgendaFabMenu(event) {
+  event?.stopPropagation?.();
+  if (isAuthLocked()) return;
+  const menu = ensureAgendaFabMenu();
+  if (!menu) return;
+  if (menu.classList.contains("open")) closeAgendaFabMenu();
+  else openAgendaFabMenu();
+}
+
+function runAgendaFabAction(action) {
+  closeAgendaFabMenu();
+
+  if (!action || isAuthLocked()) return;
+
+  if (state.currentScreen !== action.screenId) {
+    switchScreen(action.screenId, getScreenTitle(action.screenId));
+  }
+
+  window.setTimeout(() => {
+    action.open?.();
+  }, 0);
+}
+
+function ensureAgendaFabMenu() {
+  let menu = document.getElementById("agendaFabMenu");
+  const fab = document.getElementById("floatingAddBtn");
+  if (!fab) return null;
+
+  if (!menu) {
+    menu = document.createElement("div");
+    menu.id = "agendaFabMenu";
+    menu.className = "agenda-fab-menu";
+    menu.setAttribute("aria-label", "Snel toevoegen");
+
+    agendaFabActions.forEach(action => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "agenda-fab-menu-item";
+      button.dataset.action = action.key;
+      button.style.setProperty("--fab-x", `${action.dx}px`);
+      button.style.setProperty("--fab-y", `${action.dy}px`);
+      button.setAttribute("aria-label", t(action.labelKey));
+
+      const icon = document.createElement("span");
+      icon.className = "agenda-fab-menu-icon";
+      icon.innerHTML = getNavIconHtmlForScreen(action.iconScreen);
+
+      const label = document.createElement("span");
+      label.className = "agenda-fab-menu-label";
+      label.textContent = t(action.labelKey);
+
+      button.appendChild(icon);
+      button.appendChild(label);
+
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        runAgendaFabAction(action);
+      });
+
+      menu.appendChild(button);
+    });
+
+    document.body.appendChild(menu);
+  } else {
+    agendaFabActions.forEach(action => {
+      const button = menu.querySelector(`[data-action="${action.key}"]`);
+      if (!button) return;
+      button.setAttribute("aria-label", t(action.labelKey));
+      const label = button.querySelector(".agenda-fab-menu-label");
+      if (label) label.textContent = t(action.labelKey);
+      const icon = button.querySelector(".agenda-fab-menu-icon");
+      if (icon && !icon.innerHTML.trim()) icon.innerHTML = getNavIconHtmlForScreen(action.iconScreen);
+    });
+  }
+
+  if (!agendaFabMenuDocumentHandlersInstalled) {
+    document.addEventListener("click", event => {
+      const activeMenu = document.getElementById("agendaFabMenu");
+      const activeFab = document.getElementById("floatingAddBtn");
+      if (!activeMenu?.classList.contains("open")) return;
+      if (activeMenu.contains(event.target) || activeFab?.contains(event.target)) return;
+      closeAgendaFabMenu();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeAgendaFabMenu();
+    });
+
+    agendaFabMenuDocumentHandlersInstalled = true;
+  }
+
+  return menu;
+}
+
+
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = getScreenTitle(screenId, title);
 
@@ -2105,15 +2264,33 @@ function updateTopbar(screenId, title) {
   const standardCostsBtn = document.getElementById("standardCostsBtn");
 
   backBtn.classList.toggle("hidden-btn", screenId !== "clientDetailScreen");
+  const showStandardCostsFab = screenId === "costsScreen" && getStandardCosts(getData()).length > 0;
+
   if (standardCostsBtn) {
     standardCostsBtn.onclick = openStandardCostsPopover;
-    standardCostsBtn.classList.toggle("hidden", !(screenId === "costsScreen" && getStandardCosts(getData()).length > 0));
+    standardCostsBtn.classList.toggle("hidden", !showStandardCostsFab);
+  }
+
+  document.body.classList.toggle("costs-fab-pair", showStandardCostsFab);
+
+  if (screenId !== "agendaScreen") {
+    closeAgendaFabMenu();
   }
 
   if (screenId === "agendaScreen") {
-    fab.onclick = () => openNewAppointmentDialog();
+    if (isAgendaFabMenuEnabled()) {
+      ensureAgendaFabMenu();
+      fab.onclick = toggleAgendaFabMenu;
+      fab.setAttribute("aria-expanded", "false");
+    } else {
+      closeAgendaFabMenu();
+      fab.onclick = openNewAppointmentDialog;
+      fab.classList.remove("fab-menu-open");
+      fab.setAttribute("aria-expanded", "false");
+    }
     fab.style.display = "block";
   } else if (screenId === "costsScreen") {
+    closeAgendaFabMenu();
     fab.onclick = openNewCostDialog;
     fab.style.display = "block";
   } else if (screenId === "todoScreen") {
@@ -2129,6 +2306,7 @@ function updateTopbar(screenId, title) {
     fab.onclick = openNewPaymentMethodDialog;
     fab.style.display = "block";
   } else {
+    closeAgendaFabMenu();
     fab.style.display = "none";
   }
 }
@@ -6014,6 +6192,7 @@ function getSettingsFormSnapshot() {
     "settingsNotificationsEnabled",
     "settingsReminderMinutes",
     "settingsOverlapWarningsEnabled",
+    "settingsAgendaFabMenuEnabled",
     "settingsLanguage",
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
@@ -6091,6 +6270,7 @@ function renderSettings() {
   const notificationsToggle = document.getElementById("settingsNotificationsEnabled");
   const reminderSelect = document.getElementById("settingsReminderMinutes");
   const overlapToggle = document.getElementById("settingsOverlapWarningsEnabled");
+  const agendaFabMenuToggle = document.getElementById("settingsAgendaFabMenuEnabled");
   const reminderWrap = document.getElementById("settingsReminderWrap");
   const saveHint = document.getElementById("settingsSaveHint");
   const languageSelect = document.getElementById("settingsLanguage");
@@ -6108,6 +6288,7 @@ function renderSettings() {
   notificationsToggle.checked = Boolean(settings.notificationsEnabled);
   reminderSelect.value = String(settings.reminderMinutes || 30);
   overlapToggle.checked = settings.overlapWarningsEnabled !== false;
+  if (agendaFabMenuToggle) agendaFabMenuToggle.checked = settings.agendaFabMenuEnabled !== false;
   if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
   if (paymentIbanInput) paymentIbanInput.value = settings.paymentIban || "";
   if (paymentBicInput) paymentBicInput.value = settings.paymentBic || "";
@@ -6160,6 +6341,7 @@ async function loadSettingsFromSupabase() {
     notificationsEnabled: Boolean(data?.notifications_enabled ?? false),
     reminderMinutes: Number(data?.reminder_minutes ?? 30),
     overlapWarningsEnabled: data?.overlap_warnings_enabled !== false,
+    agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
     paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
@@ -6178,6 +6360,7 @@ async function saveSettingsFromForm(event) {
     notificationsEnabled: Boolean(document.getElementById("settingsNotificationsEnabled")?.checked),
     reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
     overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked),
+    agendaFabMenuEnabled: Boolean(document.getElementById("settingsAgendaFabMenuEnabled")?.checked),
     language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
@@ -6205,6 +6388,7 @@ async function saveSettingsFromForm(event) {
   if (!user) {
     const data = getData();
     data.settings = settings;
+    writeAgendaFabMenuEnabledPreference(settings.agendaFabMenuEnabled);
     currentProfilePreferences = { language: settings.language, currency: settings.currency };
     saveData(data);
     state.settingsSavePending = false;
@@ -6257,6 +6441,7 @@ async function saveSettingsFromForm(event) {
 
   const data = getData();
   data.settings = settings;
+  writeAgendaFabMenuEnabledPreference(settings.agendaFabMenuEnabled);
   currentProfilePreferences = { language: settings.language, currency: settings.currency };
   saveData(data);
   state.settingsDirty = false;

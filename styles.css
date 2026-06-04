@@ -8590,14 +8590,18 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 
 /* Kosten: tweede zwevende knop links van de plus-knop */
 .fab-secondary {
-  left: calc(50% - 74px);
+  left: calc(50% - 38px);
   transform: translateX(-50%);
-  width: 48px;
-  height: 48px;
-  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 15px);
+  width: 58px;
+  height: 58px;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
   font-size: 24px;
   display: grid;
   place-items: center;
+}
+
+body.costs-fab-pair #floatingAddBtn {
+  left: calc(50% + 38px);
 }
 
 .fab-secondary span {
@@ -8663,4 +8667,114 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 
 .standard-cost-manager-actions {
   display: none;
+}
+
+
+/* =========================================================
+   AGENDA SNEL TOEVOEGEN MENU ROND FAB
+========================================================= */
+.agenda-fab-menu {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 39px);
+  z-index: 39;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.agenda-fab-menu-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: 0 8px 18px rgba(185, 109, 135, 0.24);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.52);
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(.2,.9,.25,1.2),
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.agenda-fab-menu.open {
+  pointer-events: auto;
+}
+
+.agenda-fab-menu.open .agenda-fab-menu-item {
+  opacity: 1;
+  pointer-events: auto;
+  transform:
+    translate(calc(-50% + var(--fab-x)), calc(-50% + var(--fab-y)))
+    scale(1);
+}
+
+.agenda-fab-menu-item:hover,
+.agenda-fab-menu-item:active {
+  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
+  transform:
+    translate(calc(-50% + var(--fab-x)), calc(-50% + var(--fab-y)))
+    scale(1.05);
+}
+
+.agenda-fab-menu-icon {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  color: currentColor;
+  pointer-events: none;
+}
+
+.agenda-fab-menu-icon svg {
+  width: 27px;
+  height: 27px;
+  display: block;
+}
+
+.agenda-fab-menu-icon path,
+.agenda-fab-menu-icon circle,
+.agenda-fab-menu-icon rect,
+.agenda-fab-menu-icon polygon {
+  fill: currentColor !important;
+  stroke: none;
+}
+
+.agenda-fab-menu-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fab.fab-menu-open {
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
+}
+
+@media (max-width: 360px) {
+  .agenda-fab-menu-item {
+    width: 46px;
+    height: 46px;
+  }
+
+  .agenda-fab-menu-icon,
+  .agenda-fab-menu-icon svg {
+    width: 25px;
+    height: 25px;
+  }
 }
