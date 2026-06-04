@@ -861,17 +861,30 @@ function getPrivateAgendaDisplayTime(appointment, dateStr) {
   return { main: "Hele dag", sub: `tot ${formatShortDate(bounds.end)}` };
 }
 
+function getAppointmentSortMinutesForDate(appointment, dateStr) {
+  if (isPrivateAppointment(appointment) && isMultiDayPrivateAppointment(appointment)) {
+    const bounds = getPrivateRangeBounds(appointment);
+    const currentDate = dateStr || appointment?.date || todayStr;
+    if (currentDate === bounds.start) {
+      return minutesFromTimeString(appointment.time || appointment.appointment_time || "00:00");
+    }
+    return 0;
+  }
+
+  return minutesFromTimeString(appointment.time || appointment.appointment_time || "00:00");
+}
+
 function getAppointmentsForDate(dateStr, data = getData()) {
   return getVirtualPrivateRecurrenceAppointments(data)
     .filter(appointment => appointment.date === dateStr)
     .sort((a, b) => {
-      const multiDayPrivateSort = Number(isMultiDayPrivateAppointment(b)) - Number(isMultiDayPrivateAppointment(a));
-      if (multiDayPrivateSort) return multiDayPrivateSort;
+      const timeSort = getAppointmentSortMinutesForDate(a, dateStr) - getAppointmentSortMinutesForDate(b, dateStr);
+      if (timeSort) return timeSort;
 
       const privateSort = Number(isPrivateAppointment(b)) - Number(isPrivateAppointment(a));
       if (privateSort) return privateSort;
 
-      return String(a.time || "").localeCompare(String(b.time || ""));
+      return String(a.id || "").localeCompare(String(b.id || ""));
     });
 }
 
@@ -8353,7 +8366,12 @@ function openMonthPicker() {
   monthSelect.value = String(state.currentMonth);
   document.getElementById("yearSelect").value = state.currentYear;
 
+  closeAllAppSelectDropdowns();
+  refreshAppSelect(monthSelect);
+
   document.getElementById("monthPickerDialog").showModal();
+
+  window.requestAnimationFrame(() => refreshAppSelect(monthSelect));
 }
 
 function saveMonthPicker(event) {
