@@ -3724,7 +3724,7 @@ button {
   /* Algemene formulieren en detailpagina's */
   .field-row,
   .info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   #clientDetailContent {
@@ -8381,4 +8381,239 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #f0e4ea;
+}
+
+/* =========================================================
+   KOSTEN PAGINA
+========================================================= */
+#costsScreen {
+  grid-template-rows: 1fr;
+  min-height: 0;
+  background: #fbf7f9;
+}
+
+.costs-screen-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 8px 108px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.costs-summary-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.costs-summary-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.costs-summary-item strong {
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.costs-list-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: visible;
+}
+
+.costs-scroll-list {
+  padding: 0 0 96px;
+}
+
+.cost-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 6px;
+}
+
+.cost-main-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 14px;
+}
+
+.cost-row-top,
+.cost-row-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cost-row-top strong {
+  min-width: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.cost-row-top span {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.cost-row-meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cost-standard-suggestions {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 190px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cost-standard-suggestion {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.cost-standard-suggestion:hover,
+.cost-standard-suggestion:active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  transform: none;
+}
+
+.cost-standard-suggestion span {
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.cost-standard-suggestion small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+
+
+.standard-costs-card {
+  max-height: min(78vh, 620px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.standard-costs-manager-list {
+  min-height: 0;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.standard-cost-manager-item {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.standard-cost-manager-main {
+  display: grid;
+  gap: 4px;
+}
+
+.standard-cost-manager-main strong {
+  font-size: 15px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.standard-cost-manager-main small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.standard-cost-manager-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.standard-cost-manager-actions .btn {
+  width: 100%;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .costs-summary-card {
+    gap: 6px;
+  }
+
+  .costs-summary-item {
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .costs-summary-item strong {
+    font-size: clamp(16px, 4.8vw, 19px);
+    white-space: nowrap;
+  }
+}
+
+
+/* Kosten: tweede zwevende knop links van de plus-knop */
+.fab-secondary {
+  left: calc(50% - 74px);
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 15px);
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.fab-secondary span {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.cost-standard-picker {
+  position: relative;
+}
+
+.cost-standard-suggestions {
+  z-index: 20;
+}
+
+.cost-standard-suggestion.appointment-service-result {
+  width: 100%;
 }

@@ -313,6 +313,30 @@
 
 
 
+
+      <!-- ===================== KOSTEN ======================= -->
+      <section id="costsScreen" class="screen">
+        <section class="costs-screen-shell">
+          <section class="costs-summary-card">
+            <div class="costs-summary-item">
+              <span class="revenue-main-label">Totaal incl. btw</span>
+              <strong id="costsTotalInclAmount">€ 0,00</strong>
+            </div>
+            <div class="costs-summary-item">
+              <span class="revenue-main-label">Totaal excl. btw</span>
+              <strong id="costsTotalExclAmount">€ 0,00</strong>
+            </div>
+            <div class="costs-summary-item">
+              <span class="revenue-main-label">Btw</span>
+              <strong id="costsVatAmount">€ 0,00</strong>
+            </div>
+          </section>
+          <section class="costs-list-panel">
+            <div id="costsList" class="scroll-list costs-scroll-list"></div>
+          </section>
+        </section>
+      </section>
+
       <!-- ===================== TO DO ======================= -->
       <section id="todoScreen" class="screen">
         <section class="todo-screen-shell">
@@ -619,6 +643,16 @@
 	  </button>
 
 
+	  <button class="nav-btn" data-screen="costsScreen" data-title="Kosten" type="button">
+		<span class="nav-ico">
+		  <svg viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-kosten" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+            <path d="m 1.4382433,6.4980677 c -0.07321,-0.036566 -0.1626,-0.1286166 -0.198635,-0.2045558 l -0.06552,-0.1380716 0.236153,-1.7738516 0.236152,-1.7738515 0.08227,-0.073279 c 0.05974,-0.053211 0.154006,-0.073279 0.344215,-0.073279 h 0.261941 l 0.01975,-0.4101711 c -0.017718,-0.2429813 0.018258,-0.407626 0.135712,-0.6080452 0.113571,-0.193796 0.380343,-0.4427997 0.546645,-0.51023649 0.063709,-0.0258351 0.2447045,-0.0366429 1.4237003,-0.0562941 l 0.167494,0.0739511 c 0.339758,0.15000819 0.578871,0.48541599 0.663492,0.93069339 l 0.04658,0.245114 h 0.198314 0.198313 l 0.04276,0.079888 c 0.02351,0.043938 0.148926,0.8659984 0.278691,1.8268001 l 0.235936,1.7469124 -0.04794,0.1599929 c -0.0596,0.1989342 -0.258594,0.402092 -0.50603,0.5166245 l -0.188901,0.08744 -1.9889923,0.01035 -1.988992,0.01035 z m 3.9133533,-0.207835 c 0.11253,-0.078818 -0.11906,-2.3965283 -0.350179,-3.5045331 l -0.02402,-0.1151521 h -0.226977 -0.226978 v 0.1294842 c 0,0.071216 0.03769,0.1773946 0.08375,0.2359514 0.15685,0.1994025 0.05577,0.4301614 -0.1884303,0.4301614 -0.244198,0 -0.345281,-0.2307589 -0.188431,-0.4301614 0.04606,-0.058557 0.08375,-0.1651098 0.08375,-0.2367842 v -0.130317 l -0.889812,0.011302 -0.889813,0.011302 -0.01413,0.099917 c -0.0078,0.055092 0.02509,0.1529544 0.07328,0.2181404 0.164454,0.2224358 0.069,0.456603 -0.186134,0.456603 -0.242509,0 -0.332928,-0.2817124 -0.152173,-0.4741169 0.0499,-0.053115 0.09073,-0.1471773 0.09073,-0.2090266 V 2.6705493 h -0.251241 c -0.138183,0 -0.251242,0.014647 -0.251242,0.03255 0,0.017902 -0.03855,0.3052593 -0.08567,0.6385713 -0.138172,0.9773765 -0.374279,2.7372331 -0.37462,2.792282 -1.74e-4,0.027891 0.04093,0.089131 0.09133,0.136089 l 0.09164,0.085378 h 1.846158 1.8461593 z m 0.474943,-0.1205428 c 0.08254,-0.056089 0.175098,-0.1623844 0.205678,-0.2362113 l 0.0556,-0.1342309 -0.0524,-0.4232966 C 5.9764076,4.8991825 5.6682546,2.6809654 5.6319586,2.4716482 l -0.0236,-0.1360889 h -0.434283 c -0.309775,0 -0.43952,-0.015006 -0.452543,-0.052342 -0.03832,-0.1098608 0.02301,-0.1570256 0.204189,-0.1570256 h 0.183951 V 2.0080304 c 0,-0.46604 -0.432032,-0.9286767 -0.8672433,-0.9286767 h -0.145166 l 0.110408,0.131212 c 0.2210233,0.2626716 0.2882463,0.4513431 0.3075813,0.8632841 l 0.01818,0.38733 h 0.260693 c 0.372687,0 0.373383,0.00133 0.501883,0.9630912 0.06,0.4490934 0.166662,1.2297157 0.237019,1.7347158 0.07036,0.5050002 0.119556,0.961945 0.109331,1.0154328 -0.02335,0.122144 -0.0017,0.1215884 0.184181,-0.00473 z M 4.3140753,2.3993821 v -0.061798 l -0.701381,-0.01148 -0.701381,-0.01148 v -0.083747 c 0,-0.054968 0.03238,-0.088345 0.09421,-0.097128 l 0.09422,-0.013381 V 2.0052594 c 0,-0.2065309 0.121995,-0.5322531 0.273824,-0.7310971 l 0.148747,-0.1948081 h -0.136607 c -0.505996,0 -0.869286,0.4727243 -0.87154,1.1340745 -8.86e-4,0.2607823 -0.04967,0.2477516 0.927543,0.2477516 h 0.872365 z m 0,-0.4411408 c 0,-0.2869324 -0.322089,-0.7951405 -0.503939,-0.7951405 -0.171748,0 -0.501025,0.5552933 -0.501025,0.8449296 v 0.1181614 h 0.502482 0.502482 z" />
+          </svg>
+		</span>
+		<span data-i18n="costs">Kosten</span>
+	  </button>
+
+
 	  <button class="nav-btn" data-screen="todoScreen" data-title="To Do" type="button">
 		<span class="nav-ico">
 		  <svg viewBox="0 0 7.4083331 7.4083333" version="1.1" id="svg-todo" aria-hidden="true" focusable="false">
@@ -694,6 +728,9 @@
        FLOATING ACTION BUTTON
        Wordt door JS per screen anders gebruikt
   ========================================================== -->
+  <button id="standardCostsBtn" class="fab fab-secondary hidden" type="button" aria-label="Standaardkosten">
+    <span aria-hidden="true">☰</span>
+  </button>
   <button id="floatingAddBtn" class="fab" type="button" aria-label="Toevoegen">+</button>
 
   <!-- =========================================================
@@ -727,6 +764,92 @@
   </dialog>
 
 
+
+  <!-- ===================== KOSTEN ======================= -->
+  <dialog id="costDialog" class="modal">
+    <form method="dialog" id="costForm" class="modal-card">
+      <div class="modal-head">
+        <h3 id="costModalTitle">Nieuwe kost</h3>
+        <button class="icon-btn" type="button" data-close="costDialog">✕</button>
+      </div>
+
+      <input type="hidden" id="costId" />
+      <input type="hidden" id="costStandardCostId" />
+
+      <label class="field-label" for="costDescription">Omschrijving</label>
+      <div class="appointment-customer-picker cost-standard-picker">
+        <input
+          id="costDescription"
+          class="field appointment-service-search"
+          type="search"
+          autocomplete="off"
+          placeholder="Zoek of kies een standaardkost..."
+          aria-controls="costStandardSuggestions"
+          aria-expanded="false"
+        />
+        <div id="costStandardSuggestions" class="appointment-service-results cost-standard-suggestions hidden" role="listbox"></div>
+        <select id="costStandardCostSelect" class="field appointment-customer-select-fallback" aria-label="Standaardkost kiezen"></select>
+      </div>
+
+      <label class="field-label" for="costDate">Datum</label>
+      <input id="costDate" class="field" type="date" />
+
+      <label class="field-label" for="costAmountInclVat">Bedrag incl. btw</label>
+      <input id="costAmountInclVat" class="field" type="number" min="0" step="0.01" inputmode="decimal" />
+
+      <label class="field-label" for="costVatRate">Btw</label>
+      <select id="costVatRate" class="field">
+        <option value="6">6%</option>
+        <option value="12">12%</option>
+        <option value="21" selected>21%</option>
+      </select>
+
+      <div class="modal-actions triple-actions">
+        <button id="deleteCostBtn" class="btn btn-danger action-btn hidden" type="button">Verwijderen</button>
+        <div class="right-actions">
+          <button class="btn btn-secondary action-btn" type="button" data-close="costDialog">Nee</button>
+          <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+
+
+  <dialog id="standardCostsDialog" class="modal modal-small">
+    <div class="modal-card standard-costs-card">
+      <div class="modal-head">
+        <h3>Standaardkosten</h3>
+        <button class="icon-btn" type="button" data-close="standardCostsDialog">✕</button>
+      </div>
+      <div id="standardCostsManagerList" class="standard-costs-manager-list"></div>
+      <div class="modal-actions end-only">
+        <button class="btn btn-secondary action-btn" type="button" data-close="standardCostsDialog">Sluiten</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="standardCostEditDialog" class="modal modal-small">
+    <form method="dialog" id="standardCostEditForm" class="modal-card">
+      <div class="modal-head">
+        <h3>Standaardkost aanpassen</h3>
+        <button class="icon-btn" type="button" data-close="standardCostEditDialog">✕</button>
+      </div>
+      <input type="hidden" id="standardCostEditId" />
+      <label class="field-label" for="standardCostEditDescription">Omschrijving</label>
+      <input id="standardCostEditDescription" class="field" type="text" autocomplete="off" />
+      <label class="field-label" for="standardCostEditVatRate">Btw</label>
+      <select id="standardCostEditVatRate" class="field">
+        <option value="6">6%</option>
+        <option value="12">12%</option>
+        <option value="21" selected>21%</option>
+      </select>
+      <div class="modal-actions two-buttons">
+        <button class="btn btn-secondary action-btn" type="button" data-close="standardCostEditDialog">Nee</button>
+        <button class="btn btn-primary action-btn" type="submit">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
   <!-- ===================== TO DO ======================= -->
   <dialog id="todoDialog" class="modal">
     <form method="dialog" id="todoForm" class="modal-card">

@@ -95,6 +95,13 @@ const i18nTodo = {
 };
 Object.keys(i18nTodo).forEach(lang => Object.assign(i18n[lang], i18nTodo[lang]));
 
+const i18nCosts = {
+  "nl-BE": { costs: "Kosten", newCost: "Nieuwe kost", editCost: "Kost bewerken", costDescription: "Omschrijving", costDate: "Datum", costAmountInclVat: "Bedrag incl. btw", vat: "Btw", standardCost: "Standaardkost", noCosts: "Nog geen kosten.", saveAsStandardCostQuestion: "Wil je deze kost opslaan als standaardkost zodat je ze later snel opnieuw kunt selecteren?", costSaved: "Kost opgeslagen.", costDeleted: "Kost verwijderd.", chooseStandardCost: "Zoek of kies een standaardkost...", totalInclVat: "Totaal incl. btw", totalExclVat: "Totaal excl. btw", standardCosts: "Standaardkosten", noStandardCosts: "Nog geen standaardkosten.", editStandardCost: "Standaardkost aanpassen", deleteStandardCostConfirm: "Deze standaardkost verwijderen?" },
+  "en-GB": { costs: "Costs", newCost: "New cost", editCost: "Edit cost", costDescription: "Description", costDate: "Date", costAmountInclVat: "Amount incl. VAT", vat: "VAT", standardCost: "Standard cost", noCosts: "No costs yet.", saveAsStandardCostQuestion: "Do you want to save this cost as a standard cost so you can quickly select it again later?", costSaved: "Cost saved.", costDeleted: "Cost deleted.", chooseStandardCost: "Search or choose a standard cost...", totalInclVat: "Total incl. VAT", totalExclVat: "Total excl. VAT", standardCosts: "Standard costs", noStandardCosts: "No standard costs yet.", editStandardCost: "Edit standard cost", deleteStandardCostConfirm: "Delete this standard cost?" },
+  "fr-FR": { costs: "Frais", newCost: "Nouveau frais", editCost: "Modifier le frais", costDescription: "Description", costDate: "Date", costAmountInclVat: "Montant TVAC", vat: "TVA", standardCost: "Frais standard", noCosts: "Aucun frais pour le moment.", saveAsStandardCostQuestion: "Voulez-vous enregistrer ce frais comme frais standard afin de pouvoir le sélectionner rapidement plus tard ?", costSaved: "Frais enregistré.", costDeleted: "Frais supprimé.", chooseStandardCost: "Rechercher ou choisir un frais standard...", totalInclVat: "Total TVAC", totalExclVat: "Total HTVA", standardCosts: "Frais standard", noStandardCosts: "Aucun frais standard pour le moment.", editStandardCost: "Modifier le frais standard", deleteStandardCostConfirm: "Supprimer ce frais standard ?" }
+};
+Object.keys(i18nCosts).forEach(lang => Object.assign(i18n[lang], i18nCosts[lang]));
+
 
 let currentProfilePreferences = { language: DEFAULT_LANGUAGE, currency: DEFAULT_CURRENCY };
 
@@ -466,6 +473,25 @@ function normalizeData(data) {
     updatedAt: todo?.updatedAt || todo?.updated_at || null
   })).filter(todo => todo.title || todo.description) : [];
 
+  const costs = Array.isArray(safe.costs) ? safe.costs.map(cost => ({
+    id: cost?.id,
+    description: String(cost?.description || cost?.omschrijving || "").trim(),
+    date: cost?.date || cost?.cost_date || todayStr,
+    amountInclVat: Number(cost?.amountInclVat ?? cost?.amount_incl_vat ?? cost?.amount ?? 0),
+    vatRate: Number(cost?.vatRate ?? cost?.vat_rate ?? 21),
+    standardCostId: cost?.standardCostId ?? cost?.standard_cost_id ?? null,
+    createdAt: cost?.createdAt || cost?.created_at || null,
+    updatedAt: cost?.updatedAt || cost?.updated_at || null
+  })).filter(cost => cost.description || Number(cost.amountInclVat) > 0) : [];
+
+  const standardCosts = Array.isArray(safe.standardCosts) ? safe.standardCosts.map(item => ({
+    id: item?.id,
+    description: String(item?.description || item?.omschrijving || "").trim(),
+    vatRate: Number(item?.vatRate ?? item?.vat_rate ?? 21),
+    createdAt: item?.createdAt || item?.created_at || null,
+    updatedAt: item?.updatedAt || item?.updated_at || null
+  })).filter(item => item.description) : [];
+
   return {
     customers: Array.isArray(safe.customers) ? safe.customers : [],
     services: Array.isArray(safe.services) ? safe.services.map(service => ({
@@ -474,6 +500,8 @@ function normalizeData(data) {
     })) : [],
     appointments,
     todos,
+    costs,
+    standardCosts,
     paymentMethods,
     settings: {
       ...defaults,
@@ -2052,6 +2080,7 @@ function getScreenTitle(screenId, fallback = "") {
   const map = {
     agendaScreen: "agenda",
     revenueScreen: "revenue",
+    costsScreen: "costs",
     todoScreen: "todo",
     clientsScreen: "clients",
     servicesScreen: "services",
@@ -2069,11 +2098,19 @@ function updateTopbar(screenId, title) {
 
   const backBtn = document.getElementById("backBtn");
   const fab = document.getElementById("floatingAddBtn");
+  const standardCostsBtn = document.getElementById("standardCostsBtn");
 
   backBtn.classList.toggle("hidden-btn", screenId !== "clientDetailScreen");
+  if (standardCostsBtn) {
+    standardCostsBtn.onclick = openStandardCostsPopover;
+    standardCostsBtn.classList.toggle("hidden", !(screenId === "costsScreen" && getStandardCosts(getData()).length > 0));
+  }
 
   if (screenId === "agendaScreen") {
     fab.onclick = () => openNewAppointmentDialog();
+    fab.style.display = "block";
+  } else if (screenId === "costsScreen") {
+    fab.onclick = openNewCostDialog;
     fab.style.display = "block";
   } else if (screenId === "todoScreen") {
     fab.onclick = openNewTodoDialog;
@@ -2107,7 +2144,7 @@ function switchScreen(screenId, title, options = {}) {
 
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -2129,6 +2166,10 @@ function switchScreen(screenId, title, options = {}) {
     if (state.revenueLastRenderSignature === beforeSignature) {
       renderRevenue();
     }
+  }
+
+  if (screenId === "costsScreen") {
+    renderCosts();
   }
 
   if (screenId === "todoScreen") {
@@ -8408,6 +8449,7 @@ function rerenderAll() {
   renderPaymentMethods();
   renderStatistics();
   renderRevenue();
+  renderCosts();
   renderTodos();
 
   if (state.selectedClientId && state.currentScreen === "clientDetailScreen") {
@@ -8470,6 +8512,486 @@ function applyNavStyleActionButtons(root = document) {
   });
 }
 
+
+
+/* =========================
+   KOSTEN
+========================= */
+function getCosts(data = getData()) {
+  return Array.isArray(data.costs) ? data.costs : [];
+}
+
+function getStandardCosts(data = getData()) {
+  return Array.isArray(data.standardCosts) ? data.standardCosts : [];
+}
+
+function costById(data, id) {
+  return getCosts(data).find(cost => String(cost.id) === String(id));
+}
+
+function standardCostExists(data, description) {
+  const key = String(description || "").trim().toLocaleLowerCase();
+  return getStandardCosts(data).find(item => String(item.description || "").trim().toLocaleLowerCase() === key) || null;
+}
+
+function buildVatOptions(selected = 21) {
+  return [6, 12, 21].map(rate => `<option value="${rate}"${Number(selected) === rate ? " selected" : ""}>${rate}%</option>`).join("");
+}
+
+function renderCostStandardSuggestions(filter = "", showAllWhenEmpty = true) {
+  const wrap = document.getElementById("costStandardSuggestions");
+  const searchInput = document.getElementById("costDescription");
+  const select = document.getElementById("costStandardCostSelect");
+  if (!wrap) return;
+
+  const data = getData();
+  const safeFilter = String(filter || "").trim().toLocaleLowerCase();
+  const currentValue = document.getElementById("costStandardCostId")?.value || "";
+
+  let items = getStandardCosts(data)
+    .slice()
+    .sort((a, b) => String(a.description || "").localeCompare(String(b.description || ""), "nl-BE"));
+
+  if (safeFilter) {
+    items = items.filter(item => String(item.description || "").toLocaleLowerCase().includes(safeFilter));
+  } else if (!showAllWhenEmpty) {
+    items = [];
+  }
+
+  items = items.slice(0, 30);
+
+  if (select) {
+    select.innerHTML = `<option value="">${t("chooseStandardCost")}</option>` + getStandardCosts(data)
+      .slice()
+      .sort((a, b) => String(a.description || "").localeCompare(String(b.description || ""), "nl-BE"))
+      .map(item => `<option value="${item.id}">${escapeHtml(item.description || "")}</option>`)
+      .join("");
+    select.value = currentValue && Array.from(select.options).some(option => String(option.value) === String(currentValue)) ? String(currentValue) : "";
+    refreshAppSelect(select);
+  }
+
+  if (!items.length) {
+    wrap.innerHTML = safeFilter ? `<div class="appointment-service-empty">${t("noStandardCosts")}</div>` : "";
+    wrap.classList.toggle("hidden", !safeFilter);
+    if (searchInput) searchInput.setAttribute("aria-expanded", safeFilter ? "true" : "false");
+    return;
+  }
+
+  wrap.innerHTML = items.map(item => {
+    const activeClass = String(item.id) === String(currentValue) ? " active" : "";
+    return `
+      <button class="appointment-service-result cost-standard-suggestion${activeClass}" type="button" role="option" data-standard-cost-id="${item.id}" aria-selected="${activeClass ? "true" : "false"}">
+        <span class="appointment-service-result-name">${escapeHtml(item.description || "")}</span>
+        <span class="appointment-service-result-meta">${Number(item.vatRate || 21)}% btw</span>
+      </button>
+    `;
+  }).join("");
+
+  wrap.classList.remove("hidden");
+  if (searchInput) searchInput.setAttribute("aria-expanded", "true");
+
+  wrap.querySelectorAll("[data-standard-cost-id]").forEach(btn => {
+    btn.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const item = getStandardCosts(getData()).find(standard => String(standard.id) === String(btn.dataset.standardCostId));
+      if (!item) return;
+      document.getElementById("costDescription").value = item.description || "";
+      document.getElementById("costVatRate").innerHTML = buildVatOptions(item.vatRate || 21);
+      document.getElementById("costStandardCostId").value = item.id || "";
+      if (select) select.value = String(item.id || "");
+      wrap.classList.add("hidden");
+      document.getElementById("costDescription")?.setAttribute("aria-expanded", "false");
+      document.getElementById("costDescription")?.blur();
+      refreshAppSelect(document.getElementById("costVatRate"));
+      refreshAppSelect(select);
+    });
+  });
+}
+
+function renderCosts() {
+  const list = document.getElementById("costsList");
+  const totalInclEl = document.getElementById("costsTotalInclAmount");
+  const totalExclEl = document.getElementById("costsTotalExclAmount");
+  const vatEl = document.getElementById("costsVatAmount");
+  if (!list) return;
+
+  const costs = getCosts(getData()).slice().sort((a, b) => {
+    const dateSort = String(b.date || "").localeCompare(String(a.date || ""));
+    if (dateSort) return dateSort;
+    return String(b.updatedAt || b.createdAt || b.id || "").localeCompare(String(a.updatedAt || a.createdAt || a.id || ""));
+  });
+
+  const totalIncl = costs.reduce((sum, cost) => sum + Number(cost.amountInclVat || 0), 0);
+  const vatTotal = costs.reduce((sum, cost) => {
+    const amount = Number(cost.amountInclVat || 0);
+    const rate = Number(cost.vatRate || 0);
+    return sum + (rate > 0 ? amount - (amount / (1 + (rate / 100))) : 0);
+  }, 0);
+  const totalExcl = totalIncl - vatTotal;
+
+  if (totalInclEl) totalInclEl.textContent = euro(totalIncl);
+  if (totalExclEl) totalExclEl.textContent = euro(totalExcl);
+  if (vatEl) vatEl.textContent = euro(vatTotal);
+  updateTopbar(state.currentScreen, getScreenTitle(state.currentScreen));
+  refreshStandardCostsButton();
+
+  if (!costs.length) {
+    list.innerHTML = `<div class="empty-state">${t("noCosts")}</div>`;
+    return;
+  }
+
+  list.innerHTML = costs.map(cost => `
+    <article class="cost-card">
+      <button class="cost-main-btn" type="button" data-cost-edit="${cost.id}">
+        <div class="cost-row-top">
+          <strong>${escapeHtml(cost.description || t("costDescription"))}</strong>
+          <span>${euro(cost.amountInclVat)}</span>
+        </div>
+        <div class="cost-row-meta">
+          <span>${formatLongDate(cost.date || todayStr)}</span>
+          <span>${Number(cost.vatRate || 21)}% btw</span>
+        </div>
+      </button>
+    </article>
+  `).join("");
+
+  list.querySelectorAll("[data-cost-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openEditCostDialog(btn.dataset.costEdit));
+  });
+}
+
+function openNewCostDialog() {
+  const form = document.getElementById("costForm");
+  if (form) form.reset();
+  document.getElementById("costId").value = "";
+  document.getElementById("costStandardCostId").value = "";
+  document.getElementById("costDate").value = todayStr;
+  document.getElementById("costVatRate").innerHTML = buildVatOptions(21);
+  document.getElementById("costModalTitle").textContent = t("newCost");
+  document.getElementById("deleteCostBtn")?.classList.add("hidden");
+  renderCostStandardSuggestions("");
+  document.getElementById("costDialog")?.showModal();
+  refreshAppSelect(document.getElementById("costVatRate"));
+}
+
+function openEditCostDialog(id) {
+  const data = getData();
+  const cost = costById(data, id);
+  if (!cost) return;
+  document.getElementById("costId").value = cost.id;
+  document.getElementById("costStandardCostId").value = cost.standardCostId || "";
+  document.getElementById("costDescription").value = cost.description || "";
+  document.getElementById("costDate").value = cost.date || todayStr;
+  document.getElementById("costAmountInclVat").value = Number(cost.amountInclVat || 0).toFixed(2);
+  document.getElementById("costVatRate").innerHTML = buildVatOptions(cost.vatRate || 21);
+  document.getElementById("costModalTitle").textContent = t("editCost");
+  document.getElementById("deleteCostBtn")?.classList.remove("hidden");
+  renderCostStandardSuggestions(cost.description || "");
+  document.getElementById("costDialog")?.showModal();
+  refreshAppSelect(document.getElementById("costVatRate"));
+}
+
+async function saveStandardCost(description, vatRate, existingId = null) {
+  const user = await getCurrentUser();
+  const data = getData();
+  const cleanDescription = String(description || "").trim();
+  if (!cleanDescription) return null;
+
+  if (!user) {
+    data.standardCosts = getStandardCosts(data);
+    const existing = standardCostExists(data, cleanDescription);
+    if (existing) return existing;
+    const item = { id: nextId(data.standardCosts), description: cleanDescription, vatRate: Number(vatRate || 21), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    data.standardCosts.push(item);
+    saveData(data);
+    refreshStandardCostsButton();
+    return item;
+  }
+
+  if (existingId) return { id: existingId, description: cleanDescription, vatRate: Number(vatRate || 21) };
+
+  const { data: inserted, error } = await supabaseClient
+    .from("standard_costs")
+    .insert({ user_id: user.id, description: cleanDescription, vat_rate: Number(vatRate || 21) })
+    .select("id, description, vat_rate")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Standaardkost opslaan mislukt:", error.message);
+    return null;
+  }
+
+  await loadAllDataFromSupabase();
+  return inserted ? { id: inserted.id, description: inserted.description, vatRate: inserted.vat_rate } : null;
+}
+
+async function saveCostFromForm(event) {
+  event.preventDefault();
+  const rawId = document.getElementById("costId")?.value;
+  const id = rawId ? Number(rawId) || rawId : null;
+  const description = String(document.getElementById("costDescription")?.value || "").trim();
+  const date = document.getElementById("costDate")?.value || todayStr;
+  const amountInclVat = Number(String(document.getElementById("costAmountInclVat")?.value || "0").replace(",", "."));
+  const vatRate = Number(document.getElementById("costVatRate")?.value || 21);
+  const standardCostId = document.getElementById("costStandardCostId")?.value || null;
+  const now = new Date().toISOString();
+
+  if (!description) {
+    await appAlert("Geef een omschrijving voor de kost in.", { title: t("costs"), variant: "warning" });
+    return;
+  }
+  if (!date) {
+    await appAlert("Kies een datum voor de kost.", { title: t("costs"), variant: "warning" });
+    return;
+  }
+  if (!Number.isFinite(amountInclVat) || amountInclVat < 0) {
+    await appAlert("Geef een geldig bedrag in.", { title: t("costs"), variant: "warning" });
+    return;
+  }
+
+  let saveFailed = false;
+
+  await runWithGlobalActionBusy(async () => {
+    const user = await getCurrentUser();
+    const data = getData();
+    const payload = { description, date, amountInclVat, vatRate, standardCostId, updatedAt: now };
+
+    if (!user) {
+      data.costs = getCosts(data);
+      if (id) {
+        const existing = costById(data, id);
+        if (existing) Object.assign(existing, payload);
+      } else {
+        data.costs.push({ id: nextId(data.costs), ...payload, createdAt: now });
+      }
+      saveData(data);
+      return;
+    }
+
+    const dbPayload = {
+      user_id: user.id,
+      description,
+      cost_date: date,
+      amount_incl_vat: amountInclVat,
+      vat_rate: vatRate,
+      standard_cost_id: standardCostId ? Number(standardCostId) || standardCostId : null,
+      updated_at: now
+    };
+
+    let error;
+    if (id) {
+      ({ error } = await supabaseClient.from("costs").update(dbPayload).eq("id", id).eq("user_id", user.id));
+    } else {
+      ({ error } = await supabaseClient.from("costs").insert({ ...dbPayload, created_at: now }));
+    }
+
+    if (error) {
+      saveFailed = true;
+      await appAlert("Opslaan kost mislukt: " + error.message, { title: t("saveFailed"), variant: "danger" });
+      return;
+    }
+
+    await loadAllDataFromSupabase();
+  });
+
+  if (saveFailed) return;
+
+  closeDialog("costDialog");
+
+  if (!id && !standardCostExists(getData(), description)) {
+    const saveStandard = await appConfirm(t("saveAsStandardCostQuestion"), {
+      title: t("standardCost"),
+      confirmText: t("save"),
+      cancelText: "Nee",
+      variant: "info"
+    });
+    if (saveStandard) {
+      await runWithGlobalActionBusy(async () => {
+        await saveStandardCost(description, vatRate, standardCostId);
+        await loadAllDataFromSupabase().catch(() => {});
+        refreshStandardCostsButton();
+      });
+    }
+  }
+
+  renderCosts();
+  refreshStandardCostsButton();
+}
+
+async function deleteCurrentCost() {
+  const id = document.getElementById("costId")?.value;
+  if (!id) return;
+  const confirmed = await appConfirm("Deze kost verwijderen?", {
+    title: t("delete"),
+    confirmText: t("delete"),
+    cancelText: t("cancel"),
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
+  let deleteFailed = false;
+
+  await runWithGlobalActionBusy(async () => {
+    const user = await getCurrentUser();
+    const data = getData();
+
+    if (!user) {
+      data.costs = getCosts(data).filter(cost => String(cost.id) !== String(id));
+      saveData(data);
+      return;
+    }
+
+    const { error } = await supabaseClient.from("costs").delete().eq("id", id).eq("user_id", user.id);
+    if (error) {
+      deleteFailed = true;
+      await appAlert("Verwijderen kost mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+      return;
+    }
+    await loadAllDataFromSupabase();
+  });
+
+  if (deleteFailed) return;
+  closeDialog("costDialog");
+  renderCosts();
+}
+
+
+function refreshStandardCostsButton() {
+  const btn = document.getElementById("standardCostsBtn");
+  if (!btn) return;
+  btn.classList.toggle("hidden", !(state.currentScreen === "costsScreen" && getStandardCosts(getData()).length > 0));
+}
+
+function renderStandardCostsManager() {
+  const list = document.getElementById("standardCostsManagerList");
+  if (!list) return;
+  const items = getStandardCosts(getData()).slice().sort((a, b) => String(a.description || "").localeCompare(String(b.description || ""), "nl-BE"));
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">${t("noStandardCosts")}</div>`;
+    refreshStandardCostsButton();
+    return;
+  }
+  list.innerHTML = items.map(item => `
+    <article class="standard-cost-manager-item">
+      <div class="standard-cost-manager-main">
+        <strong>${escapeHtml(item.description || "")}</strong>
+        <small>${Number(item.vatRate || 21)}% btw</small>
+      </div>
+      <div class="standard-cost-manager-actions">
+        <button class="btn btn-secondary small action-btn" type="button" data-standard-cost-edit="${item.id}">Aanpassen</button>
+        <button class="btn btn-danger small action-btn" type="button" data-standard-cost-delete="${item.id}">Verwijderen</button>
+      </div>
+    </article>
+  `).join("");
+  list.querySelectorAll("[data-standard-cost-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openEditStandardCostDialog(btn.dataset.standardCostEdit));
+  });
+  list.querySelectorAll("[data-standard-cost-delete]").forEach(btn => {
+    btn.addEventListener("click", withActionLock(() => deleteStandardCost(btn.dataset.standardCostDelete)));
+  });
+  refreshStandardCostsButton();
+}
+
+function openStandardCostsPopover() {
+  renderStandardCostsManager();
+  const title = document.querySelector("#standardCostsDialog h3");
+  if (title) title.textContent = t("standardCosts");
+  document.getElementById("standardCostsDialog")?.showModal();
+}
+
+function openEditStandardCostDialog(id) {
+  const item = getStandardCosts(getData()).find(standard => String(standard.id) === String(id));
+  if (!item) return;
+  closeDialog("standardCostsDialog");
+  document.getElementById("standardCostEditId").value = item.id;
+  document.getElementById("standardCostEditDescription").value = item.description || "";
+  document.getElementById("standardCostEditVatRate").innerHTML = buildVatOptions(item.vatRate || 21);
+  const title = document.querySelector("#standardCostEditDialog h3");
+  if (title) title.textContent = t("editStandardCost");
+  document.getElementById("standardCostEditDialog")?.showModal();
+  refreshAppSelect(document.getElementById("standardCostEditVatRate"));
+}
+
+async function saveStandardCostEditFromForm(event) {
+  event.preventDefault();
+  const id = document.getElementById("standardCostEditId")?.value;
+  const description = String(document.getElementById("standardCostEditDescription")?.value || "").trim();
+  const vatRate = Number(document.getElementById("standardCostEditVatRate")?.value || 21);
+  if (!id || !description) return;
+
+  let saveFailed = false;
+
+  await runWithGlobalActionBusy(async () => {
+    const user = await getCurrentUser();
+    const data = getData();
+    if (!user) {
+      const item = getStandardCosts(data).find(standard => String(standard.id) === String(id));
+      if (item) {
+        item.description = description;
+        item.vatRate = vatRate;
+        item.updatedAt = new Date().toISOString();
+        saveData(data);
+      }
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("standard_costs")
+      .update({ description, vat_rate: vatRate, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id);
+    if (error) {
+      saveFailed = true;
+      await appAlert("Standaardkost aanpassen mislukt: " + error.message, { title: t("saveFailed"), variant: "danger" });
+      return;
+    }
+    await loadAllDataFromSupabase();
+  });
+
+  if (saveFailed) return;
+  closeDialog("standardCostEditDialog");
+  renderCostStandardSuggestions(document.getElementById("costDescription")?.value || "");
+  renderCosts();
+  openStandardCostsPopover();
+}
+
+async function deleteStandardCost(id) {
+  if (!id) return;
+  const confirmed = await appConfirm(t("deleteStandardCostConfirm"), {
+    title: t("delete"),
+    confirmText: t("delete"),
+    cancelText: "Nee",
+    variant: "warning"
+  });
+  if (!confirmed) return;
+
+  let deleteFailed = false;
+
+  await runWithGlobalActionBusy(async () => {
+    const user = await getCurrentUser();
+    const data = getData();
+    if (!user) {
+      data.standardCosts = getStandardCosts(data).filter(item => String(item.id) !== String(id));
+      data.costs = getCosts(data).map(cost => String(cost.standardCostId) === String(id) ? { ...cost, standardCostId: null } : cost);
+      saveData(data);
+      return;
+    }
+
+    const { error } = await supabaseClient.from("standard_costs").delete().eq("id", id).eq("user_id", user.id);
+    if (error) {
+      deleteFailed = true;
+      await appAlert("Standaardkost verwijderen mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+      return;
+    }
+    await loadAllDataFromSupabase();
+  });
+
+  if (deleteFailed) return;
+  renderCosts();
+  renderStandardCostsManager();
+  renderCostStandardSuggestions(document.getElementById("costDescription")?.value || "");
+}
 
 
 /* =========================
@@ -8821,6 +9343,34 @@ function registerEvents() {
 
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
+  document.getElementById("costForm")?.addEventListener("submit", withActionLock(saveCostFromForm));
+  document.getElementById("deleteCostBtn")?.addEventListener("click", withActionLock(deleteCurrentCost));
+  document.getElementById("standardCostsBtn")?.addEventListener("click", openStandardCostsPopover);
+  document.getElementById("standardCostEditForm")?.addEventListener("submit", withActionLock(saveStandardCostEditFromForm));
+  document.getElementById("costDescription")?.addEventListener("focus", event => renderCostStandardSuggestions(event.target.value, true));
+  document.getElementById("costDescription")?.addEventListener("input", event => {
+    document.getElementById("costStandardCostId").value = "";
+    const select = document.getElementById("costStandardCostSelect");
+    if (select) select.value = "";
+    renderCostStandardSuggestions(event.target.value, true);
+  });
+  document.getElementById("costStandardCostSelect")?.addEventListener("change", event => {
+    const item = getStandardCosts(getData()).find(standard => String(standard.id) === String(event.target.value));
+    if (!item) return;
+    document.getElementById("costDescription").value = item.description || "";
+    document.getElementById("costVatRate").innerHTML = buildVatOptions(item.vatRate || 21);
+    document.getElementById("costStandardCostId").value = item.id || "";
+    refreshAppSelect(document.getElementById("costVatRate"));
+  });
+  document.addEventListener("click", event => {
+    const picker = event.target.closest(".cost-standard-picker");
+    const wrap = document.getElementById("costStandardSuggestions");
+    if (!picker && wrap) {
+      wrap.classList.add("hidden");
+      document.getElementById("costDescription")?.setAttribute("aria-expanded", "false");
+    }
+  });
+
   document.getElementById("todoForm")?.addEventListener("submit", withActionLock(saveTodoFromForm));
   document.getElementById("deleteTodoBtn")?.addEventListener("click", withActionLock(deleteCurrentTodo));
   document.getElementById("todoAddBulletBtn")?.addEventListener("click", addTodoBulletLine);
@@ -8851,6 +9401,7 @@ function registerEvents() {
       paymentMethodsScreen: "Betaalwijze",
       statisticsScreen: "Statistieken",
       revenueScreen: "Omzet",
+      costsScreen: "Kosten",
       todoScreen: "To Do",
       settingsScreen: "Instellingen",
       accountScreen: "Account"
@@ -9262,12 +9813,61 @@ async function loadAppointmentsFromSupabase() {
   });
 }
 
+
+async function loadStandardCostsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const { data, error } = await supabaseClient
+    .from("standard_costs")
+    .select("id, description, vat_rate, created_at, updated_at")
+    .eq("user_id", user.id)
+    .order("description", { ascending: true });
+  if (error) {
+    console.error("Fout bij laden standaardkosten:", error.message);
+    return [];
+  }
+  return (data || []).map(item => ({
+    id: item.id,
+    description: item.description || "",
+    vatRate: Number(item.vat_rate || 21),
+    createdAt: item.created_at,
+    updatedAt: item.updated_at
+  }));
+}
+
+async function loadCostsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const { data, error } = await supabaseClient
+    .from("costs")
+    .select("id, description, cost_date, amount_incl_vat, vat_rate, standard_cost_id, created_at, updated_at")
+    .eq("user_id", user.id)
+    .order("cost_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Fout bij laden kosten:", error.message);
+    return [];
+  }
+  return (data || []).map(cost => ({
+    id: cost.id,
+    description: cost.description || "",
+    date: cost.cost_date,
+    amountInclVat: Number(cost.amount_incl_vat || 0),
+    vatRate: Number(cost.vat_rate || 21),
+    standardCostId: cost.standard_cost_id || null,
+    createdAt: cost.created_at,
+    updatedAt: cost.updated_at
+  }));
+}
+
 async function loadAllDataFromSupabase() {
   const customers = await loadCustomersFromSupabase();
   const services = await loadServicesFromSupabase();
   const paymentMethods = await loadPaymentMethodsFromSupabase();
   const appointments = await loadAppointmentsFromSupabase();
   const todos = await loadTodosFromSupabase();
+  const standardCosts = await loadStandardCostsFromSupabase();
+  const costs = await loadCostsFromSupabase();
   const settings = await loadSettingsFromSupabase();
 
   saveData({
@@ -9276,6 +9876,8 @@ async function loadAllDataFromSupabase() {
     paymentMethods,
     appointments,
     todos,
+    standardCosts,
+    costs,
     settings
   });
 
