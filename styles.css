@@ -252,6 +252,14 @@ button {
   color: var(--primary-dark);
 }
 
+
+.header-key-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  color: currentColor;
+}
+
 .header-account-icon .icon {
   width: 28px;
   height: 28px;
@@ -5295,11 +5303,8 @@ body.auth-locked .fab {
   pointer-events: none !important;
 }
 
-.header-account-icon,
-.header-account-icon svg,
-.header-account-icon path {
+.header-account-icon {
   color: inherit;
-  fill: currentColor !important;
 }
 
 /* =========================================================
@@ -8307,4 +8312,73 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 
 #agendaList .time {
   font-size: 17px;
+}
+
+/* =========================================================
+   ACCOUNT ICON: sleutel als outline, niet gevuld
+========================================================= */
+.header-account-icon .header-key-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  color: currentColor;
+}
+
+.header-account-icon .header-key-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 0.18 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+
+/* =========================================================
+   FIX V24: accounticoon + omzetlayout
+========================================================= */
+.header-account-btn {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.header-account-btn:hover,
+.header-account-btn:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.header-account-icon {
+  width: 30px;
+  height: 30px;
+  color: #b86d87;
+}
+
+.header-account-icon .header-account-svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+  color: currentColor;
+}
+
+.header-account-icon .header-account-svg path {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+.revenue-appointment-summary-top .revenue-summary-item strong {
+  font-size: 17px !important;
+  line-height: 1.1;
+}
+
+@media (max-width: 420px) {
+  .revenue-appointment-summary-top .revenue-summary-item strong {
+    font-size: clamp(15px, 4.2vw, 18px) !important;
+  }
+}
+
+.revenue-chart-card .revenue-method-breakdown {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e4ea;
 }
