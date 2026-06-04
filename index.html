@@ -1071,9 +1071,16 @@
       </div>
 
       <div class="payment-method-popup-list appointment-action-list" role="menu" aria-label="Afspraak acties">
-        <button id="appointmentActionDetailsBtn" class="payment-method-popup-item" type="button" role="menuitem">
-          <span>Afspraak details</span>
-        </button>
+        <div class="appointment-action-details-row" role="none">
+          <button id="appointmentActionDetailsBtn" class="payment-method-popup-item appointment-action-details-btn" type="button" role="menuitem">
+            <span>Afspraak details</span>
+          </button>
+          <button id="appointmentActionDeleteBtn" class="appointment-action-delete-btn" type="button" aria-label="Afspraak verwijderen" title="Afspraak verwijderen">
+            <svg class="appointment-action-delete-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2h-1.1l-1.15 13.1A2.1 2.1 0 0 1 15.66 22H8.34a2.1 2.1 0 0 1-2.09-1.9L5.1 7H4V5h4V4a1 1 0 0 1 1-1Zm1 2h4V4h-4v1Zm-2.9 2 1.13 12.9a.12.12 0 0 0 .11.1h7.32a.12.12 0 0 0 .11-.1L16.9 7H7.1Zm2.4 2.5h1.7v8h-1.7v-8Zm4.3 0h1.7v8h-1.7v-8Z" />
+            </svg>
+          </button>
+        </div>
         <button id="appointmentActionFollowUpBtn" class="payment-method-popup-item" type="button" role="menuitem">
           <span>Vervolgafspraak</span>
         </button>

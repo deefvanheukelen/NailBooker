@@ -7068,6 +7068,7 @@ function openAppointmentActionPopover(id, anchorEl = null) {
   }
 
   const detailsBtn = document.getElementById("appointmentActionDetailsBtn");
+  const deleteBtn = document.getElementById("appointmentActionDeleteBtn");
   const followUpBtn = document.getElementById("appointmentActionFollowUpBtn");
   const customerBtn = document.getElementById("appointmentActionCustomerBtn");
   const customer = customerById(data, app.customerId);
@@ -7079,6 +7080,17 @@ function openAppointmentActionPopover(id, anchorEl = null) {
       event.stopPropagation();
       closeAppointmentActionPopover();
       openEditAppointmentDialog(id);
+    };
+  }
+
+  if (deleteBtn) {
+    deleteBtn.onclick = async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const appointmentIdInput = document.getElementById("appointmentId");
+      if (appointmentIdInput) appointmentIdInput.value = id;
+      await deleteCurrentAppointment();
+      closeAppointmentActionPopover();
     };
   }
 
@@ -8108,47 +8120,63 @@ async function deleteCurrentAppointment() {
     if (!confirmed) return;
   }
 
-  const affectedAppointments = recurring
-    ? getRecurringAffectedAppointments(data, existingApp, deleteScope)
-    : [existingApp].filter(Boolean);
-  const affectedIds = affectedAppointments.map(appointment => Number(appointment.id)).filter(Number.isFinite);
-
-  const user = await getCurrentUser();
-
-  if (!user) {
-    const affectedIdSet = new Set(affectedAppointments.map(appointment => String(appointment.id)));
-    data.appointments = data.appointments.filter(a => !affectedIdSet.has(String(a.id)));
-    saveData(data);
-    closeDialog("appointmentDialog");
-    rerenderAll();
-    return;
-  }
-
-  let query = supabaseClient
-    .from("appointments")
-    .delete()
-    .eq("user_id", user.id);
-
-  if (recurring && deleteScope === "series") {
-    query = query.eq("recurrence_group_id", getAppointmentRecurrenceGroupId(existingApp));
-  } else if (recurring && deleteScope === "following") {
-    query = query
-      .eq("recurrence_group_id", getAppointmentRecurrenceGroupId(existingApp))
-      .gte("appointment_date", existingApp.date);
-  } else {
-    query = query.eq("id", Number(id));
-  }
-
-  const { error } = await query;
-
-  if (error) {
-    await appAlert("Verwijderen afspraak mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
+  // Sluit eerst het afspraakvenster. Een <dialog> staat in de browser top-layer
+  // en kan daardoor de globale busy-overlay visueel afdekken, ook met hoge z-index.
+  // Vooral bij privé-afspraken werd "Even geduld" daardoor niet zichtbaar.
   closeDialog("appointmentDialog");
-  rerenderAll();
+  await waitForBusyOverlayPaint();
+
+  const errorMessage = await runWithGlobalActionBusy(async () => {
+    setGlobalActionBusyVisible(true);
+    await waitForBusyOverlayPaint();
+    const deleteBusyStartedAt = Date.now();
+    const freshData = getData();
+    const freshExistingApp = freshData.appointments.find(a => String(a.id) === String(id)) || existingApp;
+    const affectedAppointments = recurring
+      ? getRecurringAffectedAppointments(freshData, freshExistingApp, deleteScope)
+      : [freshExistingApp].filter(Boolean);
+
+    const user = await getCurrentUser();
+
+    if (!user) {
+      const affectedIdSet = new Set(affectedAppointments.map(appointment => String(appointment.id)));
+      freshData.appointments = freshData.appointments.filter(a => !affectedIdSet.has(String(a.id)));
+      saveData(freshData);
+      rerenderAll();
+      await keepBusyOverlayVisibleSince(deleteBusyStartedAt, 750);
+      return "";
+    }
+
+    let query = supabaseClient
+      .from("appointments")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (recurring && deleteScope === "series") {
+      query = query.eq("recurrence_group_id", getAppointmentRecurrenceGroupId(freshExistingApp));
+    } else if (recurring && deleteScope === "following") {
+      query = query
+        .eq("recurrence_group_id", getAppointmentRecurrenceGroupId(freshExistingApp))
+        .gte("appointment_date", freshExistingApp.date);
+    } else {
+      query = query.eq("id", Number(id));
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      return "Verwijderen afspraak mislukt: " + error.message;
+    }
+
+    await loadAllDataFromSupabase();
+    rerenderAll();
+    await keepBusyOverlayVisibleSince(deleteBusyStartedAt, 750);
+    return "";
+  });
+
+  if (errorMessage) {
+    await appAlert(errorMessage, { title: "Verwijderen mislukt", variant: "danger" });
+  }
 }
 
 async function deleteCurrentService() {
@@ -9598,7 +9626,7 @@ let globalActionLockDepth = 0;
 let globalActionBusyTimer = null;
 let globalActionBusyHideTimer = null;
 let globalActionBusyVisibleSince = 0;
-const GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS = 420;
+const GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS = 650;
 
 function getAppBusyOverlay() {
   return document.getElementById("appBusyOverlay");
@@ -9736,6 +9764,16 @@ function waitForBusyOverlayPaint() {
   });
 }
 
+function waitMilliseconds(ms) {
+  return new Promise(resolve => window.setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function keepBusyOverlayVisibleSince(startedAt, minVisibleMs = 750) {
+  const elapsed = Date.now() - Number(startedAt || Date.now());
+  const remaining = Math.max(0, Number(minVisibleMs || 0) - elapsed);
+  if (remaining > 0) await waitMilliseconds(remaining);
+}
+
 function withActionLock(handler) {
   return async function actionLockWrapper(event) {
     const button = getActionLockButton(event) || this?.querySelector?.('button[type="submit"], .btn-primary, .btn-danger, button');
@@ -9764,6 +9802,10 @@ function withActionLock(handler) {
 async function runWithGlobalActionBusy(work) {
   beginGlobalActionLock();
   try {
+    // Forceer de busy-overlay onmiddellijk zichtbaar.
+    // Dit is nodig bij flows met eerst een bevestigingsdialoog (bv. privé-afspraak verwijderen),
+    // omdat de overlay anders soms pas na de effectieve delete wordt getekend.
+    setGlobalActionBusyVisible(true);
     await waitForBusyOverlayPaint();
     return await work();
   } finally {

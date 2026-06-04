@@ -6207,6 +6207,51 @@ button.is-action-locked .app-action-nav-label {
   cursor: not-allowed;
 }
 
+/* Snelle verwijderactie in afspraak-popover */
+.appointment-action-details-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  align-items: stretch;
+  border-bottom: 1px solid #f6edf1;
+}
+
+.appointment-action-details-row .payment-method-popup-item {
+  border-top: none;
+  border-bottom: none;
+}
+
+.appointment-action-details-row + .payment-method-popup-item {
+  border-top: none;
+}
+
+.appointment-action-delete-btn {
+  width: 46px;
+  min-width: 46px;
+  border: none;
+  border-left: 1px solid #f6edf1;
+  background: #ffffff;
+  color: var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.appointment-action-delete-btn:hover,
+.appointment-action-delete-btn:active {
+  background: var(--danger-soft);
+  color: var(--danger);
+  transform: none;
+}
+
+.appointment-action-delete-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: currentColor;
+}
+
 /* Correcties afspraak actie-popover + klantfiche-icoon */
 .appointment-action-popover .payment-popover-card {
   position: relative;
@@ -8228,4 +8273,27 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 #appointmentForm.appointment-private-mode .appointment-private-end-date-field,
 #appointmentForm.appointment-private-mode .appointment-private-end-field {
   grid-column: 1 / -1 !important;
+}
+
+
+/* =========================================================
+   FIX: overzichtslijsten terug compact houden
+   - voorkomt dat afspraak-, klanten- en dienstenlijsten groter ogen
+========================================================= */
+#agendaList .main-name,
+#clientsList .client-name,
+#servicesList .client-name {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+#agendaList .meta,
+#clientsList .meta,
+#servicesList .meta {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+#agendaList .time {
+  font-size: 17px;
 }
