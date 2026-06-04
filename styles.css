@@ -8164,8 +8164,8 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing,
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-settling {
   transition:
-    transform 160ms cubic-bezier(0.22, 0.72, 0.18, 1),
-    opacity 120ms ease !important;
+    transform 120ms cubic-bezier(0.22, 0.72, 0.18, 1),
+    opacity 65ms ease !important;
 }
 
 .revenue-screen-shell .revenue-period-tile.is-revenue-swipe-committing {
@@ -8210,4 +8210,22 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
   .revenue-appointment-summary-top .revenue-summary-item strong {
     font-size: clamp(17px, 5vw, 22px);
   }
+}
+
+.appointment-private-end-date-field .field {
+  min-height: 48px;
+}
+
+.private-appointment-row {
+  border-top: 1px solid #f4e7ed;
+}
+
+/* =========================================================
+   FIX: privé-afspraak datums/tijden logisch onder elkaar
+   Datum → Tijd van → Datum tot → Tijd tot
+========================================================= */
+#appointmentForm.appointment-private-mode .appointment-time-start-field,
+#appointmentForm.appointment-private-mode .appointment-private-end-date-field,
+#appointmentForm.appointment-private-mode .appointment-private-end-field {
+  grid-column: 1 / -1 !important;
 }

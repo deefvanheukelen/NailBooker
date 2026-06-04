@@ -451,6 +451,7 @@ function normalizeData(data) {
       privateTitle: String(appointment?.privateTitle || appointment?.private_title || "").trim(),
       privateDetails: String(appointment?.privateDetails || appointment?.private_details || "").trim(),
       privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || "",
+      privateEndDate: getStoredPrivateEndDate(appointment, appointment?.date || appointment?.appointment_date || todayStr),
       recurrenceGroupId: appointment?.recurrenceGroupId || appointment?.recurrence_group_id || null,
       recurrenceRule: appointment?.recurrenceRule || appointment?.recurrence_rule || "none"
     };
@@ -706,6 +707,81 @@ function isPrivateAppointment(appointment) {
   return Boolean(appointment?.isPrivate ?? appointment?.is_private);
 }
 
+
+const PRIVATE_END_DATE_META_PREFIX = "[NB_PRIVATE_END_DATE:";
+
+function isDateInputValue(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function extractPrivateEndDateFromRemarks(value) {
+  const text = String(value || "");
+  const match = text.match(/\[NB_PRIVATE_END_DATE:(\d{4}-\d{2}-\d{2})\]/);
+  return match ? match[1] : "";
+}
+
+function stripPrivateEndDateMeta(value) {
+  return String(value || "").replace(/\s*\[NB_PRIVATE_END_DATE:\d{4}-\d{2}-\d{2}\]\s*/g, "").trim();
+}
+
+function getStoredPrivateEndDate(appointment, fallbackDate = todayStr) {
+  const explicit = appointment?.privateEndDate || appointment?.private_end_date;
+  if (isDateInputValue(explicit)) return explicit;
+  const fromRemarks = extractPrivateEndDateFromRemarks(appointment?.remarks || appointment?.appointment_remarks || "");
+  if (isDateInputValue(fromRemarks)) return fromRemarks;
+  return fallbackDate || appointment?.date || appointment?.appointment_date || todayStr;
+}
+
+function withPrivateEndDateMeta(remarks, privateEndDate) {
+  const clean = stripPrivateEndDateMeta(remarks);
+  if (!isDateInputValue(privateEndDate)) return clean;
+  return `${clean ? `${clean} ` : ""}[NB_PRIVATE_END_DATE:${privateEndDate}]`.trim();
+}
+
+function getPrivateRangeBounds(appointment) {
+  const start = appointment?.originalDate || appointment?.date || appointment?.appointment_date || todayStr;
+  const end = getStoredPrivateEndDate(appointment, start);
+  return end >= start ? { start, end } : { start, end: start };
+}
+
+function appointmentIsActiveOnDate(appointment, dateStr) {
+  if (!isPrivateAppointment(appointment)) return (appointment?.date || appointment?.appointment_date) === dateStr;
+  const bounds = getPrivateRangeBounds(appointment);
+  return dateStr >= bounds.start && dateStr <= bounds.end;
+}
+
+function expandPrivateAppointmentDateRange(appointment) {
+  if (!isPrivateAppointment(appointment)) return [appointment];
+  const bounds = getPrivateRangeBounds(appointment);
+  const dates = [];
+  const cursor = new Date(bounds.start + "T00:00:00");
+  const endDate = new Date(bounds.end + "T00:00:00");
+  if (Number.isNaN(cursor.getTime()) || Number.isNaN(endDate.getTime())) return [appointment];
+
+  let index = 0;
+  while (cursor <= endDate && index < 370) {
+    const date = formatDateInput(cursor);
+    dates.push({
+      ...appointment,
+      originalDate: appointment.originalDate || appointment.date,
+      date,
+      privateEndDate: bounds.end,
+      isVirtualPrivateRange: date !== (appointment.originalDate || appointment.date)
+    });
+    cursor.setDate(cursor.getDate() + 1);
+    index += 1;
+  }
+  return dates;
+}
+
+function appointmentsShareActiveDate(a, b) {
+  const aStart = a?.date || a?.appointment_date || todayStr;
+  const aEnd = isPrivateAppointment(a) ? getPrivateRangeBounds(a).end : aStart;
+  const bStart = b?.date || b?.appointment_date || todayStr;
+  const bEnd = isPrivateAppointment(b) ? getPrivateRangeBounds(b).end : bStart;
+  return aStart <= bEnd && bStart <= aEnd;
+}
+
 function getVirtualPrivateRecurrenceAppointments(data = getData()) {
   const appointments = Array.isArray(data?.appointments) ? data.appointments : [];
   const counts = {
@@ -721,37 +797,82 @@ function getVirtualPrivateRecurrenceAppointments(data = getData()) {
   const stepDays = { daily: 1, weekly: 7, biweekly: 14, triweekly: 21 };
   const stepMonths = { monthly: 1, quarterly: 3, semiannual: 6 };
 
-  return appointments.flatMap(appointment => {
-    const rule = appointment?.recurrenceRule || appointment?.recurrence_rule || "none";
-    if (!isPrivateAppointment(appointment) || rule === "none" || appointment.recurrenceGroupId || appointment.recurrence_group_id) {
-      return [appointment];
-    }
+  return appointments
+    .flatMap(appointment => {
+      const rule = appointment?.recurrenceRule || appointment?.recurrence_rule || "none";
+      if (!isPrivateAppointment(appointment) || rule === "none" || appointment.recurrenceGroupId || appointment.recurrence_group_id) {
+        return [appointment];
+      }
 
-    const startDate = new Date((appointment.date || appointment.appointment_date || todayStr) + "T00:00:00");
-    if (Number.isNaN(startDate.getTime())) return [appointment];
+      const startDate = new Date((appointment.date || appointment.appointment_date || todayStr) + "T00:00:00");
+      if (Number.isNaN(startDate.getTime())) return [appointment];
 
-    const total = counts[rule] || 1;
-    return Array.from({ length: total }, (_, index) => {
-      const d = new Date(startDate);
-      if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
-      else if (stepMonths[rule]) d.setMonth(startDate.getMonth() + (stepMonths[rule] * index));
-      else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
+      const rangeBounds = getPrivateRangeBounds(appointment);
+      const rangeDays = Math.max(0, Math.round((new Date(rangeBounds.end + "T00:00:00") - new Date(rangeBounds.start + "T00:00:00")) / 86400000));
+      const total = counts[rule] || 1;
 
-      return {
-        ...appointment,
-        id: index === 0 ? appointment.id : `${appointment.id}__${rule}_${index}`,
-        sourceAppointmentId: appointment.id,
-        date: formatDateInput(d),
-        isVirtualRecurrence: index > 0
-      };
-    });
-  });
+      return Array.from({ length: total }, (_, index) => {
+        const d = new Date(startDate);
+        if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
+        else if (stepMonths[rule]) d.setMonth(startDate.getMonth() + (stepMonths[rule] * index));
+        else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
+
+        const occurrenceDate = formatDateInput(d);
+        const occurrenceEndDateObject = new Date(d);
+        occurrenceEndDateObject.setDate(d.getDate() + rangeDays);
+
+        return {
+          ...appointment,
+          id: index === 0 ? appointment.id : `${appointment.id}__${rule}_${index}`,
+          sourceAppointmentId: appointment.id,
+          originalDate: occurrenceDate,
+          date: occurrenceDate,
+          privateEndDate: formatDateInput(occurrenceEndDateObject),
+          isVirtualRecurrence: index > 0
+        };
+      });
+    })
+    .flatMap(expandPrivateAppointmentDateRange);
+}
+function isMultiDayPrivateAppointment(appointment) {
+  if (!isPrivateAppointment(appointment)) return false;
+  const bounds = getPrivateRangeBounds(appointment);
+  return bounds.end > bounds.start;
+}
+
+function getPrivateAgendaDisplayTime(appointment, dateStr) {
+  const bounds = getPrivateRangeBounds(appointment);
+  const currentDate = dateStr || appointment?.date || todayStr;
+  const startTime = String(appointment?.time || appointment?.appointment_time || "00:00").slice(0, 5);
+  const endTime = String(appointment?.privateEndTime || appointment?.private_end_time || startTime || "00:00").slice(0, 5);
+
+  if (bounds.end <= bounds.start) {
+    return { main: startTime, sub: `tot ${endTime}` };
+  }
+
+  if (currentDate === bounds.start) {
+    return { main: startTime, sub: "tot 00:00" };
+  }
+
+  if (currentDate === bounds.end) {
+    return { main: "00:00", sub: `tot ${endTime}` };
+  }
+
+  return { main: "Hele dag", sub: `tot ${formatShortDate(bounds.end)}` };
 }
 
 function getAppointmentsForDate(dateStr, data = getData()) {
   return getVirtualPrivateRecurrenceAppointments(data)
     .filter(appointment => appointment.date === dateStr)
-    .sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
+    .sort((a, b) => {
+      const multiDayPrivateSort = Number(isMultiDayPrivateAppointment(b)) - Number(isMultiDayPrivateAppointment(a));
+      if (multiDayPrivateSort) return multiDayPrivateSort;
+
+      const privateSort = Number(isPrivateAppointment(b)) - Number(isPrivateAppointment(a));
+      if (privateSort) return privateSort;
+
+      return String(a.time || "").localeCompare(String(b.time || ""));
+    });
 }
 
 function getAppointmentDisplayEndTime(appointment, breakMinutes = 0) {
@@ -773,6 +894,12 @@ function getSettings() {
 }
 
 function appointmentTimeRange(appointment, breakMinutes = 0) {
+  const bounds = isPrivateAppointment(appointment) ? getPrivateRangeBounds(appointment) : null;
+  const isMultiDayPrivate = Boolean(bounds && bounds.end > bounds.start);
+  if (isMultiDayPrivate) {
+    return { startMinutes: 0, endMinutes: 24 * 60 };
+  }
+
   const startMinutes = minutesFromTimeString(appointment.time || appointment.appointment_time || "00:00");
   const duration = isPrivateAppointment(appointment)
     ? calculatePrivateDuration(appointment.time || appointment.appointment_time, appointment.privateEndTime || appointment.private_end_time)
@@ -788,7 +915,7 @@ function findAppointmentOverlap(payload, appointments, breakMinutes = 0, exclude
   const newRange = appointmentTimeRange(payload, breakMinutes);
 
   return appointments
-    .filter(app => app.date === payload.date)
+    .filter(app => appointmentsShareActiveDate(payload, app))
     .filter(app => String(app.id) !== String(excludeId || ""))
     .find(app => {
       const existingRange = appointmentTimeRange(app, breakMinutes);
@@ -800,7 +927,7 @@ function findNextAvailableStartTime(payload, appointments, breakMinutes = 0, exc
   const payloadRange = appointmentTimeRange(payload, breakMinutes);
   const durationWithBreak = Math.max(0, payloadRange.endMinutes - payloadRange.startMinutes);
   const dayAppointments = appointments
-    .filter(app => app.date === payload.date)
+    .filter(app => appointmentsShareActiveDate(payload, app))
     .filter(app => String(app.id) !== String(excludeId || ""))
     .map(app => ({
       ...app,
@@ -1149,11 +1276,18 @@ function dayDiff(dateA, dateB) {
 function applyRecurringEditToAppointment(appointment, localPayload, originalAppointment, scope = "single") {
   const dateShift = scope === "single" ? 0 : dayDiff(localPayload.date, originalAppointment.date);
   const nextDate = scope === "single" ? localPayload.date : addDaysStr(appointment.date, dateShift);
+  const localRangeDays = isPrivateAppointment(localPayload)
+    ? Math.max(0, Math.round((new Date((localPayload.privateEndDate || localPayload.date) + "T00:00:00") - new Date(localPayload.date + "T00:00:00")) / 86400000))
+    : 0;
+  const shiftedPrivateEnd = new Date(nextDate + "T00:00:00");
+  shiftedPrivateEnd.setDate(shiftedPrivateEnd.getDate() + localRangeDays);
+
   return {
     ...appointment,
     ...localPayload,
     id: appointment.id,
     date: nextDate,
+    privateEndDate: isPrivateAppointment(localPayload) ? formatDateInput(shiftedPrivateEnd) : "",
     paid: appointment.paid,
     paymentMethodName: appointment.paymentMethodName ?? paymentMethodNameForAppointment(appointment),
     currency: appointment.currency || getCurrentCurrency(),
@@ -2799,9 +2933,13 @@ function renderAgendaList() {
     const row = document.createElement("div");
     row.className = `appointment-row${privateApp ? " private-appointment-row" : ""}`;
     const endTime = getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes);
+    const privateBounds = privateApp ? getPrivateRangeBounds(app) : null;
+    const isMultiDayPrivate = Boolean(privateBounds && privateBounds.end > privateBounds.start);
+    const privateDisplayTime = privateApp ? getPrivateAgendaDisplayTime(app, state.selectedDate) : null;
 
     const appointmentMetaParts = [];
     if (privateApp) {
+      if (isMultiDayPrivate) appointmentMetaParts.push(`${formatShortDate(privateBounds.start)} t/m ${formatShortDate(privateBounds.end)}`);
       if (String(app.privateDetails || "").trim()) appointmentMetaParts.push("Meer details ...");
       else appointmentMetaParts.push("Privé-afspraak");
     } else {
@@ -2815,8 +2953,8 @@ function renderAgendaList() {
 
     row.innerHTML = `
       <div class="time-block">
-        <div class="time">${app.time}</div>
-        <div class="time-end">tot ${endTime}</div>
+        <div class="time">${privateApp ? privateDisplayTime.main : app.time}</div>
+        <div class="time-end">${privateApp ? privateDisplayTime.sub : `tot ${endTime}`}</div>
       </div>
       <div>
         <div class="main-name appointment-main-name">${privateApp ? htmlEscape(app.privateTitle || "Privé") : `${customer ? fullName(customer) : "Onbekend"}${String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : ""}`}</div>
@@ -3161,8 +3299,8 @@ function attachRevenuePeriodSwipe(button, mode) {
   if (!button || button.dataset.revenueSwipeReady === "1") return;
   button.dataset.revenueSwipeReady = "1";
 
-  const threshold = 22;
-  const maxDrag = 10;
+  const threshold = 20;
+  const maxDrag = 5;
   const resetSwipeVisual = () => {
     button.classList.remove("is-revenue-swiping", "is-revenue-swipe-committing", "is-revenue-swipe-settling");
     button.style.removeProperty("--revenue-swipe-y");
@@ -3236,8 +3374,8 @@ function attachRevenuePeriodSwipe(button, mode) {
     if (!isSwiping) return;
     event.preventDefault();
     lastDeltaY = deltaY;
-    const limitedY = Math.max(-maxDrag, Math.min(maxDrag, deltaY * 0.30));
-    const opacity = Math.max(0.86, 1 - (Math.abs(limitedY) / 180));
+    const limitedY = Math.max(-maxDrag, Math.min(maxDrag, deltaY * 0.16));
+    const opacity = Math.max(0.94, 1 - (Math.abs(limitedY) / 260));
     setSwipeVisual(limitedY, opacity);
   }, { passive: false });
 
@@ -3488,9 +3626,13 @@ function syncAppointmentDateTimeDisplays() {
   const dateBtn = document.getElementById("appointmentDateDisplayBtn");
   const timeBtn = document.getElementById("appointmentTimeDisplayBtn");
   const privateEndTimeBtn = document.getElementById("appointmentPrivateEndTimeDisplayBtn");
+  const privateEndDateInput = document.getElementById("appointmentPrivateEndDate");
+  const privateEndDateBtn = document.getElementById("appointmentPrivateEndDateDisplayBtn");
 
   if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value);
   if (timeBtn && timeInput) timeBtn.textContent = formatAppointmentTimeLabel(timeInput.value);
+  if (privateEndDateInput && !privateEndDateInput.value) privateEndDateInput.value = dateInput?.value || state.selectedDate || todayStr;
+  if (privateEndDateBtn && privateEndDateInput) privateEndDateBtn.textContent = formatAppointmentDateLabel(privateEndDateInput.value);
   if (privateEndTimeBtn && privateEndTimeInput) privateEndTimeBtn.textContent = formatAppointmentTimeLabel(privateEndTimeInput.value);
 }
 
@@ -3554,14 +3696,22 @@ function buildPrivateRecurrenceOccurrences(payload, repeatValue) {
   const stepMonths = { monthly: 1, quarterly: 3, semiannual: 6 };
   const startDate = new Date(payload.date + "T00:00:00");
   const total = counts[rule] || 1;
+  const endDate = new Date((payload.privateEndDate || payload.date) + "T00:00:00");
+  const rangeDays = Number.isNaN(endDate.getTime()) ? 0 : Math.max(0, Math.round((endDate - startDate) / 86400000));
+
   return Array.from({ length: total }, (_, index) => {
     const d = new Date(startDate);
     if (rule === "yearly") d.setFullYear(startDate.getFullYear() + index);
     else if (stepMonths[rule]) d.setMonth(startDate.getMonth() + (stepMonths[rule] * index));
     else d.setDate(startDate.getDate() + (stepDays[rule] || 0) * index);
+
+    const shiftedEnd = new Date(d);
+    shiftedEnd.setDate(d.getDate() + rangeDays);
+
     return {
       ...payload,
       date: formatDateInput(d),
+      privateEndDate: formatDateInput(shiftedEnd),
       recurrenceRule: rule,
       recurrenceGroupId: groupId
     };
@@ -3751,6 +3901,18 @@ function applyAppointmentWheelPickerSelection() {
 
   const dateInput = document.getElementById(appointmentPickerState.targetInputId || "appointmentDate");
   if (dateInput) dateInput.value = appointmentPickerState.selected.date || dateInput.value || state.selectedDate || todayStr;
+
+  const startDateInput = document.getElementById("appointmentDate");
+  const endDateInput = document.getElementById("appointmentPrivateEndDate");
+  if (startDateInput && endDateInput) {
+    if (dateInput?.id === "appointmentDate" && (!endDateInput.value || endDateInput.value < startDateInput.value)) {
+      endDateInput.value = startDateInput.value;
+    }
+    if (dateInput?.id === "appointmentPrivateEndDate" && endDateInput.value < startDateInput.value) {
+      endDateInput.value = startDateInput.value;
+    }
+  }
+
   syncAppointmentDateTimeDisplays();
   syncFollowUpDisplays();
   updatePrivateRepeatWeeklyLabel();
@@ -6698,6 +6860,8 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   document.getElementById("appointmentDate").value = state.selectedDate;
   document.getElementById("appointmentTime").value = "10:00";
   document.getElementById("appointmentPrivateEndTime").value = "10:00";
+  const privateEndDateInput = document.getElementById("appointmentPrivateEndDate");
+  if (privateEndDateInput) privateEndDateInput.value = state.selectedDate;
   document.getElementById("appointmentPrivateTitle").value = "";
   document.getElementById("appointmentPrivateDetails").value = "";
   document.getElementById("appointmentPrivateRepeat").value = "none";
@@ -6746,6 +6910,8 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentDate").value = app.date;
   document.getElementById("appointmentTime").value = app.time;
   document.getElementById("appointmentPrivateEndTime").value = app.privateEndTime || getAppointmentDisplayEndTime(app, 0) || "";
+  const privateEndDateInput = document.getElementById("appointmentPrivateEndDate");
+  if (privateEndDateInput) privateEndDateInput.value = getStoredPrivateEndDate(app, app.date);
   document.getElementById("appointmentPrivateTitle").value = app.privateTitle || "";
   document.getElementById("appointmentPrivateDetails").value = app.privateDetails || "";
   document.getElementById("appointmentPrivateRepeat").value = app.recurrenceRule || "none";
@@ -7713,12 +7879,17 @@ async function saveAppointmentFromForm(event) {
 
   const privateStartTime = document.getElementById("appointmentTime")?.value || "";
   const privateEndTime = document.getElementById("appointmentPrivateEndTime")?.value || "";
+  const privateEndDate = document.getElementById("appointmentPrivateEndDate")?.value || document.getElementById("appointmentDate")?.value || todayStr;
   const privateTitle = String(document.getElementById("appointmentPrivateTitle")?.value || "").trim();
   if (isPrivate && (!privateTitle || !privateStartTime || !privateEndTime)) {
     await appAlert("Vul voor een privé-afspraak minstens Tijd van, Tijd tot en een titel in.", { title: "Privé-afspraak", variant: "warning" });
     return;
   }
-  if (isPrivate && minutesFromTimeString(privateEndTime) < minutesFromTimeString(privateStartTime)) {
+  if (isPrivate && privateEndDate < document.getElementById("appointmentDate").value) {
+    await appAlert("Datum tot mag niet vroeger zijn dan Datum van.", { title: "Privé-afspraak", variant: "warning" });
+    return;
+  }
+  if (isPrivate && privateEndDate === document.getElementById("appointmentDate").value && minutesFromTimeString(privateEndTime) < minutesFromTimeString(privateStartTime)) {
     await appAlert("Tijd tot mag niet vroeger zijn dan Tijd van.", { title: "Privé-afspraak", variant: "warning" });
     return;
   }
@@ -7740,6 +7911,7 @@ async function saveAppointmentFromForm(event) {
     privateTitle: isPrivate ? privateTitle : "",
     privateDetails: isPrivate ? String(document.getElementById("appointmentPrivateDetails")?.value || "").trim() : "",
     privateEndTime: isPrivate ? privateEndTime : "",
+    privateEndDate: isPrivate ? privateEndDate : "",
     recurrenceRule: isPrivate ? (document.getElementById("appointmentPrivateRepeat")?.value || existingRecurrenceRule || "none") : "none",
     recurrenceGroupId: existingRecurrenceGroupId || null
   };
@@ -7838,7 +8010,7 @@ async function saveAppointmentFromForm(event) {
     paid: localPayload.isPrivate ? false : isPaid,
     payment_method_label: localPayload.isPrivate ? null : (isPaid ? existingPaymentMethodName : null),
     currency: appointmentCurrency,
-    appointment_remarks: localPayload.remarks,
+    appointment_remarks: localPayload.isPrivate ? withPrivateEndDateMeta(localPayload.remarks, localPayload.privateEndDate || localPayload.date) : localPayload.remarks,
     is_private: localPayload.isPrivate,
     private_title: localPayload.privateTitle || null,
     private_details: localPayload.privateDetails || null,
@@ -7859,7 +8031,7 @@ async function saveAppointmentFromForm(event) {
           duration: item.duration,
           price: item.price,
           status: item.status,
-          appointment_remarks: item.remarks,
+          appointment_remarks: item.isPrivate ? withPrivateEndDateMeta(item.remarks, item.privateEndDate || item.date) : item.remarks,
           is_private: item.isPrivate,
           private_title: item.privateTitle || null,
           private_details: item.privateDetails || null,
@@ -8678,13 +8850,30 @@ function registerEvents() {
 
   document.getElementById("appointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date"));
   document.getElementById("appointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentTime"));
+  document.getElementById("appointmentPrivateEndDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "appointmentPrivateEndDate"));
   document.getElementById("appointmentPrivateEndTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentPrivateEndTime"));
+  document.getElementById("appointmentPrivateEndDate")?.addEventListener("change", () => {
+    const startDateInput = document.getElementById("appointmentDate");
+    const endDateInput = document.getElementById("appointmentPrivateEndDate");
+    if (startDateInput && endDateInput && endDateInput.value < startDateInput.value) {
+      endDateInput.value = startDateInput.value;
+    }
+    syncAppointmentDateTimeDisplays();
+  });
   ["appointmentTime", "appointmentPrivateEndTime"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", syncPrivateEndTimeWithStart);
     document.getElementById(id)?.addEventListener("input", syncPrivateEndTimeWithStart);
   });
   document.getElementById("appointmentIsPrivate")?.addEventListener("change", event => setAppointmentPrivateMode(event.target.checked));
-  document.getElementById("appointmentDate")?.addEventListener("change", () => { syncAppointmentDateTimeDisplays(); updatePrivateRepeatWeeklyLabel(); });
+  document.getElementById("appointmentDate")?.addEventListener("change", () => {
+    const startDateInput = document.getElementById("appointmentDate");
+    const endDateInput = document.getElementById("appointmentPrivateEndDate");
+    if (startDateInput && endDateInput && (!endDateInput.value || endDateInput.value < startDateInput.value)) {
+      endDateInput.value = startDateInput.value;
+    }
+    syncAppointmentDateTimeDisplays();
+    updatePrivateRepeatWeeklyLabel();
+  });
   document.getElementById("appointmentPrivateRepeat")?.addEventListener("change", updatePrivateRepeatWeeklyLabel);
   document.getElementById("appointmentTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
   document.getElementById("followUpAppointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "followUpAppointmentDate"));
@@ -9001,7 +9190,9 @@ async function loadAppointmentsFromSupabase() {
     return [];
   }
 
-  return (data || []).map(a => ({
+  return (data || []).map(a => {
+    const rawRemarks = String(a.appointment_remarks || a.remarks || "").trim();
+    return {
     id: a.id,
     customerId: a.customer_id,
     serviceId: a.service_id,
@@ -9013,14 +9204,16 @@ async function loadAppointmentsFromSupabase() {
     paid: Boolean(a.paid),
     paymentMethodName: a.payment_method_label ?? null,
     currency: normalizeCurrency(a.currency || DEFAULT_CURRENCY),
-    remarks: String(a.appointment_remarks || a.remarks || "").trim(),
+    remarks: stripPrivateEndDateMeta(rawRemarks),
     isPrivate: Boolean(a.is_private),
     privateTitle: String(a.private_title || "").trim(),
     privateDetails: String(a.private_details || "").trim(),
     privateEndTime: a.private_end_time ? String(a.private_end_time).slice(0, 5) : "",
+    privateEndDate: getStoredPrivateEndDate({ ...a, appointment_remarks: rawRemarks }, a.appointment_date),
     recurrenceGroupId: a.recurrence_group_id || null,
     recurrenceRule: a.recurrence_rule || "none"
-  }));
+  };
+  });
 }
 
 async function loadAllDataFromSupabase() {
