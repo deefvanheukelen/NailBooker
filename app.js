@@ -11210,10 +11210,23 @@ async function startApp() {
 ========================================================= */
 (function installAgendaDayCalendarMode() {
   const HOUR_HEIGHT = 56;
+  const AGENDA_DAY_LINE_OFFSET = 10;
   const START_SCROLL_HOUR = 8;
 
   if (!state) return;
   if (!state.agendaCalendarMode) state.agendaCalendarMode = "month";
+  function agendaDayVisualTop(minutes) {
+    const safeMinutes = Math.max(0, Math.min(24 * 60, Number(minutes) || 0));
+    if (safeMinutes >= 24 * 60) return 24 * HOUR_HEIGHT;
+    return (safeMinutes / 60) * HOUR_HEIGHT + AGENDA_DAY_LINE_OFFSET;
+  }
+
+  function agendaDayVisualHeight(startMinutes, endMinutes) {
+    const safeStart = Math.max(0, Math.min(24 * 60, Number(startMinutes) || 0));
+    const safeEnd = Math.max(safeStart, Math.min(24 * 60, Number(endMinutes) || safeStart));
+    return Math.max(1, agendaDayVisualTop(safeEnd) - agendaDayVisualTop(safeStart));
+  }
+
 
   const originalRenderCalendar = renderCalendar;
   const originalRenderAgendaList = renderAgendaList;
@@ -11315,9 +11328,13 @@ async function startApp() {
       return { start, end: Math.max(end, start + 30) };
     }
 
-    const start = minutesFromTimeString(appointment.time || "00:00");
-    const duration = Math.max(15, Number(appointment.duration || 0));
-    return { start, end: Math.min(24 * 60, start + duration) };
+    // Dagkalender: het visuele blok moet exact lopen van beginuur tot het
+    // einduur dat ook in het blok wordt getoond. Daarom gebruiken we dezelfde
+    // berekening als getAppointmentDisplayEndTime(), inclusief standaardpauze.
+    const range = appointmentTimeRange(appointment, Number(getSettings().defaultBreakMinutes || 0));
+    const start = Math.max(0, Math.min(24 * 60, range.startMinutes));
+    const end = Math.max(start + 15, Math.min(24 * 60, range.endMinutes));
+    return { start, end };
   }
 
 
@@ -11418,8 +11435,8 @@ async function startApp() {
         const customer = customerById(data, app.customerId);
         const service = serviceById(data, app.serviceId);
         const range = item.range;
-        const top = Math.max(0, (range.start / 60) * HOUR_HEIGHT);
-        const height = Math.max(24, ((range.end - range.start) / 60) * HOUR_HEIGHT - 4);
+        const top = agendaDayVisualTop(range.start);
+        const height = agendaDayVisualHeight(range.start, range.end);
         const columnWidth = 100 / Math.max(1, item.columnCount || 1);
         const left = (item.columnIndex || 0) * columnWidth;
         const width = columnWidth;
@@ -11459,7 +11476,7 @@ async function startApp() {
         <div class="agenda-day-scroll">
           <div class="agenda-day-grid" style="height:${totalHeight}px">
             ${hourRows}
-            ${dateStr === todayStr ? `<div class="agenda-day-now-line" style="top:${((new Date().getHours() * 60 + new Date().getMinutes()) / 60) * HOUR_HEIGHT}px"><span></span></div>` : ""}
+            ${dateStr === todayStr ? `<div class="agenda-day-now-line" style="top:${agendaDayVisualTop(new Date().getHours() * 60 + new Date().getMinutes())}px"><span></span></div>` : ""}
             <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
           </div>
         </div>
@@ -11515,8 +11532,8 @@ async function startApp() {
       const customer = customerById(data, app.customerId);
       const service = serviceById(data, app.serviceId);
       const range = item.range;
-      const top = Math.max(0, (range.start / 60) * HOUR_HEIGHT);
-      const height = Math.max(24, ((range.end - range.start) / 60) * HOUR_HEIGHT - 4);
+      const top = agendaDayVisualTop(range.start);
+      const height = agendaDayVisualHeight(range.start, range.end);
       const columnWidth = 100 / Math.max(1, item.columnCount || 1);
       const left = (item.columnIndex || 0) * columnWidth;
       const width = columnWidth;
@@ -11557,7 +11574,7 @@ async function startApp() {
       <div class="agenda-day-scroll">
         <div class="agenda-day-grid" style="height:${totalHeight}px">
           ${hourRows}
-          ${state.selectedDate === todayStr ? `<div class="agenda-day-now-line" style="top:${((new Date().getHours() * 60 + new Date().getMinutes()) / 60) * HOUR_HEIGHT}px"><span></span></div>` : ""}
+          ${state.selectedDate === todayStr ? `<div class="agenda-day-now-line" style="top:${agendaDayVisualTop(new Date().getHours() * 60 + new Date().getMinutes())}px"><span></span></div>` : ""}
           <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
         </div>
       </div>

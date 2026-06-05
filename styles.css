@@ -10254,3 +10254,37 @@ body.agenda-day-mode #agendaCalendarModeToggle {
     transition-duration: 0.01ms;
   }
 }
+
+/* =========================================================
+   DAGKALENDER: afspraakblokken exact van begin- tot einduur
+   - hoogte wordt volledig door JS berekend
+   - inhoud start bovenaan en behandeling mag over meerdere regels lopen
+========================================================= */
+.agenda-day-appointment.appointment-card {
+  box-sizing: border-box !important;
+}
+
+.agenda-day-appointment-row.appointment-row {
+  align-items: start !important;
+  align-content: start !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.agenda-day-appointment .time-block,
+.agenda-day-pinned-private .time-block,
+.agenda-day-appointment-main {
+  align-self: start !important;
+}
+
+.agenda-day-appointment .meta {
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  line-height: 1.25 !important;
+  display: block !important;
+}
+
+.agenda-day-appointment .price-chip {
+  align-self: start !important;
+}
