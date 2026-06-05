@@ -284,17 +284,23 @@
             </div>
           </section>
 
-          <section class="revenue-filter-card">
-            <div class="revenue-filter-grid revenue-filter-grid-two">
-              <select id="revenuePaymentFilter" class="field compact-field">
-                <option value="">Alle betaalwijzen</option>
-              </select>
+          <section class="revenue-filter-card revenue-status-filter-card">
+            <div class="revenue-status-filter-row" aria-label="Omzetstatus filteren">
+              <label class="revenue-status-checkbox" for="revenueShowPaid">
+                <span>
+                  <strong>Betaald</strong>
+                  <small>Toon betaalde omzet in de totalen en grafiek.</small>
+                </span>
+                <input id="revenueShowPaid" type="checkbox" checked />
+              </label>
 
-              <select id="revenuePaymentStatusFilter" class="field compact-field">
-                <option value="">Alle statussen</option>
-                <option value="paid">Betaald</option>
-                <option value="unpaid">Onbetaald</option>
-              </select>
+              <label class="revenue-status-checkbox" for="revenueShowUnpaid">
+                <span>
+                  <strong>Onbetaald</strong>
+                  <small>Toon openstaande omzet in de totalen en grafiek.</small>
+                </span>
+                <input id="revenueShowUnpaid" type="checkbox" checked />
+              </label>
             </div>
 
             <div class="revenue-hidden-inputs" aria-hidden="true">
@@ -317,18 +323,50 @@
       <!-- ===================== KOSTEN ======================= -->
       <section id="costsScreen" class="screen">
         <section class="costs-screen-shell">
-          <section class="costs-summary-card">
-            <div class="costs-summary-item">
-              <span class="revenue-main-label">Totaal incl. btw</span>
-              <strong id="costsTotalInclAmount">€ 0,00</strong>
+          <section class="revenue-period-strip costs-period-strip app-control-card" aria-label="Kostenperiode kiezen">
+            <button id="costsDayBtn" class="revenue-period-tile costs-period-tile" type="button" aria-label="Dagkosten kiezen">
+              <span class="revenue-period-icon" aria-hidden="true">
+                <svg viewBox="0 0 7.4083331 7.4083333" focusable="false">
+                  <path d="M 2.3884847,0.08216553 C 2.2485983,0.08275648 2.1353444,0.1960104 2.1347534,0.33589681 V 0.86144613 H 1.5037842 c -0.4982302,0 -0.90433759,0.40765767 -0.90433759,0.90588787 v 4.5532104 c 0,0.4982302 0.40610739,0.9038208 0.90433759,0.9038208 h 4.6307251 c 0.4982303,0 0.9064046,-0.4055906 0.9064046,-0.9038208 V 1.767334 c 0,-0.4982302 -0.4081743,-0.90588788 -0.9064046,-0.90588787 H 5.5391968 V 0.33589681 C 5.5386022,0.19520402 5.4240914,0.08161853 5.2833984,0.08216553 5.1433102,0.08247325 5.0297431,0.19580957 5.0291504,0.33589681 V 0.86144613 H 2.644283 V 0.33589681 C 2.6436884,0.19520406 2.5291776,0.08161858 2.3884847,0.08216553 Z M 1.5037842,1.2071615 H 2.1347534 V 1.4588257 C 2.1350611,1.5989139 2.2483975,1.712481 2.3884847,1.7130737 2.5293788,1.7136205 2.6439733,1.5997205 2.644283,1.4588257 V 1.2071615 h 2.3848674 v 0.2516642 c 3.091e-4,0.1402891 0.1139589,0.2539389 0.254248,0.254248 0.1408942,5.469e-4 0.2554887,-0.1133531 0.2557984,-0.254248 V 1.2071615 h 0.5953125 c 0.3130678,0 0.5606893,0.2471047 0.5606893,0.5601725 V 1.9724894 H 0.94361165 V 1.767334 c 0,-0.3130678 0.24710485,-0.5601725 0.56017255,-0.5601725 z M 0.94361165,2.4277588 H 6.6951986 v 3.8927856 c 0,0.3130678 -0.2476215,0.5581055 -0.5606893,0.5581055 H 1.5037842 c -0.3130677,0 -0.56017255,-0.2450377 -0.56017255,-0.5581055 z" />
+                </svg>
+              </span>
+              <span class="revenue-period-title">Dag</span>
+              <span id="costsDayLabel" class="revenue-period-sub">Vandaag</span>
+            </button>
+            <button id="costsWeekBtn" class="revenue-period-tile costs-period-tile" type="button" aria-label="Weekkosten kiezen">
+              <span class="revenue-period-icon" aria-hidden="true"><svg viewBox="0 0 7.4083331 7.4083333" focusable="false"><path d="M 2.3884847,0.08216553 C 2.2485983,0.08275648 2.1353444,0.1960104 2.1347534,0.33589681 V 0.86144613 H 1.5037842 c -0.4982302,0 -0.90433759,0.40765767 -0.90433759,0.90588787 v 4.5532104 c 0,0.4982302 0.40610739,0.9038208 0.90433759,0.9038208 h 4.6307251 c 0.4982303,0 0.9064046,-0.4055906 0.9064046,-0.9038208 V 1.767334 c 0,-0.4982302 -0.4081743,-0.90588788 -0.9064046,-0.90588787 H 5.5391968 V 0.33589681 C 5.5386022,0.19520402 5.4240914,0.08161853 5.2833984,0.08216553 5.1433102,0.08247325 5.0297431,0.19580957 5.0291504,0.33589681 V 0.86144613 H 2.644283 V 0.33589681 C 2.6436884,0.19520406 2.5291776,0.08161858 2.3884847,0.08216553 Z M 1.5037842,1.2071615 H 2.1347534 V 1.4588257 C 2.1350611,1.5989139 2.2483975,1.712481 2.3884847,1.7130737 2.5293788,1.7136205 2.6439733,1.5997205 2.644283,1.4588257 V 1.2071615 h 2.3848674 v 0.2516642 c 3.091e-4,0.1402891 0.1139589,0.2539389 0.254248,0.254248 0.1408942,5.469e-4 0.2554887,-0.1133531 0.2557984,-0.254248 V 1.2071615 h 0.5953125 c 0.3130678,0 0.5606893,0.2471047 0.5606893,0.5601725 V 1.9724894 H 0.94361165 V 1.767334 c 0,-0.3130678 0.24710485,-0.5601725 0.56017255,-0.5601725 z M 0.94361165,2.4277588 H 6.6951986 v 3.8927856 c 0,0.3130678 -0.2476215,0.5581055 -0.5606893,0.5581055 H 1.5037842 c -0.3130677,0 -0.56017255,-0.2450377 -0.56017255,-0.5581055 z" /></svg></span>
+              <span class="revenue-period-title">Week</span>
+              <span id="costsWeekLabel" class="revenue-period-sub">Deze week</span>
+            </button>
+            <button id="costsMonthBtn" class="revenue-period-tile costs-period-tile active" type="button" aria-label="Maandkosten kiezen">
+              <span class="revenue-period-icon" aria-hidden="true"><svg viewBox="0 0 7.4083331 7.4083333" focusable="false"><path d="M 2.3884847,0.08216553 C 2.2485983,0.08275648 2.1353444,0.1960104 2.1347534,0.33589681 V 0.86144613 H 1.5037842 c -0.4982302,0 -0.90433759,0.40765767 -0.90433759,0.90588787 v 4.5532104 c 0,0.4982302 0.40610739,0.9038208 0.90433759,0.9038208 h 4.6307251 c 0.4982303,0 0.9064046,-0.4055906 0.9064046,-0.9038208 V 1.767334 c 0,-0.4982302 -0.4081743,-0.90588788 -0.9064046,-0.90588787 H 5.5391968 V 0.33589681 C 5.5386022,0.19520402 5.4240914,0.08161853 5.2833984,0.08216553 5.1433102,0.08247325 5.0297431,0.19580957 5.0291504,0.33589681 V 0.86144613 H 2.644283 V 0.33589681 C 2.6436884,0.19520406 2.5291776,0.08161858 2.3884847,0.08216553 Z M 1.5037842,1.2071615 H 2.1347534 V 1.4588257 C 2.1350611,1.5989139 2.2483975,1.712481 2.3884847,1.7130737 2.5293788,1.7136205 2.6439733,1.5997205 2.644283,1.4588257 V 1.2071615 h 2.3848674 v 0.2516642 c 3.091e-4,0.1402891 0.1139589,0.2539389 0.254248,0.254248 0.1408942,5.469e-4 0.2554887,-0.1133531 0.2557984,-0.254248 V 1.2071615 h 0.5953125 c 0.3130678,0 0.5606893,0.2471047 0.5606893,0.5601725 V 1.9724894 H 0.94361165 V 1.767334 c 0,-0.3130678 0.24710485,-0.5601725 0.56017255,-0.5601725 z M 0.94361165,2.4277588 H 6.6951986 v 3.8927856 c 0,0.3130678 -0.2476215,0.5581055 -0.5606893,0.5581055 H 1.5037842 c -0.3130677,0 -0.56017255,-0.2450377 -0.56017255,-0.5581055 z" /></svg></span>
+              <span class="revenue-period-title">Maand</span>
+              <span id="costsMonthLabel" class="revenue-period-sub">Deze maand</span>
+            </button>
+            <button id="costsYearBtn" class="revenue-period-tile costs-period-tile" type="button" aria-label="Jaarkosten kiezen">
+              <span class="revenue-period-icon" aria-hidden="true"><svg viewBox="0 0 7.4083331 7.4083333" focusable="false"><path d="M 2.3884847,0.08216553 C 2.2485983,0.08275648 2.1353444,0.1960104 2.1347534,0.33589681 V 0.86144613 H 1.5037842 c -0.4982302,0 -0.90433759,0.40765767 -0.90433759,0.90588787 v 4.5532104 c 0,0.4982302 0.40610739,0.9038208 0.90433759,0.9038208 h 4.6307251 c 0.4982303,0 0.9064046,-0.4055906 0.9064046,-0.9038208 V 1.767334 c 0,-0.4982302 -0.4081743,-0.90588788 -0.9064046,-0.90588787 H 5.5391968 V 0.33589681 C 5.5386022,0.19520402 5.4240914,0.08161853 5.2833984,0.08216553 5.1433102,0.08247325 5.0297431,0.19580957 5.0291504,0.33589681 V 0.86144613 H 2.644283 V 0.33589681 C 2.6436884,0.19520406 2.5291776,0.08161858 2.3884847,0.08216553 Z M 1.5037842,1.2071615 H 2.1347534 V 1.4588257 C 2.1350611,1.5989139 2.2483975,1.712481 2.3884847,1.7130737 2.5293788,1.7136205 2.6439733,1.5997205 2.644283,1.4588257 V 1.2071615 h 2.3848674 v 0.2516642 c 3.091e-4,0.1402891 0.1139589,0.2539389 0.254248,0.254248 0.1408942,5.469e-4 0.2554887,-0.1133531 0.2557984,-0.254248 V 1.2071615 h 0.5953125 c 0.3130678,0 0.5606893,0.2471047 0.5606893,0.5601725 V 1.9724894 H 0.94361165 V 1.767334 c 0,-0.3130678 0.24710485,-0.5601725 0.56017255,-0.5601725 z M 0.94361165,2.4277588 H 6.6951986 v 3.8927856 c 0,0.3130678 -0.2476215,0.5581055 -0.5606893,0.5581055 H 1.5037842 c -0.3130677,0 -0.56017255,-0.2450377 -0.56017255,-0.5581055 z" /></svg></span>
+              <span class="revenue-period-title">Jaar</span>
+              <span id="costsYearLabel" class="revenue-period-sub revenue-period-year">2026</span>
+            </button>
+            <input id="costsNativeDatePicker" class="field compact-field costs-native-date-picker" type="date" aria-hidden="true" />
+          </section>
+          <section class="costs-summary-card revenue-summary-card">
+            <div class="costs-summary-head revenue-summary-head">
+              <h2 id="costsTitle">Kosten</h2>
             </div>
-            <div class="costs-summary-item">
-              <span class="revenue-main-label">Totaal excl. btw</span>
-              <strong id="costsTotalExclAmount">€ 0,00</strong>
-            </div>
-            <div class="costs-summary-item">
-              <span class="revenue-main-label">Btw</span>
-              <strong id="costsVatAmount">€ 0,00</strong>
+            <div class="costs-summary-top revenue-summary-top">
+              <div class="costs-summary-item revenue-summary-item">
+                <span class="revenue-main-label">Totaal incl. btw</span>
+                <strong id="costsTotalInclAmount">€ 0,00</strong>
+              </div>
+              <div class="costs-summary-item revenue-summary-item">
+                <span class="revenue-main-label">Totaal excl. btw</span>
+                <strong id="costsTotalExclAmount">€ 0,00</strong>
+              </div>
+              <div class="costs-summary-item revenue-summary-item">
+                <span class="revenue-main-label">Btw</span>
+                <strong id="costsVatAmount">€ 0,00</strong>
+              </div>
             </div>
           </section>
           <section class="costs-list-panel">
@@ -811,6 +849,14 @@
         <option value="12">12%</option>
         <option value="21" selected>21%</option>
       </select>
+
+      <label id="costStandardCostCheckboxRow" class="settings-switch-row cost-standard-checkbox-row" for="costSaveAsStandardCost">
+        <span>
+          <strong>Standaard kost</strong>
+          <small>Bewaar deze kost meteen als standaardkost voor later gebruik.</small>
+        </span>
+        <input id="costSaveAsStandardCost" type="checkbox" />
+      </label>
 
       <div class="modal-actions triple-actions">
         <button id="deleteCostBtn" class="btn btn-danger action-btn hidden" type="button">Verwijderen</button>
@@ -1612,6 +1658,16 @@
     bottomNav.scrollLeft = scrollLeft - walk;
   });
 </script>
+
+  <div id="costsActionBar" class="revenue-action-bar costs-action-bar hidden" aria-label="Kostenacties">
+    <button id="costsExportCsvBtn" class="client-action-btn revenue-action-btn-csv" type="button" aria-label="Genereer CSV-bestand kosten">
+      <span class="client-action-icon revenue-action-export-label" aria-hidden="true">CSV</span>
+    </button>
+
+    <button id="costsExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer stijlvol kostenrapport">
+      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">PDF</span>
+    </button>
+  </div>
 
   <div id="revenueActionBar" class="revenue-action-bar hidden" aria-label="Omzetacties">
     <button id="revenueExportCsvBtn" class="client-action-btn revenue-action-btn-csv" type="button" aria-label="Genereer CSV-bestand">

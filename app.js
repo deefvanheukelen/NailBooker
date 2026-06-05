@@ -368,6 +368,8 @@ const state = {
   todoFilter: "all",
   standardCostLetter: "",
   standardCostSearch: "",
+  costsPeriodType: "month",
+  costsPeriodDate: todayStr,
   appNavigationReady: false,
   appNavigationLastScreen: null
 };
@@ -406,9 +408,27 @@ const defaultPaymentMethods = [
 
 const revenuePickerState = {
   mode: "year",
+  target: "revenue",
   columns: [],
   selected: {}
 };
+
+function getRevenuePickerTarget() {
+  return revenuePickerState.target || "revenue";
+}
+
+function getRevenuePickerAnchorDate() {
+  if (getRevenuePickerTarget() === "costs") return getCostsPeriodDate();
+  return document.getElementById("revenueDate")?.value || todayStr;
+}
+
+function setRevenuePickerPeriod(type, dateStr) {
+  if (getRevenuePickerTarget() === "costs") {
+    setCostsPeriod(type, dateStr);
+    return;
+  }
+  setRevenuePeriod(type, dateStr);
+}
 
 const notificationTimers = new Map();
 let notificationHeartbeatId = null;
@@ -2127,12 +2147,12 @@ function getScreenTitle(screenId, fallback = "") {
 
 
 const agendaFabActions = [
-  { key: "agenda", screenId: "agendaScreen", labelKey: "newAppointment", iconScreen: "agendaScreen", dx: -92, dy: 0, open: () => openNewAppointmentDialog() },
-  { key: "costs", screenId: "costsScreen", labelKey: "newCost", iconScreen: "costsScreen", dx: -74, dy: -54, open: () => openNewCostDialog() },
-  { key: "todo", screenId: "todoScreen", labelKey: "newTodo", iconScreen: "todoScreen", dx: -28, dy: -88, open: () => openNewTodoDialog() },
-  { key: "clients", screenId: "clientsScreen", labelKey: "newClient", iconScreen: "clientsScreen", dx: 28, dy: -88, open: () => openNewClientDialog() },
-  { key: "services", screenId: "servicesScreen", labelKey: "newService", iconScreen: "servicesScreen", dx: 74, dy: -54, open: () => openNewServiceDialog() },
-  { key: "payment", screenId: "paymentMethodsScreen", labelKey: "newPaymentMethod", iconScreen: "paymentMethodsScreen", dx: 92, dy: 0, open: () => openNewPaymentMethodDialog() }
+  { key: "payment", screenId: "paymentMethodsScreen", labelKey: "newPaymentMethod", iconScreen: "paymentMethodsScreen", dx: -92, dy: 0, open: () => openNewPaymentMethodDialog() },
+  { key: "services", screenId: "servicesScreen", labelKey: "newService", iconScreen: "servicesScreen", dx: -74, dy: -54, open: () => openNewServiceDialog() },
+  { key: "clients", screenId: "clientsScreen", labelKey: "newClient", iconScreen: "clientsScreen", dx: -28, dy: -88, open: () => openNewClientDialog() },
+  { key: "costs", screenId: "costsScreen", labelKey: "newCost", iconScreen: "costsScreen", dx: 28, dy: -88, open: () => openNewCostDialog() },
+  { key: "todo", screenId: "todoScreen", labelKey: "newTodo", iconScreen: "todoScreen", dx: 74, dy: -54, open: () => openNewTodoDialog() },
+  { key: "agenda", screenId: "agendaScreen", labelKey: "newAppointment", iconScreen: "agendaScreen", dx: 92, dy: 0, open: () => openNewAppointmentDialog() }
 ];
 
 let agendaFabMenuDocumentHandlersInstalled = false;
@@ -2272,6 +2292,7 @@ function updateTopbar(screenId, title) {
   }
 
   document.body.classList.toggle("costs-fab-pair", showStandardCostsFab);
+  document.body.classList.toggle("costs-action-mode", screenId === "costsScreen");
 
   if (screenId !== "agendaScreen") {
     closeAgendaFabMenu();
@@ -2380,6 +2401,7 @@ function switchScreen(screenId, title, options = {}) {
   const activeClient = state.selectedClientId ? customerById(getData(), state.selectedClientId) : null;
   updateClientActionBar(activeClient);
   updateRevenueActionBar();
+  updateCostsActionBar();
 
   syncAppBrowserHistory(screenId, title, {
     replace: Boolean(options.replaceHistory),
@@ -2451,6 +2473,7 @@ function renderCalendar() {
     const dayTapMoveTolerance = 12;
 
     const selectCalendarDate = (event = null) => {
+      closeAgendaFabMenu();
       if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -3470,12 +3493,29 @@ function shiftRevenueDate(baseDateStr, mode, step) {
   return formatDateInput(d);
 }
 
+function getRevenueStatusFilterState() {
+  const paidCheckbox = document.getElementById("revenueShowPaid");
+  const unpaidCheckbox = document.getElementById("revenueShowUnpaid");
+  return {
+    showPaid: paidCheckbox ? paidCheckbox.checked : true,
+    showUnpaid: unpaidCheckbox ? unpaidCheckbox.checked : true
+  };
+}
+
+function getRevenueStatusFilterLabel() {
+  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
+  if (showPaid && showUnpaid) return "Betaald + Onbetaald";
+  if (showPaid) return "Betaald";
+  if (showUnpaid) return "Onbetaald";
+  return "Geen status geselecteerd";
+}
+
 function getRevenueRenderSignature() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType")?.value || "day";
   const anchor = document.getElementById("revenueDate")?.value || todayStr;
-  const paymentFilter = document.getElementById("revenuePaymentFilter")?.value || "";
-  const statusFilter = document.getElementById("revenuePaymentStatusFilter")?.value || "";
+  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
+  const statusFilter = `${showPaid ? "paid" : ""}|${showUnpaid ? "unpaid" : ""}`;
   const appointmentSignature = (data.appointments || [])
     .map(a => [
       a.id,
@@ -3488,7 +3528,7 @@ function getRevenueRenderSignature() {
     ].join(":"))
     .join("|");
 
-  return [type, anchor, paymentFilter, statusFilter, appointmentSignature].join("||");
+  return [type, anchor, statusFilter, appointmentSignature].join("||");
 }
 
 function syncRevenueToSelectedDateBeforePreview() {
@@ -3531,9 +3571,10 @@ function setRevenuePeriod(type, dateStr) {
 }
 
 
-function attachRevenuePeriodSwipe(button, mode) {
+function attachRevenuePeriodSwipe(button, mode, target = "revenue") {
   if (!button || button.dataset.revenueSwipeReady === "1") return;
   button.dataset.revenueSwipeReady = "1";
+  button.dataset.revenueSwipeTarget = target;
 
   const threshold = 20;
   const maxDrag = 5;
@@ -3556,7 +3597,7 @@ function attachRevenuePeriodSwipe(button, mode) {
   };
 
   const commitSwipe = (step) => {
-    const anchor = document.getElementById("revenueDate")?.value || todayStr;
+    const anchor = target === "costs" ? getCostsPeriodDate() : (document.getElementById("revenueDate")?.value || todayStr);
     const nextDate = shiftRevenueDate(anchor, mode, step);
     const exitY = step > 0 ? -14 : 14;
     const enterY = step > 0 ? 14 : -14;
@@ -3569,7 +3610,8 @@ function attachRevenuePeriodSwipe(button, mode) {
     setSwipeVisual(exitY, 0.25);
 
     window.setTimeout(() => {
-      setRevenuePeriod(mode, nextDate);
+      if (target === "costs") setCostsPeriod(mode, nextDate);
+      else setRevenuePeriod(mode, nextDate);
       button.classList.remove("is-revenue-swipe-committing");
       button.classList.add("is-revenue-swipe-settling");
       setSwipeVisual(enterY, 0.25);
@@ -3676,8 +3718,7 @@ function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
-  const paymentStatusFilter = document.getElementById("revenuePaymentStatusFilter").value;
-  const paymentFilter = document.getElementById("revenuePaymentFilter").value;
+  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
 
   let filtered = data.appointments.filter(a => a.status !== "no-show");
 
@@ -3694,25 +3735,13 @@ function revenueFilteredAppointments() {
     filtered = filtered.filter(a => a.date.startsWith(prefix));
   }
 
-  if (paymentStatusFilter === "paid") filtered = filtered.filter(a => a.paid);
-  if (paymentStatusFilter === "unpaid") filtered = filtered.filter(a => !a.paid);
-  if (paymentFilter) filtered = filtered.filter(a => paymentMethodNameForAppointment(a, data) === paymentFilter);
+  filtered = filtered.filter(a => (a.paid && showPaid) || (!a.paid && showUnpaid));
 
   return filtered;
 }
 
 function renderRevenueFilters() {
-  const data = getData();
-  const paymentSel = document.getElementById("revenuePaymentFilter");
-  const existingPayment = paymentSel ? paymentSel.value : "";
-
-  if (paymentSel) {
-    paymentSel.innerHTML =
-      `<option value="">${t("allPaymentMethods")}</option>` +
-      getRevenuePaymentFilterOptions(data).map(name => `<option value="${name}">${name}</option>`).join("");
-    paymentSel.value = existingPayment;
-  }
-
+  // De betaalwijze/status-keuzelijsten zijn vervangen door twee directe status-checkboxen.
 }
 
 
@@ -3723,13 +3752,14 @@ function clampRevenueDay(year, monthIndex, day) {
 
 function getRevenueDataYears() {
   const data = getData();
-  const appointmentYears = data.appointments
-    .map(a => Number(String(a.date || "").slice(0, 4)))
+  const sourceItems = getRevenuePickerTarget() === "costs" ? getCosts(data) : data.appointments;
+  const years = sourceItems
+    .map(item => Number(String(item.date || "").slice(0, 4)))
     .filter(Boolean);
 
-  const currentYear = new Date((document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getFullYear();
-  const minYear = appointmentYears.length ? Math.min(...appointmentYears, currentYear) : currentYear - 3;
-  const maxYear = appointmentYears.length ? Math.max(...appointmentYears, currentYear) : currentYear + 3;
+  const currentYear = new Date(getRevenuePickerAnchorDate() + "T00:00:00").getFullYear();
+  const minYear = years.length ? Math.min(...years, currentYear) : currentYear - 3;
+  const maxYear = years.length ? Math.max(...years, currentYear) : currentYear + 3;
 
   return Array.from({ length: (maxYear - minYear + 5) }, (_, i) => minYear - 2 + i);
 }
@@ -4545,7 +4575,7 @@ function renderSharedCalendarPicker({
   });
 }
 
-function renderRevenueCalendarPicker(mode, year, monthIndex, selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) {
+function renderRevenueCalendarPicker(mode, year, monthIndex, selectedDateStr = revenuePickerState.selected.date || getRevenuePickerAnchorDate()) {
   renderSharedCalendarPicker({
     columnsWrapId: "revenueWheelColumns",
     pickerState: revenuePickerState,
@@ -4576,7 +4606,7 @@ function renderAppointmentCalendarPicker(year, monthIndex, selectedDateStr = app
 }
 
 function buildRevenueMonthPickerHtml(year, selectedMonthIndex = 0) {
-  const selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr;
+  const selectedDateStr = revenuePickerState.selected.date || getRevenuePickerAnchorDate();
   const selectedDate = new Date(selectedDateStr + "T00:00:00");
   const selectedYear = selectedDate.getFullYear();
   const currentMonthIndex = selectedDate.getMonth();
@@ -4611,11 +4641,11 @@ function buildRevenueMonthPickerPreviewHtml(year, delta, selectedMonthIndex = 0)
   return picker.innerHTML;
 }
 
-function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr) + "T00:00:00").getMonth()) {
+function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePickerState.selected.date || getRevenuePickerAnchorDate()) + "T00:00:00").getMonth()) {
   const columnsWrap = document.getElementById("revenueWheelColumns");
   if (!columnsWrap) return;
 
-  const selectedDateStr = revenuePickerState.selected.date || document.getElementById("revenueDate")?.value || todayStr;
+  const selectedDateStr = revenuePickerState.selected.date || getRevenuePickerAnchorDate();
   const selectedDate = new Date(selectedDateStr + "T00:00:00");
 
   columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
@@ -4644,13 +4674,14 @@ function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePi
   });
 }
 
-function openRevenueWheelPicker(mode) {
+function openRevenueWheelPicker(mode, target = "revenue") {
   const dialog = document.getElementById("revenueWheelPickerDialog");
   const title = document.getElementById("revenueWheelPickerTitle");
   const columnsWrap = document.getElementById("revenueWheelColumns");
   const shell = dialog?.querySelector(".revenue-wheel-shell");
   const confirmBtn = document.getElementById("revenueWheelConfirmBtn");
-  const anchor = document.getElementById("revenueDate").value || todayStr;
+  revenuePickerState.target = target || "revenue";
+  const anchor = getRevenuePickerAnchorDate();
   const anchorDate = new Date(anchor + "T00:00:00");
   const selectedYear = anchorDate.getFullYear();
   const selectedMonthIndex = anchorDate.getMonth();
@@ -4706,7 +4737,7 @@ function openRevenueWheelPicker(mode) {
 }
 
 function applyRevenueWheelPickerSelection() {
-  const anchor = document.getElementById("revenueDate").value || todayStr;
+  const anchor = getRevenuePickerAnchorDate();
   const anchorDate = new Date(anchor + "T00:00:00");
   const currentDay = anchorDate.getDate();
 
@@ -4714,22 +4745,22 @@ function applyRevenueWheelPickerSelection() {
     const year = Number(revenuePickerState.selected.year || anchorDate.getFullYear());
     const monthIndex = anchorDate.getMonth();
     const day = clampRevenueDay(year, monthIndex, currentDay);
-    setRevenuePeriod("year", formatDateInput(new Date(year, monthIndex, day)));
+    setRevenuePickerPeriod("year", formatDateInput(new Date(year, monthIndex, day)));
     return;
   }
 
   if (revenuePickerState.mode === "month") {
     const selectedDate = new Date((revenuePickerState.selected.date || anchor) + "T00:00:00");
-    setRevenuePeriod("month", formatDateInput(selectedDate));
+    setRevenuePickerPeriod("month", formatDateInput(selectedDate));
     return;
   }
 
   if (revenuePickerState.mode === "week") {
-    setRevenuePeriod("week", revenuePickerState.selected.date || anchor);
+    setRevenuePickerPeriod("week", revenuePickerState.selected.date || anchor);
     return;
   }
 
-  setRevenuePeriod("day", revenuePickerState.selected.date || anchor);
+  setRevenuePickerPeriod("day", revenuePickerState.selected.date || anchor);
 }
 
 function openRevenueDatePicker(mode = "day") {
@@ -4879,8 +4910,8 @@ function renderRevenueChart(filtered, type, anchor) {
     </div>
     ${maxValue > 0 ? `
       <div class="revenue-chart-legend">
-        <span><i class="paid"></i> ${t("paid")}</span>
-        <span><i class="unpaid"></i> ${t("unpaid")}</span>
+        ${getRevenueStatusFilterState().showPaid ? `<span><i class="paid"></i> ${t("paid")}</span>` : ""}
+        ${getRevenueStatusFilterState().showUnpaid ? `<span><i class="unpaid"></i> ${t("unpaid")}</span>` : ""}
       </div>
     ` : ""}
   `;
@@ -4903,6 +4934,18 @@ function updateRevenueActionBar() {
   if (!bar) return;
 
   const shouldShow = state.currentScreen === 'revenueScreen';
+  bar.classList.toggle('hidden', !shouldShow);
+  if (csvButton) csvButton.disabled = !shouldShow;
+  if (reportButton) reportButton.disabled = !shouldShow;
+}
+
+function updateCostsActionBar() {
+  const bar = document.getElementById('costsActionBar');
+  const csvButton = document.getElementById('costsExportCsvBtn');
+  const reportButton = document.getElementById('costsExportReportBtn');
+  if (!bar) return;
+
+  const shouldShow = state.currentScreen === 'costsScreen';
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
@@ -4932,8 +4975,7 @@ function downloadRevenueCsv() {
     .slice()
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 
-  const paymentStatusFilter = document.getElementById('revenuePaymentStatusFilter')?.value || '';
-  const paymentFilter = document.getElementById('revenuePaymentFilter')?.value || '';
+  const paymentStatusFilter = getRevenueStatusFilterLabel();
   const periodType = document.getElementById('revenuePeriodType')?.value || 'day';
   const periodDate = document.getElementById('revenueDate')?.value || todayStr;
 
@@ -4949,8 +4991,7 @@ function downloadRevenueCsv() {
   const rows = [
     ['Periode type', periodType],
     ['Periode datum', periodDate],
-    ['Filter betaalstatus', paymentStatusFilter || 'alle'],
-    ['Filter betaalwijze', paymentFilter || 'alle'],
+    ['Filter betaalstatus', paymentStatusFilter],
     [],
     ['OVERZICHT'],
     ['Aantal afspraken', filtered.length],
@@ -5072,10 +5113,11 @@ function downloadRevenueCsv() {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${getRevenueExportTitle()}.csv`;
+  link.dataset.allowBusyDownload = "true";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 
@@ -5094,8 +5136,7 @@ function getRevenueReportData() {
     .slice()
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 
-  const paymentStatusFilter = document.getElementById('revenuePaymentStatusFilter')?.value || '';
-  const paymentFilter = document.getElementById('revenuePaymentFilter')?.value || '';
+  const paymentStatusFilter = getRevenueStatusFilterLabel();
   const periodType = document.getElementById('revenuePeriodType')?.value || 'day';
   const periodDate = document.getElementById('revenueDate')?.value || todayStr;
 
@@ -5164,7 +5205,6 @@ function getRevenueReportData() {
     data,
     filtered,
     paymentStatusFilter,
-    paymentFilter,
     periodType,
     periodDate,
     reportTitle,
@@ -5181,8 +5221,7 @@ function getRevenueReportData() {
 function downloadRevenueStyledReport() {
   const report = getRevenueReportData();
   const createdAt = new Date().toLocaleString('nl-BE');
-  const filterStatusLabel = report.paymentStatusFilter === 'paid' ? 'Betaald' : report.paymentStatusFilter === 'unpaid' ? 'Onbetaald' : 'Alle statussen';
-  const filterPaymentLabel = report.paymentFilter || 'Alle betaalwijzen';
+  const filterStatusLabel = report.paymentStatusFilter || 'Betaald + Onbetaald';
 
   const metricCard = (label, value) => `
     <article class="metric-card">
@@ -5578,7 +5617,6 @@ function downloadRevenueStyledReport() {
       <div class="meta">
         <span>Gemaakt op ${htmlEscape(createdAt)}</span>
         <span>${htmlEscape(filterStatusLabel)}</span>
-        <span>${htmlEscape(filterPaymentLabel)}</span>
       </div>
     </header>
 
@@ -5631,12 +5669,272 @@ function downloadRevenueStyledReport() {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${getRevenueExportTitle()}_rapport.html`;
+  link.dataset.allowBusyDownload = "true";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+
+function getCostsExportTitle() {
+  const type = getCostsPeriodType();
+  const anchor = getCostsPeriodDate();
+
+  if (type === 'year') return `kosten_${anchor.slice(0, 4)}`;
+  if (type === 'month') return `kosten_${anchor.slice(0, 7)}`;
+  if (type === 'week') {
+    const bounds = weekBounds(anchor);
+    return `kosten_week_${bounds.start}_tot_${bounds.end}`;
+  }
+  return `kosten_${anchor}`;
+}
+
+function getCostsReportData() {
+  const filtered = getFilteredCosts(getData())
+    .slice()
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.description || '').localeCompare(String(b.description || ''), 'nl-BE'));
+
+  const periodType = getCostsPeriodType();
+  const periodDate = getCostsPeriodDate();
+  const totalIncl = filtered.reduce((sum, cost) => sum + Number(cost.amountInclVat || 0), 0);
+  const vatTotal = filtered.reduce((sum, cost) => {
+    const amount = Number(cost.amountInclVat || 0);
+    const rate = Number(cost.vatRate || 0);
+    return sum + (rate > 0 ? amount - (amount / (1 + (rate / 100))) : 0);
+  }, 0);
+  const totalExcl = totalIncl - vatTotal;
+
+  const periodTotals = new Map();
+  filtered.forEach(cost => {
+    let key = cost.date || '';
+    let label = cost.date || '';
+
+    if (periodType === 'year') {
+      key = String(cost.date || '').slice(0, 7);
+      const monthNumber = Number(key.slice(5, 7));
+      label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
+    } else {
+      label = cost.date ? formatLongDate(cost.date) : '';
+    }
+
+    const current = periodTotals.get(key) || { label, count: 0, totalIncl: 0, totalExcl: 0, vatTotal: 0 };
+    const amount = Number(cost.amountInclVat || 0);
+    const rate = Number(cost.vatRate || 0);
+    const vat = rate > 0 ? amount - (amount / (1 + (rate / 100))) : 0;
+    current.count += 1;
+    current.totalIncl += amount;
+    current.vatTotal += vat;
+    current.totalExcl += amount - vat;
+    periodTotals.set(key, current);
+  });
+
+  const periodTitle =
+    periodType === 'year' ? 'Totalen per maand' :
+    periodType === 'month' ? 'Totalen per dag' :
+    periodType === 'week' ? 'Totalen per dag' :
+    'Totalen per kost';
+
+  const periodColumnTitle = periodType === 'year' ? 'Maand' : periodType === 'day' ? 'Kost' : 'Datum';
+
+  let reportTitle = 'Kostenrapport';
+  if (periodType === 'day') reportTitle = `Kostenrapport · ${formatLongDate(periodDate)}`;
+  if (periodType === 'week') {
+    const bounds = weekBounds(periodDate);
+    reportTitle = `Kostenrapport · week ${formatLongDate(bounds.start)} t.e.m. ${formatLongDate(bounds.end)}`;
+  }
+  if (periodType === 'month') {
+    const d = new Date(periodDate + 'T00:00:00');
+    reportTitle = `Kostenrapport · ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
+  }
+  if (periodType === 'year') reportTitle = `Kostenrapport · ${periodDate.slice(0, 4)}`;
+
+  return {
+    filtered,
+    periodType,
+    periodDate,
+    reportTitle,
+    totalIncl,
+    totalExcl,
+    vatTotal,
+    periodTotals: Array.from(periodTotals.entries()).sort(([a], [b]) => a.localeCompare(b, 'nl-BE')).map(([, values]) => values),
+    periodTitle,
+    periodColumnTitle
+  };
+}
+
+function downloadCostsCsv() {
+  const report = getCostsReportData();
+  const amountForCsv = (value) => Number(value || 0).toFixed(2).replace('.', ',');
+  const rows = [
+    ['Periode type', report.periodType],
+    ['Periode datum', report.periodDate],
+    [],
+    ['OVERZICHT'],
+    ['Aantal kosten', report.filtered.length],
+    ['Totaal incl. btw', amountForCsv(report.totalIncl)],
+    ['Totaal excl. btw', amountForCsv(report.totalExcl)],
+    ['Btw', amountForCsv(report.vatTotal)],
+    [],
+    [report.periodTitle.toUpperCase()],
+    [report.periodColumnTitle, 'Aantal kosten', 'Totaal incl. btw', 'Totaal excl. btw', 'Btw']
+  ];
+
+  if (report.periodTotals.length) {
+    report.periodTotals.forEach(item => {
+      rows.push([item.label, item.count, amountForCsv(item.totalIncl), amountForCsv(item.totalExcl), amountForCsv(item.vatTotal)]);
+    });
+  } else {
+    rows.push(['Geen gegevens', 0, amountForCsv(0), amountForCsv(0), amountForCsv(0)]);
+  }
+
+  rows.push([]);
+  rows.push(['DETAIL KOSTEN']);
+  rows.push(['Datum', 'Omschrijving', 'Bedrag incl. btw', 'Btw %', 'Bedrag excl. btw', 'Btw']);
+
+  report.filtered.forEach(cost => {
+    const amount = Number(cost.amountInclVat || 0);
+    const rate = Number(cost.vatRate || 0);
+    const vat = rate > 0 ? amount - (amount / (1 + (rate / 100))) : 0;
+    rows.push([
+      cost.date || '',
+      cost.description || '',
+      amountForCsv(amount),
+      rate,
+      amountForCsv(amount - vat),
+      amountForCsv(vat)
+    ]);
+  });
+
+  const csv = rows.map(row => row.map(value => csvEscape(value)).join(';')).join('\r\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${getCostsExportTitle()}.csv`;
+  link.dataset.allowBusyDownload = "true";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadCostsStyledReport() {
+  const report = getCostsReportData();
+  const createdAt = new Date().toLocaleString('nl-BE');
+
+  const metricCard = (label, value) => `
+    <article class="metric-card">
+      <span>${htmlEscape(label)}</span>
+      <strong>${htmlEscape(value)}</strong>
+    </article>
+  `;
+
+  const moneyCells = item => `
+    <td>${htmlEscape(item.count)}</td>
+    <td class="money">${htmlEscape(euro(item.totalIncl))}</td>
+    <td class="money">${htmlEscape(euro(item.totalExcl))}</td>
+    <td class="money">${htmlEscape(euro(item.vatTotal))}</td>
+  `;
+
+  const periodRows = report.periodTotals.length
+    ? report.periodTotals.map(item => `<tr><td>${htmlEscape(item.label)}</td>${moneyCells(item)}</tr>`).join('')
+    : `<tr><td>Geen gegevens</td><td>0</td><td class="money">${htmlEscape(euro(0))}</td><td class="money">${htmlEscape(euro(0))}</td><td class="money">${htmlEscape(euro(0))}</td></tr>`;
+
+  const costRows = report.filtered.length
+    ? report.filtered.map(cost => {
+        const amount = Number(cost.amountInclVat || 0);
+        const rate = Number(cost.vatRate || 0);
+        const vat = rate > 0 ? amount - (amount / (1 + (rate / 100))) : 0;
+        return `
+          <tr>
+            <td>${htmlEscape(cost.date || '')}</td>
+            <td>${htmlEscape(cost.description || '')}</td>
+            <td class="money">${htmlEscape(euro(amount))}</td>
+            <td>${htmlEscape(rate)}%</td>
+            <td class="money">${htmlEscape(euro(amount - vat))}</td>
+            <td class="money">${htmlEscape(euro(vat))}</td>
+          </tr>
+        `;
+      }).join('')
+    : `<tr><td colspan="6" class="empty-row">Geen kosten voor deze selectie.</td></tr>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${htmlEscape(report.reportTitle)}</title>
+  <style>
+    :root { --bg:#fbf7f9; --card:#fff; --line:#eddfe6; --primary:#d991ab; --primary-dark:#b86d87; --primary-soft:#f8e8ee; --text:#4e4650; --muted:#8c838d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(180deg,#fff 0%,var(--bg) 100%); color:var(--text); font-family:Arial, Helvetica, sans-serif; line-height:1.45; }
+    .page { width:min(1180px, calc(100% - 32px)); margin:0 auto; padding:34px 0 48px; }
+    .report-header { background:linear-gradient(135deg,var(--primary-soft),#fff); border:1px solid var(--line); border-radius:28px; padding:26px; margin-bottom:18px; box-shadow:0 12px 30px rgba(170,120,145,.10); }
+    .eyebrow { margin:0 0 6px; color:var(--primary-dark); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(28px,5vw,46px); line-height:1.05; color:var(--primary-dark); }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; color:var(--muted); font-size:14px; }
+    .meta span { background:#fff; border:1px solid var(--line); border-radius:999px; padding:8px 12px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .metric-card,.report-section { background:var(--card); border:1px solid var(--line); box-shadow:0 10px 24px rgba(170,120,145,.09); }
+    .metric-card { border-radius:22px; padding:18px; }
+    .metric-card span { display:block; color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin-bottom:8px; }
+    .metric-card strong { font-size:24px; color:var(--text); }
+    .report-section { border-radius:24px; overflow:hidden; margin-bottom:18px; }
+    .section-title { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--primary-soft); border-bottom:1px solid var(--line); padding:16px 18px; }
+    .section-title h2 { margin:0; color:var(--primary-dark); font-size:18px; }
+    .section-title span { color:var(--muted); font-size:13px; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:720px; }
+    th,td { padding:13px 16px; border-bottom:1px solid #f2e8ed; text-align:left; vertical-align:top; font-size:14px; }
+    th { color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; background:#fffafd; }
+    tbody tr:nth-child(even) td { background:#fffbfd; }
+    tbody tr:last-child td { border-bottom:none; }
+    .money { text-align:right; white-space:nowrap; font-weight:700; }
+    .empty-row { text-align:center; color:var(--muted); padding:26px; }
+    .print-actions { position:sticky; bottom:18px; display:flex; justify-content:flex-end; pointer-events:none; margin-top:20px; }
+    .print-actions button { pointer-events:auto; border:none; border-radius:999px; background:var(--primary-dark); color:#fff; min-height:48px; padding:0 18px; font-weight:700; box-shadow:0 12px 24px rgba(184,109,135,.22); cursor:pointer; }
+    @media (max-width:780px) { .page{width:min(100% - 18px,1180px); padding-top:12px;} .report-header{border-radius:22px; padding:20px;} .metric-grid{grid-template-columns:1fr 1fr;} .metric-card strong{font-size:20px;} }
+    @media print { @page{size:A4 portrait; margin:12mm;} html,body{width:210mm; min-height:297mm; background:#fff!important; color:#2f2a31; font-size:10.5px; line-height:1.28; -webkit-print-color-adjust:exact; print-color-adjust:exact;} .page{width:100%!important; max-width:none!important; margin:0!important; padding:0!important;} .report-header{border-radius:0; padding:0 0 8mm; margin:0 0 7mm; background:#fff!important; border:0; border-bottom:2px solid var(--primary);} .eyebrow{font-size:9px; margin-bottom:3px;} h1{font-size:22px; line-height:1.12;} .meta{gap:5px; margin-top:6mm; font-size:9.5px;} .meta span{padding:4px 7px;} .metric-grid{grid-template-columns:repeat(4,1fr); gap:4mm; margin-bottom:6mm;} .metric-card,.report-section{box-shadow:none; break-inside:avoid; page-break-inside:avoid;} .metric-card{border-radius:8px; padding:4mm;} .metric-card span{font-size:8px; margin-bottom:3px;} .metric-card strong{font-size:14px;} .report-section{border-radius:8px; margin-bottom:6mm; overflow:visible;} .section-title{padding:4mm;} .section-title h2{font-size:13px;} .section-title span{font-size:9px;} .table-wrap{overflow:visible;} table{width:100%; min-width:0; table-layout:fixed; page-break-inside:auto;} thead{display:table-header-group;} tr{page-break-inside:avoid; break-inside:avoid;} th,td{padding:5px 6px; font-size:8.7px; line-height:1.25; overflow-wrap:anywhere;} th{font-size:7.8px;} .money{white-space:nowrap;} .print-actions{display:none!important;} }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="report-header">
+      <p class="eyebrow">NailBooker</p>
+      <h1>${htmlEscape(report.reportTitle)}</h1>
+      <div class="meta"><span>Gemaakt op ${htmlEscape(createdAt)}</span><span>${report.filtered.length} kosten</span></div>
+    </header>
+    <section class="metric-grid">
+      ${metricCard('Aantal kosten', report.filtered.length)}
+      ${metricCard('Totaal incl. btw', euro(report.totalIncl))}
+      ${metricCard('Totaal excl. btw', euro(report.totalExcl))}
+      ${metricCard('Btw', euro(report.vatTotal))}
+    </section>
+    <section class="report-section">
+      <div class="section-title"><h2>${htmlEscape(report.periodTitle)}</h2><span>${htmlEscape(report.periodColumnTitle)}</span></div>
+      <div class="table-wrap"><table><thead><tr><th>${htmlEscape(report.periodColumnTitle)}</th><th>Aantal</th><th class="money">Incl. btw</th><th class="money">Excl. btw</th><th class="money">Btw</th></tr></thead><tbody>${periodRows}</tbody></table></div>
+    </section>
+    <section class="report-section">
+      <div class="section-title"><h2>Detail kosten</h2><span>${report.filtered.length} kosten</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Datum</th><th>Omschrijving</th><th class="money">Incl. btw</th><th>Btw %</th><th class="money">Excl. btw</th><th class="money">Btw</th></tr></thead><tbody>${costRows}</tbody></table></div>
+    </section>
+    <div class="print-actions"><button type="button" onclick="window.print()">Printen / bewaren als PDF</button></div>
+  </main>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${getCostsExportTitle()}_rapport.html`;
+  link.dataset.allowBusyDownload = "true";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 function groupRevenueByCurrency(items, predicate = () => true) {
   return items.filter(predicate).reduce((map, app) => {
@@ -8719,6 +9017,75 @@ function costById(data, id) {
   return getCosts(data).find(cost => String(cost.id) === String(id));
 }
 
+function getCostsPeriodType() {
+  return state.costsPeriodType || "month";
+}
+
+function getCostsPeriodDate() {
+  return state.costsPeriodDate || state.selectedDate || todayStr;
+}
+
+function setCostsPeriod(type, dateStr) {
+  state.costsPeriodType = type || getCostsPeriodType();
+  state.costsPeriodDate = dateStr || getCostsPeriodDate();
+  renderCosts();
+}
+
+function getFilteredCosts(data = getData()) {
+  const type = getCostsPeriodType();
+  const anchor = getCostsPeriodDate();
+  let costs = getCosts(data);
+
+  if (type === "day") {
+    costs = costs.filter(cost => cost.date === anchor);
+  } else if (type === "week") {
+    const bounds = weekBounds(anchor);
+    costs = costs.filter(cost => cost.date >= bounds.start && cost.date <= bounds.end);
+  } else if (type === "month") {
+    const prefix = anchor.slice(0, 7);
+    costs = costs.filter(cost => String(cost.date || "").startsWith(prefix));
+  } else if (type === "year") {
+    const prefix = anchor.slice(0, 4);
+    costs = costs.filter(cost => String(cost.date || "").startsWith(prefix));
+  }
+
+  return costs;
+}
+
+function syncCostsPeriodChips() {
+  const type = getCostsPeriodType();
+  const anchor = getCostsPeriodDate();
+  const anchorDate = new Date(anchor + "T00:00:00");
+
+  const yearBtn = document.getElementById("costsYearBtn");
+  const monthBtn = document.getElementById("costsMonthBtn");
+  const weekBtn = document.getElementById("costsWeekBtn");
+  const dayBtn = document.getElementById("costsDayBtn");
+
+  const yearLabel = document.getElementById("costsYearLabel");
+  const monthLabel = document.getElementById("costsMonthLabel");
+  const weekLabel = document.getElementById("costsWeekLabel");
+  const dayLabel = document.getElementById("costsDayLabel");
+
+  if (yearLabel) yearLabel.textContent = String(anchorDate.getFullYear());
+  if (monthLabel) monthLabel.innerHTML = formatRevenueMonthTile(anchor);
+  if (weekLabel) weekLabel.innerHTML = formatRevenueWeekTile(anchor);
+  if (dayLabel) dayLabel.innerHTML = formatRevenueDayTile(anchor);
+
+  if (yearBtn) yearBtn.classList.toggle("active", type === "year");
+  if (monthBtn) monthBtn.classList.toggle("active", type === "month");
+  if (weekBtn) weekBtn.classList.toggle("active", type === "week");
+  if (dayBtn) dayBtn.classList.toggle("active", type === "day");
+}
+
+function openCostsWheelPicker(mode = "day") {
+  openRevenueWheelPicker(mode, "costs");
+}
+
+function openCostsDatePicker(mode = "day") {
+  openCostsWheelPicker(mode);
+}
+
 function standardCostExists(data, description) {
   const key = String(description || "").trim().toLocaleLowerCase();
   return getStandardCosts(data).find(item => String(item.description || "").trim().toLocaleLowerCase() === key) || null;
@@ -8799,6 +9166,24 @@ function renderCostStandardSuggestions(filter = "", showAllWhenEmpty = true) {
   });
 }
 
+function getCostsPeriodTitle() {
+  const type = getCostsPeriodType();
+  const anchor = getCostsPeriodDate();
+
+  if (type === "day") return `${t("costs")} ${formatLongDate(anchor)}`;
+  if (type === "week") {
+    const bounds = weekBounds(anchor);
+    return `${t("costs")} ${formatLongDate(bounds.start)} - ${formatLongDate(bounds.end)}`;
+  }
+  if (type === "month") {
+    const d = new Date(anchor + "T00:00:00");
+    return `${t("costs")} ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
+  }
+  if (type === "year") return `${t("costs")} ${anchor.slice(0, 4)}`;
+
+  return t("costs");
+}
+
 function renderCosts() {
   const list = document.getElementById("costsList");
   const totalInclEl = document.getElementById("costsTotalInclAmount");
@@ -8806,7 +9191,13 @@ function renderCosts() {
   const vatEl = document.getElementById("costsVatAmount");
   if (!list) return;
 
-  const costs = getCosts(getData()).slice().sort((a, b) => {
+  const data = getData();
+  syncCostsPeriodChips();
+
+  const titleEl = document.getElementById("costsTitle");
+  if (titleEl) titleEl.textContent = getCostsPeriodTitle();
+
+  const costs = getFilteredCosts(data).slice().sort((a, b) => {
     const dateSort = String(b.date || "").localeCompare(String(a.date || ""));
     if (dateSort) return dateSort;
     return String(b.updatedAt || b.createdAt || b.id || "").localeCompare(String(a.updatedAt || a.createdAt || a.id || ""));
@@ -8856,6 +9247,8 @@ function openNewCostDialog() {
   if (form) form.reset();
   document.getElementById("costId").value = "";
   document.getElementById("costStandardCostId").value = "";
+  const standardCheckbox = document.getElementById("costSaveAsStandardCost");
+  if (standardCheckbox) standardCheckbox.checked = false;
   document.getElementById("costDate").value = todayStr;
   document.getElementById("costVatRate").innerHTML = buildVatOptions(21);
   document.getElementById("costModalTitle").textContent = t("newCost");
@@ -8871,6 +9264,8 @@ function openEditCostDialog(id) {
   if (!cost) return;
   document.getElementById("costId").value = cost.id;
   document.getElementById("costStandardCostId").value = cost.standardCostId || "";
+  const standardCheckbox = document.getElementById("costSaveAsStandardCost");
+  if (standardCheckbox) standardCheckbox.checked = Boolean(cost.standardCostId);
   document.getElementById("costDescription").value = cost.description || "";
   document.getElementById("costDate").value = cost.date || todayStr;
   document.getElementById("costAmountInclVat").value = Number(cost.amountInclVat || 0).toFixed(2);
@@ -8924,7 +9319,8 @@ async function saveCostFromForm(event) {
   const date = document.getElementById("costDate")?.value || todayStr;
   const amountInclVat = Number(String(document.getElementById("costAmountInclVat")?.value || "0").replace(",", "."));
   const vatRate = Number(document.getElementById("costVatRate")?.value || 21);
-  const standardCostId = document.getElementById("costStandardCostId")?.value || null;
+  let standardCostId = document.getElementById("costStandardCostId")?.value || null;
+  const saveAsStandardCost = Boolean(document.getElementById("costSaveAsStandardCost")?.checked);
   const now = new Date().toISOString();
 
   if (!description) {
@@ -8941,10 +9337,22 @@ async function saveCostFromForm(event) {
   }
 
   let saveFailed = false;
+  const costDialog = document.getElementById("costDialog");
+  const reopenCostDialogOnFailure = Boolean(costDialog?.open);
+
+  // Sluit de dialog vóór de databasebewerking. Een native <dialog> zit in de top layer
+  // en kan de globale "Even geduld"-overlay visueel afdekken.
+  closeDialog("costDialog");
 
   await runWithGlobalActionBusy(async () => {
     const user = await getCurrentUser();
     const data = getData();
+
+    if (!id && saveAsStandardCost && !standardCostId) {
+      const standard = await saveStandardCost(description, vatRate);
+      if (standard?.id) standardCostId = standard.id;
+    }
+
     const payload = { description, date, amountInclVat, vatRate, standardCostId, updatedAt: now };
 
     if (!user) {
@@ -8985,28 +9393,14 @@ async function saveCostFromForm(event) {
     await loadAllDataFromSupabase();
   });
 
-  if (saveFailed) return;
-
-  closeDialog("costDialog");
-
-  if (!id && !standardCostExists(getData(), description)) {
-    const saveStandard = await appConfirm(t("saveAsStandardCostQuestion"), {
-      title: t("standardCost"),
-      confirmText: t("save"),
-      cancelText: "Nee",
-      variant: "info"
-    });
-    if (saveStandard) {
-      await runWithGlobalActionBusy(async () => {
-        await saveStandardCost(description, vatRate, standardCostId);
-        await loadAllDataFromSupabase().catch(() => {});
-        refreshStandardCostsButton();
-      });
-    }
+  if (saveFailed) {
+    if (reopenCostDialogOnFailure) document.getElementById("costDialog")?.showModal();
+    return;
   }
 
   renderCosts();
   refreshStandardCostsButton();
+  updateCostsActionBar();
 }
 
 async function deleteCurrentCost() {
@@ -9021,6 +9415,9 @@ async function deleteCurrentCost() {
   if (!confirmed) return;
 
   let deleteFailed = false;
+  const costDialog = document.getElementById("costDialog");
+  const reopenCostDialogOnFailure = Boolean(costDialog?.open);
+  closeDialog("costDialog");
 
   await runWithGlobalActionBusy(async () => {
     const user = await getCurrentUser();
@@ -9041,8 +9438,10 @@ async function deleteCurrentCost() {
     await loadAllDataFromSupabase();
   });
 
-  if (deleteFailed) return;
-  closeDialog("costDialog");
+  if (deleteFailed) {
+    if (reopenCostDialogOnFailure) document.getElementById("costDialog")?.showModal();
+    return;
+  }
   renderCosts();
 }
 
@@ -9146,6 +9545,9 @@ async function saveStandardCostEditFromForm(event) {
   if (!id || !description) return;
 
   let saveFailed = false;
+  const standardCostEditDialog = document.getElementById("standardCostEditDialog");
+  const reopenStandardCostDialogOnFailure = Boolean(standardCostEditDialog?.open);
+  closeDialog("standardCostEditDialog");
 
   await runWithGlobalActionBusy(async () => {
     const user = await getCurrentUser();
@@ -9174,8 +9576,10 @@ async function saveStandardCostEditFromForm(event) {
     await loadAllDataFromSupabase();
   });
 
-  if (saveFailed) return;
-  closeDialog("standardCostEditDialog");
+  if (saveFailed) {
+    if (reopenStandardCostDialogOnFailure) document.getElementById("standardCostEditDialog")?.showModal();
+    return;
+  }
   renderCostStandardSuggestions(document.getElementById("costDescription")?.value || "");
   renderCosts();
   openStandardCostsPopover();
@@ -9192,6 +9596,9 @@ async function deleteStandardCost(id) {
   if (!confirmed) return;
 
   let deleteFailed = false;
+  const standardCostEditDialog = document.getElementById("standardCostEditDialog");
+  const reopenStandardCostDialogOnFailure = Boolean(standardCostEditDialog?.open);
+  closeDialog("standardCostEditDialog");
 
   await runWithGlobalActionBusy(async () => {
     const user = await getCurrentUser();
@@ -9212,8 +9619,10 @@ async function deleteStandardCost(id) {
     await loadAllDataFromSupabase();
   });
 
-  if (deleteFailed) return;
-  closeDialog("standardCostEditDialog");
+  if (deleteFailed) {
+    if (reopenStandardCostDialogOnFailure) document.getElementById("standardCostEditDialog")?.showModal();
+    return;
+  }
   renderCosts();
   renderStandardCostsManager();
   renderCostStandardSuggestions(document.getElementById("costDescription")?.value || "");
@@ -9578,6 +9987,39 @@ function registerEvents() {
   document.getElementById("deleteStandardCostBtn")?.addEventListener("click", withActionLock(() => deleteStandardCost(document.getElementById("standardCostEditId")?.value)));
   document.getElementById("standardCostsBtn")?.addEventListener("click", openStandardCostsPopover);
   document.getElementById("standardCostEditForm")?.addEventListener("submit", withActionLock(saveStandardCostEditFromForm));
+
+  const attachCostsPeriodButton = (id, mode) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+
+    attachRevenuePeriodSwipe(button, mode, "costs");
+    button.addEventListener("contextmenu", event => event.preventDefault());
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      if (button.dataset.revenueSwipeSuppressClick === "1") return;
+      const currentMode = getCostsPeriodType();
+      const anchor = getCostsPeriodDate();
+      if (currentMode === mode) {
+        openCostsWheelPicker(mode);
+        return;
+      }
+      setCostsPeriod(mode, anchor);
+    });
+  };
+
+  attachCostsPeriodButton("costsYearBtn", "year");
+  attachCostsPeriodButton("costsMonthBtn", "month");
+  attachCostsPeriodButton("costsWeekBtn", "week");
+  attachCostsPeriodButton("costsDayBtn", "day");
+
+  const costsNativeDatePicker = document.getElementById("costsNativeDatePicker");
+  if (costsNativeDatePicker) {
+    costsNativeDatePicker.addEventListener("change", event => {
+      const pickedDate = event.target.value;
+      if (!pickedDate) return;
+      setCostsPeriod(event.target.dataset.mode || "day", pickedDate);
+    });
+  }
   document.getElementById("standardCostsSearch")?.addEventListener("input", event => {
     state.standardCostSearch = event.target.value || "";
     renderStandardCostsManager();
@@ -9766,6 +10208,7 @@ function registerEvents() {
 
   document.getElementById("agendaList")?.addEventListener("scroll", () => { closePaymentPopover(); closeAppointmentActionPopover(); }, { passive: true });
   document.querySelector(".calendar-panel")?.addEventListener("scroll", () => { closePaymentPopover(); closeAppointmentActionPopover(); }, { passive: true });
+  document.querySelector(".calendar-panel")?.addEventListener("click", () => { closeAgendaFabMenu(); }, { passive: true });
 
   document.querySelectorAll("[data-close]").forEach(btn => {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));
@@ -9773,7 +10216,7 @@ function registerEvents() {
 
   document.getElementById("revenueDate").value = todayStr;
 
-  ["revenuePeriodType", "revenueDate", "revenuePaymentStatusFilter", "revenuePaymentFilter"].forEach(id => {
+  ["revenuePeriodType", "revenueDate", "revenueShowPaid", "revenueShowUnpaid"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
@@ -9832,6 +10275,16 @@ function registerEvents() {
   const revenueExportReportBtn = document.getElementById("revenueExportReportBtn");
   if (revenueExportReportBtn) {
     revenueExportReportBtn.addEventListener("click", withActionLock(downloadRevenueStyledReport));
+  }
+
+  const costsExportCsvBtn = document.getElementById("costsExportCsvBtn");
+  if (costsExportCsvBtn) {
+    costsExportCsvBtn.addEventListener("click", withActionLock(downloadCostsCsv));
+  }
+
+  const costsExportReportBtn = document.getElementById("costsExportReportBtn");
+  if (costsExportReportBtn) {
+    costsExportReportBtn.addEventListener("click", withActionLock(downloadCostsStyledReport));
   }
 
   const registerBtn = document.getElementById("registerBtn");
@@ -10578,6 +11031,7 @@ function blockInteractionWhileBusy(event) {
   // Niet wachten tot de browser de overlay visueel heeft getekend, want net die korte tussenfase
   // liet op iPhone nog swipes/klikken door bij snelle submits.
   if (overlay && overlay.contains(event.target)) return;
+  if (event.target?.closest?.('[data-allow-busy-download="true"]')) return;
 
   event.preventDefault();
   event.stopImmediatePropagation?.();
@@ -10747,5 +11201,729 @@ async function startApp() {
     switchScreen("accountScreen", t("account"), { replaceHistory: true });
   }
 }
+
+
+
+/* =========================================================
+   AGENDA: MAANDKALENDER <-> DAGKALENDER
+   Dagweergave met uurindeling zoals een compacte Google Calendar.
+========================================================= */
+(function installAgendaDayCalendarMode() {
+  const HOUR_HEIGHT = 56;
+  const START_SCROLL_HOUR = 8;
+
+  if (!state) return;
+  if (!state.agendaCalendarMode) state.agendaCalendarMode = "month";
+
+  const originalRenderCalendar = renderCalendar;
+  const originalRenderAgendaList = renderAgendaList;
+  const originalRegisterEvents = registerEvents;
+  const originalJumpToToday = jumpToToday;
+
+  function getSelectedDateObject() {
+    const d = new Date(String(state.selectedDate || todayStr) + "T00:00:00");
+    return Number.isNaN(d.getTime()) ? new Date(todayStr + "T00:00:00") : d;
+  }
+
+  function setAgendaCalendarMode(mode) {
+    const nextMode = mode === "day" ? "day" : "month";
+    state.agendaCalendarMode = nextMode;
+    document.body.classList.toggle("agenda-day-mode", nextMode === "day");
+    closeAgendaFabMenu?.();
+    renderCalendar();
+    renderAgendaList();
+
+    window.setTimeout(() => {
+      state.agendaCalendarMode = nextMode;
+      document.body.classList.toggle("agenda-day-mode", nextMode === "day");
+      updateAgendaCalendarModeUi();
+    }, 0);
+  }
+
+  function ensureAgendaCalendarToggle() {
+    const panel = document.querySelector("#agendaScreen .calendar-panel");
+    if (!panel) return null;
+
+    let toggle = document.getElementById("agendaCalendarModeToggle");
+    if (!toggle) {
+      toggle = document.createElement("button");
+      toggle.id = "agendaCalendarModeToggle";
+      toggle.type = "button";
+      toggle.className = "agenda-calendar-mode-toggle";
+      toggle.setAttribute("aria-label", "Wissel tussen maandkalender en dagkalender");
+      toggle.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        const now = Date.now();
+        const lastSwipe = Number(state.agendaDayLastSwipeAt || 0);
+        if (now - lastSwipe < 180) return;
+
+        closeAgendaFabMenu?.();
+        const isDayMode = state.agendaCalendarMode === "day" || document.body.classList.contains("agenda-day-mode");
+        setAgendaCalendarMode(isDayMode ? "month" : "day");
+      }, true);
+      panel.appendChild(toggle);
+    }
+
+    toggle.innerHTML = state.agendaCalendarMode === "day"
+      ? '<span class="agenda-calendar-toggle-chevrons is-down"><span>›</span><span>›</span></span>'
+      : '<span class="agenda-calendar-toggle-chevrons is-up"><span>›</span><span>›</span></span>';
+
+    return toggle;
+  }
+
+  function ensureAgendaDayCalendar() {
+    const panel = document.querySelector("#agendaScreen .calendar-panel");
+    if (!panel) return null;
+
+    let wrap = document.getElementById("agendaDayCalendar");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.id = "agendaDayCalendar";
+      wrap.className = "agenda-day-calendar";
+      wrap.addEventListener("click", () => closeAgendaFabMenu?.());
+      panel.insertBefore(wrap, document.getElementById("agendaCalendarModeToggle") || null);
+    }
+
+    return wrap;
+  }
+
+  function setMonthHeaderForDayMode() {
+    const title = document.getElementById("monthPickerBtn");
+    if (!title) return;
+    const d = getSelectedDateObject();
+    title.textContent = new Intl.DateTimeFormat(getCurrentLanguage(), {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(d);
+  }
+
+  function minutesForDayView(appointment) {
+    const dateStr = state.selectedDate;
+    if (isPrivateAppointment(appointment)) {
+      const bounds = getPrivateRangeBounds(appointment);
+      const start = minutesFromTimeString(appointment.time || "00:00");
+      const end = minutesFromTimeString(appointment.privateEndTime || appointment.private_end_time || appointment.time || "00:00");
+      if (bounds.end > bounds.start) {
+        if (dateStr === bounds.start) return { start: start, end: 24 * 60 };
+        if (dateStr === bounds.end) return { start: 0, end: Math.max(end, 30) };
+        return { start: 0, end: 24 * 60 };
+      }
+      return { start, end: Math.max(end, start + 30) };
+    }
+
+    const start = minutesFromTimeString(appointment.time || "00:00");
+    const duration = Math.max(15, Number(appointment.duration || 0));
+    return { start, end: Math.min(24 * 60, start + duration) };
+  }
+
+
+  function isPinnedFullDayPrivateForDayView(appointment) {
+    if (!isPrivateAppointment(appointment)) return false;
+    const bounds = getPrivateRangeBounds(appointment);
+    if (bounds.end <= bounds.start) return false;
+    const currentDate = state.selectedDate;
+    return currentDate > bounds.start && currentDate < bounds.end;
+  }
+
+  function assignOverlapColumns(items) {
+    const sorted = items
+      .slice()
+      .sort((a, b) => a.range.start - b.range.start || a.range.end - b.range.end);
+
+    const groups = [];
+    let current = [];
+    let groupEnd = -1;
+
+    sorted.forEach(item => {
+      if (!current.length || item.range.start < groupEnd) {
+        current.push(item);
+        groupEnd = Math.max(groupEnd, item.range.end);
+      } else {
+        groups.push(current);
+        current = [item];
+        groupEnd = item.range.end;
+      }
+    });
+    if (current.length) groups.push(current);
+
+    groups.forEach(group => {
+      const activeColumns = [];
+      group.forEach(item => {
+        let columnIndex = activeColumns.findIndex(end => end <= item.range.start);
+        if (columnIndex === -1) {
+          columnIndex = activeColumns.length;
+        }
+        activeColumns[columnIndex] = item.range.end;
+        item.columnIndex = columnIndex;
+      });
+
+      const columnCount = Math.max(1, ...group.map(item => item.columnIndex + 1));
+      group.forEach(item => {
+        item.columnCount = columnCount;
+      });
+    });
+
+    return sorted;
+  }
+
+
+  function buildAgendaDayCalendarMarkupForDate(dateStr) {
+    const previousSelectedDate = state.selectedDate;
+    state.selectedDate = dateStr;
+
+    try {
+      const data = getData();
+      const appts = getAppointmentsForDate(dateStr, data);
+      const totalHeight = 24 * HOUR_HEIGHT;
+
+      const hourRows = Array.from({ length: 24 }, (_, hour) => `
+        <div class="agenda-day-hour-row" style="height:${HOUR_HEIGHT}px">
+          <div class="agenda-day-hour-label">${String(hour).padStart(2, "0")}:00</div>
+          <div class="agenda-day-hour-line"></div>
+        </div>
+      `).join("");
+
+      const pinnedPrivateAppointments = appts.filter(isPinnedFullDayPrivateForDayView);
+      const timedAppointments = assignOverlapColumns(appts
+        .filter(app => !isPinnedFullDayPrivateForDayView(app))
+        .map(app => ({ app, range: minutesForDayView(app) })));
+
+      const pinnedBlocks = pinnedPrivateAppointments.map(app => {
+        const displayTime = getPrivateAgendaDisplayTime(app, dateStr);
+        const title = app.privateTitle || "Privé";
+        const sub = app.privateDetails || "Privé-afspraak";
+        return `
+          <button class="agenda-day-pinned-private appointment-card" type="button" data-appointment-id="${htmlEscape(String(app.sourceAppointmentId || app.id))}">
+            <div class="agenda-day-appointment-row appointment-row">
+              <div class="time-block">
+                <span class="time">${htmlEscape(displayTime.main)}</span>
+                <span class="time-end">${htmlEscape(displayTime.sub)}</span>
+              </div>
+              <div class="agenda-day-appointment-main">
+                <div class="main-name">${htmlEscape(title)}</div>
+                <div class="meta">${htmlEscape(sub)}</div>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      const appointmentBlocks = timedAppointments.map(item => {
+        const app = item.app;
+        const privateApp = isPrivateAppointment(app);
+        const customer = customerById(data, app.customerId);
+        const service = serviceById(data, app.serviceId);
+        const range = item.range;
+        const top = Math.max(0, (range.start / 60) * HOUR_HEIGHT);
+        const height = Math.max(24, ((range.end - range.start) / 60) * HOUR_HEIGHT - 4);
+        const columnWidth = 100 / Math.max(1, item.columnCount || 1);
+        const left = (item.columnIndex || 0) * columnWidth;
+        const width = columnWidth;
+        const displayTime = privateApp ? getPrivateAgendaDisplayTime(app, dateStr) : {
+          main: String(app.time || "00:00").slice(0, 5),
+          sub: `tot ${getAppointmentDisplayEndTime(app, Number(getSettings().defaultBreakMinutes || 0))}`
+        };
+        const title = privateApp
+          ? (app.privateTitle || "Privé")
+          : (customer ? fullName(customer) : "Onbekend");
+        const sub = privateApp
+          ? (app.privateDetails || "Privé-afspraak")
+          : [service?.name || "", app.paid ? paymentMethodNameForAppointment(app, data) : ""].filter(Boolean).join(" · ");
+        const amount = privateApp ? "" : euro(app.price || 0, app.currency || getCurrentCurrency());
+        const paidClass = !privateApp && app.paid ? " paid" : "";
+        const noShowClass = !privateApp && String(app.status || "").toLowerCase() === "no-show" ? " no-show" : "";
+        const realId = htmlEscape(String(app.sourceAppointmentId || app.id));
+        return `
+          <button class="agenda-day-appointment appointment-card${privateApp ? " private" : " normal"}" type="button" data-appointment-id="${realId}" data-private="${privateApp ? "1" : "0"}" style="top:${top}px;height:${height}px;left:${left}%;width:calc(${width}% - 4px)">
+            <div class="agenda-day-appointment-row appointment-row">
+              <div class="time-block">
+                <span class="time">${htmlEscape(displayTime.main)}</span>
+                <span class="time-end">${htmlEscape(displayTime.sub)}</span>
+              </div>
+              <div class="agenda-day-appointment-main">
+                <div class="main-name">${htmlEscape(title)}</div>
+                <div class="meta">${htmlEscape(sub)}</div>
+              </div>
+              ${privateApp ? "" : `<span class="price-chip${paidClass}${noShowClass}" data-day-payment-chip="1" data-id="${realId}" data-appointment-id="${realId}">${htmlEscape(amount)}</span>`}
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      return `
+        ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
+        <div class="agenda-day-scroll">
+          <div class="agenda-day-grid" style="height:${totalHeight}px">
+            ${hourRows}
+            ${dateStr === todayStr ? `<div class="agenda-day-now-line" style="top:${((new Date().getHours() * 60 + new Date().getMinutes()) / 60) * HOUR_HEIGHT}px"><span></span></div>` : ""}
+            <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
+          </div>
+        </div>
+      `;
+    } finally {
+      state.selectedDate = previousSelectedDate;
+    }
+  }
+
+  function renderAgendaDayCalendar() {
+    const wrap = ensureAgendaDayCalendar();
+    if (!wrap) return;
+
+    const data = getData();
+    const appts = getAppointmentsForDate(state.selectedDate, data);
+    const totalHeight = 24 * HOUR_HEIGHT;
+
+    const hourRows = Array.from({ length: 24 }, (_, hour) => `
+      <div class="agenda-day-hour-row" style="height:${HOUR_HEIGHT}px">
+        <div class="agenda-day-hour-label">${String(hour).padStart(2, "0")}:00</div>
+        <div class="agenda-day-hour-line"></div>
+      </div>
+    `).join("");
+
+    const pinnedPrivateAppointments = appts.filter(isPinnedFullDayPrivateForDayView);
+    const timedAppointments = assignOverlapColumns(appts
+      .filter(app => !isPinnedFullDayPrivateForDayView(app))
+      .map(app => ({ app, range: minutesForDayView(app) })));
+
+    const pinnedBlocks = pinnedPrivateAppointments.map(app => {
+      const displayTime = getPrivateAgendaDisplayTime(app, state.selectedDate);
+      const title = app.privateTitle || "Privé";
+      const sub = app.privateDetails || "Privé-afspraak";
+      return `
+        <button class="agenda-day-pinned-private appointment-card" type="button" data-appointment-id="${htmlEscape(String(app.sourceAppointmentId || app.id))}">
+          <div class="agenda-day-appointment-row appointment-row">
+            <div class="time-block">
+              <span class="time">${htmlEscape(displayTime.main)}</span>
+              <span class="time-end">${htmlEscape(displayTime.sub)}</span>
+            </div>
+            <div class="agenda-day-appointment-main">
+              <div class="main-name">${htmlEscape(title)}</div>
+              <div class="meta">${htmlEscape(sub)}</div>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join("");
+
+    const appointmentBlocks = timedAppointments.map(item => {
+      const app = item.app;
+      const privateApp = isPrivateAppointment(app);
+      const customer = customerById(data, app.customerId);
+      const service = serviceById(data, app.serviceId);
+      const range = item.range;
+      const top = Math.max(0, (range.start / 60) * HOUR_HEIGHT);
+      const height = Math.max(24, ((range.end - range.start) / 60) * HOUR_HEIGHT - 4);
+      const columnWidth = 100 / Math.max(1, item.columnCount || 1);
+      const left = (item.columnIndex || 0) * columnWidth;
+      const width = columnWidth;
+      const displayTime = privateApp ? getPrivateAgendaDisplayTime(app, state.selectedDate) : {
+        main: String(app.time || "00:00").slice(0, 5),
+        sub: `tot ${getAppointmentDisplayEndTime(app, Number(getSettings().defaultBreakMinutes || 0))}`
+      };
+      const title = privateApp
+        ? (app.privateTitle || "Privé")
+        : (customer ? fullName(customer) : "Onbekend");
+      const sub = privateApp
+        ? (app.privateDetails || "Privé-afspraak")
+        : [service?.name || "", app.paid ? paymentMethodNameForAppointment(app, data) : ""].filter(Boolean).join(" · ");
+      const amount = privateApp ? "" : euro(app.price || 0, app.currency || getCurrentCurrency());
+      const paidClass = !privateApp && app.paid ? " paid" : "";
+      const noShowClass = !privateApp && String(app.status || "").toLowerCase() === "no-show" ? " no-show" : "";
+      const realId = htmlEscape(String(app.sourceAppointmentId || app.id));
+      return `
+        <button class="agenda-day-appointment appointment-card${privateApp ? " private" : " normal"}" type="button" data-appointment-id="${realId}" data-private="${privateApp ? "1" : "0"}" style="top:${top}px;height:${height}px;left:${left}%;width:calc(${width}% - 4px)">
+          <div class="agenda-day-appointment-row appointment-row">
+            <div class="time-block">
+              <span class="time">${htmlEscape(displayTime.main)}</span>
+              <span class="time-end">${htmlEscape(displayTime.sub)}</span>
+            </div>
+            <div class="agenda-day-appointment-main">
+              <div class="main-name">${htmlEscape(title)}</div>
+              <div class="meta">${htmlEscape(sub)}</div>
+            </div>
+            ${privateApp ? "" : `<span class="price-chip${paidClass}${noShowClass}" data-day-payment-chip="1" data-id="${realId}" data-appointment-id="${realId}">${htmlEscape(amount)}</span>`}
+          </div>
+        </button>
+      `;
+    }).join("");
+
+    wrap.classList.toggle("has-pinned-private-day", pinnedPrivateAppointments.length > 0);
+    wrap.innerHTML = `
+      ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
+      <div class="agenda-day-scroll">
+        <div class="agenda-day-grid" style="height:${totalHeight}px">
+          ${hourRows}
+          ${state.selectedDate === todayStr ? `<div class="agenda-day-now-line" style="top:${((new Date().getHours() * 60 + new Date().getMinutes()) / 60) * HOUR_HEIGHT}px"><span></span></div>` : ""}
+          <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
+        </div>
+      </div>
+    `;
+
+    wrap.querySelectorAll(".agenda-day-appointment, .agenda-day-pinned-private").forEach(button => {
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeAgendaFabMenu?.();
+        const id = button.dataset.appointmentId;
+        const app = getAppointmentsForDate(state.selectedDate, getData()).find(item => String(item.id) === String(id) || String(item.sourceAppointmentId || "") === String(id));
+        if (!app) return;
+
+        const paymentChip = event.target?.closest?.("[data-day-payment-chip]");
+        if (paymentChip && !isPrivateAppointment(app)) {
+          if (typeof openPaymentDialog === "function") {
+            openPaymentDialog(app.sourceAppointmentId || app.id, paymentChip);
+            return;
+          }
+        }
+
+        if (typeof openAppointmentActionPopover === "function") {
+          openAppointmentActionPopover(app.sourceAppointmentId || app.id, button);
+        } else {
+          openEditAppointmentDialog(app.sourceAppointmentId || app.id);
+        }
+      });
+    });
+
+    if (!wrap.dataset.daySwipeBound) {
+      wrap.dataset.daySwipeBound = "1";
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let lastX = 0;
+      let tracking = false;
+      let horizontal = false;
+      let daySwipePreview = null;
+      let daySwipeStep = 0;
+      let swipeLock = false;
+      let suppressDayClick = false;
+      let suppressDayClickTimer = null;
+      const intentThreshold = 10;
+      const commitThreshold = 54;
+
+      const getDayWrap = () => document.getElementById("agendaDayCalendar");
+
+      const clearDaySwipe = () => {
+        const dayWrap = getDayWrap();
+        if (daySwipePreview) {
+          daySwipePreview.remove();
+          daySwipePreview = null;
+        }
+        daySwipeStep = 0;
+        if (dayWrap) {
+          dayWrap.classList.remove("is-day-swiping", "is-day-swipe-animating");
+          dayWrap.style.removeProperty("--agenda-day-current-x");
+          dayWrap.style.removeProperty("--agenda-day-preview-x");
+          dayWrap.style.removeProperty("--agenda-day-preview-opacity");
+        }
+      };
+
+      const resetDaySwipeTracking = () => {
+        tracking = false;
+        horizontal = false;
+        touchStartX = 0;
+        touchStartY = 0;
+        lastX = 0;
+      };
+
+      const ensureDaySwipePreview = dx => {
+        const dayWrap = getDayWrap();
+        if (!dayWrap) return false;
+        const step = dx < 0 ? 1 : -1;
+        if (daySwipePreview && daySwipeStep === step) return true;
+
+        if (daySwipePreview) daySwipePreview.remove();
+        daySwipeStep = step;
+
+        const d = getSelectedDateObject();
+        d.setDate(d.getDate() + step);
+        const targetDate = formatDateInput(d);
+
+        daySwipePreview = document.createElement("div");
+        daySwipePreview.className = "agenda-day-swipe-preview";
+        daySwipePreview.innerHTML = buildAgendaDayCalendarMarkupForDate(targetDate);
+        daySwipePreview.querySelectorAll("[id]").forEach(el => el.removeAttribute("id"));
+        daySwipePreview.querySelectorAll("button").forEach(button => {
+          button.setAttribute("tabindex", "-1");
+          button.setAttribute("aria-hidden", "true");
+        });
+
+        const currentScroll = dayWrap.querySelector(".agenda-day-scroll")?.scrollTop || 0;
+        const previewScroll = daySwipePreview.querySelector(".agenda-day-scroll");
+        if (previewScroll) previewScroll.scrollTop = currentScroll;
+
+        dayWrap.appendChild(daySwipePreview);
+        dayWrap.classList.remove("is-day-swipe-animating");
+        dayWrap.classList.add("is-day-swiping");
+        return true;
+      };
+
+      const updateDaySwipePosition = dx => {
+        const dayWrap = getDayWrap();
+        if (!dayWrap || !ensureDaySwipePreview(dx)) return false;
+        const width = dayWrap.clientWidth || window.innerWidth || 360;
+        const limitedDx = Math.max(-width, Math.min(width, dx));
+        const previewStart = daySwipeStep > 0 ? width : -width;
+        const progress = Math.min(1, Math.abs(limitedDx) / Math.max(width, 1));
+        dayWrap.style.setProperty("--agenda-day-current-x", `${limitedDx}px`);
+        dayWrap.style.setProperty("--agenda-day-preview-x", `${previewStart + limitedDx}px`);
+        dayWrap.style.setProperty("--agenda-day-preview-opacity", String(0.45 + (progress * 0.55)));
+        return true;
+      };
+
+      const finishDaySwipe = commit => {
+        const dayWrap = getDayWrap();
+        const step = daySwipeStep;
+        if (!dayWrap || !daySwipePreview || !step) {
+          clearDaySwipe();
+          swipeLock = false;
+          return;
+        }
+
+        const width = dayWrap.clientWidth || window.innerWidth || 360;
+        let settled = false;
+        dayWrap.classList.remove("is-day-swiping");
+        dayWrap.classList.add("is-day-swipe-animating");
+
+        if (commit) {
+          dayWrap.style.setProperty("--agenda-day-current-x", `${step > 0 ? -width : width}px`);
+          dayWrap.style.setProperty("--agenda-day-preview-x", "0px");
+          dayWrap.style.setProperty("--agenda-day-preview-opacity", "1");
+        } else {
+          dayWrap.style.setProperty("--agenda-day-current-x", "0px");
+          dayWrap.style.setProperty("--agenda-day-preview-x", `${step > 0 ? width : -width}px`);
+          dayWrap.style.setProperty("--agenda-day-preview-opacity", "0.45");
+        }
+
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          dayWrap.removeEventListener("transitionend", onTransitionEnd);
+
+          if (commit) {
+            state.agendaDayLastSwipeAt = Date.now();
+            state.agendaCalendarMode = "day";
+            document.body.classList.add("agenda-day-mode");
+            closeAgendaFabMenu?.();
+            clearDaySwipe();
+            shiftSelectedDay(step);
+            window.setTimeout(() => {
+              state.agendaCalendarMode = "day";
+              document.body.classList.add("agenda-day-mode");
+              updateAgendaCalendarModeUi();
+              swipeLock = false;
+            }, 0);
+          } else {
+            clearDaySwipe();
+            swipeLock = false;
+          }
+        };
+
+        const onTransitionEnd = event => {
+          if (event.propertyName !== "transform") return;
+          const target = event.target;
+          if (target !== dayWrap && !target.closest?.("#agendaDayCalendar")) return;
+          done();
+        };
+
+        dayWrap.addEventListener("transitionend", onTransitionEnd);
+        window.setTimeout(done, 260);
+      };
+
+      wrap.addEventListener("touchstart", event => {
+        const touch = event.touches?.[0];
+        if (!touch || swipeLock) return;
+
+        // Laat swipen ook toe wanneer de vinger start op een afspraakblok.
+        // Op dagen met een grote afspraak bedekt dat blok bijna de volledige dagkalender;
+        // een algemene button-blokkering zorgde er dan voor dat de swipe nooit startte.
+        if (event.target.closest("input, select, textarea, dialog, #agendaCalendarModeToggle, .price-chip")) return;
+        if (state.agendaCalendarMode !== "day") return;
+
+        tracking = true;
+        horizontal = false;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        lastX = touchStartX;
+      }, { passive: true });
+
+      wrap.addEventListener("touchmove", event => {
+        if (!tracking || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        if (!horizontal) {
+          if (absX < intentThreshold && absY < intentThreshold) return;
+          if (absY > absX) {
+            resetDaySwipeTracking();
+            clearDaySwipe();
+            return;
+          }
+          horizontal = true;
+          closeAgendaFabMenu?.();
+        }
+
+        if (updateDaySwipePosition(dx)) {
+          event.preventDefault();
+          event.stopPropagation();
+          lastX = touch.clientX;
+        }
+      }, { passive: false });
+
+      wrap.addEventListener("touchend", event => {
+        if (!tracking || !horizontal) {
+          resetDaySwipeTracking();
+          clearDaySwipe();
+          return;
+        }
+
+        const endX = event.changedTouches?.[0]?.clientX ?? lastX;
+        const dx = endX - touchStartX;
+        const dayWrap = getDayWrap();
+        const width = dayWrap?.clientWidth || window.innerWidth || 360;
+        const dynamicThreshold = Math.min(commitThreshold, Math.max(38, width * 0.14));
+        const commit = Math.abs(dx) >= dynamicThreshold;
+
+        if (commit && daySwipeStep !== (dx < 0 ? 1 : -1)) {
+          ensureDaySwipePreview(dx);
+        }
+
+        resetDaySwipeTracking();
+        event.preventDefault();
+        event.stopPropagation();
+        swipeLock = true;
+
+        if (commit) {
+          suppressDayClick = true;
+          window.clearTimeout(suppressDayClickTimer);
+          suppressDayClickTimer = window.setTimeout(() => {
+            suppressDayClick = false;
+          }, 380);
+        }
+
+        finishDaySwipe(commit);
+      }, { passive: false });
+
+      wrap.addEventListener("click", event => {
+        if (!suppressDayClick) return;
+        suppressDayClick = false;
+        window.clearTimeout(suppressDayClickTimer);
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+      }, true);
+
+      wrap.addEventListener("touchcancel", () => {
+        resetDaySwipeTracking();
+        swipeLock = true;
+        finishDaySwipe(false);
+      }, { passive: true });
+    }
+
+    window.setTimeout(() => {
+      const scroll = wrap.querySelector(".agenda-day-scroll");
+      if (scroll && !wrap.dataset.userScrolled) {
+        scroll.scrollTop = START_SCROLL_HOUR * HOUR_HEIGHT;
+      }
+    }, 0);
+  }
+
+  function shiftSelectedDay(step) {
+    const d = getSelectedDateObject();
+    d.setDate(d.getDate() + step);
+    state.selectedDate = formatDateInput(d);
+    state.currentYear = d.getFullYear();
+    state.currentMonth = d.getMonth();
+    state.revenueSyncSelectedDateOnOpen = true;
+    const dayCalendar = document.getElementById("agendaDayCalendar");
+    if (dayCalendar) {
+      delete dayCalendar.dataset.userScrolled;
+    }
+    renderCalendar();
+    renderAgendaList();
+    renderRevenue();
+  }
+
+  function updateAgendaCalendarModeUi() {
+    document.body.classList.toggle("agenda-day-mode", state.agendaCalendarMode === "day");
+    ensureAgendaCalendarToggle();
+
+    const dayCalendar = ensureAgendaDayCalendar();
+    const weekdayRow = document.querySelector("#agendaScreen .weekday-row");
+    const monthGrid = document.getElementById("calendarGrid");
+
+    if (state.agendaCalendarMode === "day") {
+      if (weekdayRow) weekdayRow.classList.add("hidden");
+      if (monthGrid) monthGrid.classList.add("hidden");
+      if (dayCalendar) dayCalendar.classList.remove("hidden");
+      setMonthHeaderForDayMode();
+      renderAgendaDayCalendar();
+    } else {
+      if (weekdayRow) weekdayRow.classList.remove("hidden");
+      if (monthGrid) monthGrid.classList.remove("hidden");
+      if (dayCalendar) dayCalendar.classList.add("hidden");
+      const title = document.getElementById("monthPickerBtn");
+      if (title) title.textContent = `${getMonthNameUpper(state.currentMonth)} ${state.currentYear}`;
+    }
+  }
+
+  renderCalendar = function patchedRenderCalendar() {
+    originalRenderCalendar();
+    updateAgendaCalendarModeUi();
+  };
+
+  renderAgendaList = function patchedRenderAgendaList() {
+    originalRenderAgendaList();
+    if (state.agendaCalendarMode === "day") {
+      renderAgendaDayCalendar();
+    }
+  };
+
+  jumpToToday = function patchedJumpToToday() {
+    originalJumpToToday();
+    if (state.agendaCalendarMode === "day") {
+      const d = getSelectedDateObject();
+      state.currentYear = d.getFullYear();
+      state.currentMonth = d.getMonth();
+      renderCalendar();
+      renderAgendaList();
+    }
+  };
+
+  registerEvents = function patchedRegisterEvents() {
+    originalRegisterEvents();
+
+    document.getElementById("prevMonthBtn")?.addEventListener("click", event => {
+      if (state.agendaCalendarMode !== "day") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeAgendaFabMenu?.();
+      shiftSelectedDay(-1);
+    }, true);
+
+    document.getElementById("nextMonthBtn")?.addEventListener("click", event => {
+      if (state.agendaCalendarMode !== "day") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeAgendaFabMenu?.();
+      shiftSelectedDay(1);
+    }, true);
+
+    document.getElementById("monthPickerBtn")?.addEventListener("click", event => {
+      if (state.agendaCalendarMode !== "day") return;
+      closeAgendaFabMenu?.();
+    }, true);
+
+    document.querySelector("#agendaScreen .calendar-panel")?.addEventListener("click", () => {
+      closeAgendaFabMenu?.();
+    }, true);
+  };
+})();
+
 
 startApp();
