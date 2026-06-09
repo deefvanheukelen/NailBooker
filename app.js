@@ -4990,10 +4990,17 @@ function updateCostsActionBar() {
   const reportButton = document.getElementById('costsExportReportBtn');
   if (!bar) return;
 
-  const shouldShow = state.currentScreen === 'costsScreen';
+  const hasCostsForSelection = getFilteredCosts(getData()).length > 0;
+  const shouldShow = state.currentScreen === 'costsScreen' && hasCostsForSelection;
   bar.classList.toggle('hidden', !shouldShow);
-  if (csvButton) csvButton.disabled = !shouldShow;
-  if (reportButton) reportButton.disabled = !shouldShow;
+  if (csvButton) {
+    csvButton.disabled = !shouldShow;
+    csvButton.classList.toggle('hidden', !shouldShow);
+  }
+  if (reportButton) {
+    reportButton.disabled = !shouldShow;
+    reportButton.classList.toggle('hidden', !shouldShow);
+  }
 }
 
 function getRevenueExportTitle() {
@@ -11308,6 +11315,7 @@ async function startApp() {
         delete existingDayCalendar.dataset.userScrolled;
         existingDayCalendar.dataset.forceInitialScroll = "1";
       }
+      state.agendaDayForceInitialScroll = true;
       state.agendaDayPreserveScrollTop = null;
     }
 
@@ -11665,6 +11673,21 @@ async function startApp() {
     }).join("");
 
     wrap.classList.toggle("has-pinned-private-day", pinnedPrivateAppointments.length > 0);
+
+    const existingDayScrollTopRaw = wrap.querySelector(".agenda-day-scroll")?.scrollTop;
+    const hasExplicitScrollInstruction = (
+      state.agendaDayForceInitialScroll ||
+      wrap.dataset.forceInitialScroll === "1" ||
+      (state.agendaDayPreserveScrollTop !== null && state.agendaDayPreserveScrollTop !== undefined)
+    );
+    const existingDayScrollTop = Number(existingDayScrollTopRaw);
+    const shouldRestoreExistingDayScroll = (
+      !hasExplicitScrollInstruction &&
+      existingDayScrollTopRaw !== null &&
+      existingDayScrollTopRaw !== undefined &&
+      Number.isFinite(existingDayScrollTop)
+    );
+
     wrap.innerHTML = `
       ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
       <div class="agenda-day-scroll">
@@ -11728,6 +11751,16 @@ async function startApp() {
 
       const getDayWrap = () => document.getElementById("agendaDayCalendar");
 
+      const syncDaySwipePreviewScroll = () => {
+        const dayWrap = getDayWrap();
+        if (!dayWrap || !daySwipePreview) return;
+        const currentScroll = dayWrap.querySelector(".agenda-day-scroll")?.scrollTop;
+        const previewScroll = daySwipePreview.querySelector(".agenda-day-scroll");
+        if (previewScroll && currentScroll !== undefined && currentScroll !== null) {
+          previewScroll.scrollTop = currentScroll;
+        }
+      };
+
       const clearDaySwipe = () => {
         const dayWrap = getDayWrap();
         if (daySwipePreview) {
@@ -11773,11 +11806,9 @@ async function startApp() {
           button.setAttribute("aria-hidden", "true");
         });
 
-        const currentScroll = dayWrap.querySelector(".agenda-day-scroll")?.scrollTop || 0;
-        const previewScroll = daySwipePreview.querySelector(".agenda-day-scroll");
-        if (previewScroll) previewScroll.scrollTop = currentScroll;
-
         dayWrap.appendChild(daySwipePreview);
+        syncDaySwipePreviewScroll();
+        window.requestAnimationFrame(syncDaySwipePreviewScroll);
         dayWrap.classList.remove("is-day-swipe-animating");
         dayWrap.classList.add("is-day-swiping");
         return true;
@@ -11786,6 +11817,7 @@ async function startApp() {
       const updateDaySwipePosition = dx => {
         const dayWrap = getDayWrap();
         if (!dayWrap || !ensureDaySwipePreview(dx)) return false;
+        syncDaySwipePreviewScroll();
         const width = dayWrap.clientWidth || window.innerWidth || 360;
         const limitedDx = Math.max(-width, Math.min(width, dx));
         const previewStart = daySwipeStep > 0 ? width : -width;
@@ -11960,17 +11992,22 @@ async function startApp() {
         scroll.scrollTop = Math.max(0, Math.min(maxScroll, preserveScrollTop));
         wrap.dataset.userScrolled = "1";
         state.agendaDayPreserveScrollTop = null;
-      } else if (wrap.dataset.forceInitialScroll === "1" || !wrap.dataset.userScrolled) {
+      } else if (state.agendaDayForceInitialScroll || wrap.dataset.forceInitialScroll === "1" || !wrap.dataset.userScrolled) {
         scroll.scrollTop = getAgendaDayInitialScrollTop(scroll);
+        wrap.dataset.userScrolled = "1";
+        state.agendaDayForceInitialScroll = false;
         delete wrap.dataset.forceInitialScroll;
+      } else if (shouldRestoreExistingDayScroll) {
+        scroll.scrollTop = Math.max(0, Math.min(maxScroll, existingDayScrollTop));
+        wrap.dataset.userScrolled = "1";
       }
 
       updateAgendaDayOverflowMarkers(wrap);
     };
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(applyAgendaDayScrollAfterRender);
-    });
+    // Meteen toepassen, zodat de dagkalender niet eerst kort op 00:00 verschijnt.
+    applyAgendaDayScrollAfterRender();
+    window.requestAnimationFrame(applyAgendaDayScrollAfterRender);
   }
 
   function shiftSelectedDay(step) {
