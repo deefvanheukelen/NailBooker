@@ -10549,3 +10549,131 @@ body.costs-action-mode #standardCostsBtn span {
     font-size: 18px !important;
   }
 }
+
+
+/* =========================================================
+   KOSTEN: Android-safe gecentreerde knoppengroep
+   De knoppen zitten op de Kosten-pagina tijdelijk in één flex-container.
+   Zo kunnen losse fixed-posities elkaar niet meer overlappen.
+========================================================= */
+.costs-floating-action-group {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 18px);
+  pointer-events: auto;
+}
+
+.costs-floating-action-group.hidden {
+  display: none !important;
+}
+
+.costs-floating-action-group #costsActionBar.costs-action-bar,
+.costs-floating-action-group #standardCostsBtn.fab.fab-secondary,
+.costs-floating-action-group #floatingAddBtn.fab {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+.costs-floating-action-group #costsActionBar.costs-action-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: auto !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.costs-floating-action-group #costsActionBar.costs-action-bar.hidden,
+.costs-floating-action-group #standardCostsBtn.hidden {
+  display: none !important;
+}
+
+.costs-floating-action-group #costsExportCsvBtn,
+.costs-floating-action-group #costsExportReportBtn,
+.costs-floating-action-group #standardCostsBtn.fab.fab-secondary,
+.costs-floating-action-group #floatingAddBtn.fab {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  flex: 0 0 58px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  box-sizing: border-box !important;
+}
+
+.costs-floating-action-group #standardCostsBtn.fab.fab-secondary {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+.costs-floating-action-group #standardCostsBtn span {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  transform: translateY(-1px) scaleX(0.88);
+}
+
+@media (max-width: 420px) {
+  .costs-floating-action-group {
+    gap: 8px;
+    max-width: calc(100vw - 12px);
+  }
+
+  .costs-floating-action-group #costsActionBar.costs-action-bar {
+    gap: 8px !important;
+  }
+
+  .costs-floating-action-group #costsExportCsvBtn,
+  .costs-floating-action-group #costsExportReportBtn,
+  .costs-floating-action-group #standardCostsBtn.fab.fab-secondary,
+  .costs-floating-action-group #floatingAddBtn.fab {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    flex-basis: 52px !important;
+  }
+
+  .costs-floating-action-group #standardCostsBtn span {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .costs-floating-action-group,
+  .costs-floating-action-group #costsActionBar.costs-action-bar {
+    gap: 6px !important;
+  }
+
+  .costs-floating-action-group #costsExportCsvBtn,
+  .costs-floating-action-group #costsExportReportBtn,
+  .costs-floating-action-group #standardCostsBtn.fab.fab-secondary,
+  .costs-floating-action-group #floatingAddBtn.fab {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex-basis: 48px !important;
+  }
+}

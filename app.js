@@ -4943,10 +4943,14 @@ function updateCostsActionBar() {
 
   document.body.classList.toggle('costs-has-exports', shouldShow);
 
-  if (!bar) return;
+  if (!bar) {
+    if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
+    return;
+  }
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
+  if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
 }
 
 function getRevenueExportTitle() {
@@ -9449,6 +9453,7 @@ function refreshStandardCostsButton() {
   const btn = document.getElementById("standardCostsBtn");
   if (!btn) return;
   btn.classList.toggle("hidden", !(state.currentScreen === "costsScreen" && getStandardCosts(getData()).length > 0));
+  if (typeof updateCostsFloatingActionsLayout === "function") updateCostsFloatingActionsLayout();
 }
 
 function getStandardCostSearchText(item) {
@@ -11944,10 +11949,39 @@ async function startApp() {
 
 /* =========================================================
    KOSTEN: automatische centrering zwevende knoppen
-   - De zichtbare knoppen worden als één groep behandeld
-   - CSV/PDF, standaardkosten en + blijven daardoor altijd centraal
+   - De zichtbare knoppen worden tijdelijk in één vaste flex-groep gezet
+   - Daardoor kan Android geen losse fixed-knoppen meer laten overlappen
 ========================================================= */
+function ensureCostsFloatingActionGroup() {
+  let group = document.getElementById("costsFloatingActionGroup");
+  if (!group) {
+    group = document.createElement("div");
+    group.id = "costsFloatingActionGroup";
+    group.className = "costs-floating-action-group hidden";
+    group.setAttribute("aria-label", "Kostenacties");
+    document.body.appendChild(group);
+  }
+  return group;
+}
+
+function rememberOriginalParent(el) {
+  if (!el || el._costsOriginalParent) return;
+  el._costsOriginalParent = el.parentNode;
+  el._costsOriginalNextSibling = el.nextSibling;
+}
+
+function restoreOriginalParent(el) {
+  if (!el || !el._costsOriginalParent) return;
+  const parent = el._costsOriginalParent;
+  const next = el._costsOriginalNextSibling;
+  if (next && next.parentNode === parent) parent.insertBefore(el, next);
+  else parent.appendChild(el);
+  el._costsOriginalParent = null;
+  el._costsOriginalNextSibling = null;
+}
+
 function resetCostsFloatingActionsLayout() {
+  const group = document.getElementById("costsFloatingActionGroup");
   const bar = document.getElementById("costsActionBar");
   const standardBtn = document.getElementById("standardCostsBtn");
   const fab = document.getElementById("floatingAddBtn");
@@ -11958,13 +11992,19 @@ function resetCostsFloatingActionsLayout() {
     el.style.right = "";
     el.style.transform = "";
     el.style.width = "";
+    el.style.position = "";
+    el.style.bottom = "";
   });
+
+  restoreOriginalParent(bar);
+  restoreOriginalParent(standardBtn);
+  restoreOriginalParent(fab);
+
+  if (group) group.classList.add("hidden");
 }
 
 function updateCostsFloatingActionsLayout() {
   const bar = document.getElementById("costsActionBar");
-  const csvBtn = document.getElementById("costsExportCsvBtn");
-  const reportBtn = document.getElementById("costsExportReportBtn");
   const standardBtn = document.getElementById("standardCostsBtn");
   const fab = document.getElementById("floatingAddBtn");
 
@@ -11973,62 +12013,30 @@ function updateCostsFloatingActionsLayout() {
     return;
   }
 
-  window.requestAnimationFrame(() => {
-    const hasExports = Boolean(bar && !bar.classList.contains("hidden"));
-    const hasStandard = Boolean(standardBtn && !standardBtn.classList.contains("hidden"));
+  const group = ensureCostsFloatingActionGroup();
 
-    const fabSize = Math.round(fab.getBoundingClientRect().width || 58);
-    const gap = window.matchMedia("(max-width: 420px)").matches ? 10 : 10;
+  [bar, standardBtn, fab].forEach(rememberOriginalParent);
 
-    const exportCount = hasExports ? [csvBtn, reportBtn].filter(Boolean).length : 0;
-    const exportGroupWidth = exportCount > 0
-      ? (exportCount * fabSize) + ((exportCount - 1) * gap)
-      : 0;
+  if (bar) group.appendChild(bar);
+  if (standardBtn) group.appendChild(standardBtn);
+  group.appendChild(fab);
 
-    const separateCount = 1 + (hasStandard ? 1 : 0);
-    const groupParts = [];
-    if (exportGroupWidth) groupParts.push(exportGroupWidth);
-    if (hasStandard) groupParts.push(fabSize);
-    groupParts.push(fabSize);
+  group.classList.remove("hidden");
 
-    const totalWidth = groupParts.reduce((sum, width) => sum + width, 0) + Math.max(0, groupParts.length - 1) * gap;
-    let cursor = (window.innerWidth - totalWidth) / 2;
-
-    if (bar) {
-      if (hasExports) {
-        bar.style.left = `${Math.round(cursor)}px`;
-        bar.style.right = "auto";
-        bar.style.transform = "none";
-        bar.style.width = `${Math.round(exportGroupWidth)}px`;
-        cursor += exportGroupWidth + gap;
-      } else {
-        bar.style.left = "";
-        bar.style.right = "";
-        bar.style.transform = "";
-        bar.style.width = "";
-      }
-    }
-
-    if (standardBtn) {
-      if (hasStandard) {
-        standardBtn.style.left = `${Math.round(cursor + fabSize / 2)}px`;
-        standardBtn.style.right = "auto";
-        standardBtn.style.transform = "translateX(-50%)";
-        cursor += fabSize + gap;
-      } else {
-        standardBtn.style.left = "";
-        standardBtn.style.right = "";
-        standardBtn.style.transform = "";
-      }
-    }
-
-    fab.style.left = `${Math.round(cursor + fabSize / 2)}px`;
-    fab.style.right = "auto";
-    fab.style.transform = "translateX(-50%)";
+  // Geen individuele absolute/fixed berekeningen meer: flex centreert de volledige zichtbare groep.
+  [bar, standardBtn, fab].forEach(el => {
+    if (!el) return;
+    el.style.left = "";
+    el.style.right = "";
+    el.style.transform = "";
+    el.style.width = "";
+    el.style.position = "";
+    el.style.bottom = "";
   });
 }
 
 window.addEventListener("resize", updateCostsFloatingActionsLayout);
+window.visualViewport?.addEventListener("resize", updateCostsFloatingActionsLayout);
 
 
 startApp();
