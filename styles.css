@@ -10410,3 +10410,50 @@ body.costs-action-mode #standardCostsBtn .standard-costs-icon {
     max-height: 18px !important;
   }
 }
+
+/* =========================================================
+   DAGKALENDER: subtiele overlay-labels voor afspraken buiten beeld
+========================================================= */
+.agenda-day-calendar {
+  position: relative;
+}
+
+.agenda-day-overflow-marker {
+  position: absolute;
+  left: 58px;
+  z-index: 18;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 14px;
+  padding: 0 6px 2px;
+  border: 1px solid rgba(184, 109, 135, 0.12);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.78);
+  color: rgba(184, 109, 135, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1px;
+  box-shadow: 0 1px 3px rgba(84, 48, 65, 0.06);
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+
+.agenda-day-overflow-marker.show {
+  display: inline-flex;
+}
+
+.agenda-day-overflow-marker-top {
+  top: 4px;
+}
+
+.agenda-day-overflow-marker-bottom {
+  bottom: 4px;
+}
+
+.agenda-day-calendar.is-day-swiping .agenda-day-overflow-marker,
+.agenda-day-calendar.is-day-swipe-animating .agenda-day-overflow-marker {
+  display: none !important;
+}

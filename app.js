@@ -3899,6 +3899,26 @@ function formatAppointmentTimeLabel(timeStr) {
   return `${String(Number(h) || 0).padStart(2, "0")}:${String(Number(m) || 0).padStart(2, "0")}`;
 }
 
+function getNearestFullHourTime(referenceDate = new Date()) {
+  const d = referenceDate instanceof Date ? new Date(referenceDate) : new Date();
+  if (Number.isNaN(d.getTime())) return "10:00";
+  let hour = d.getHours();
+  if (d.getMinutes() >= 30) hour += 1;
+  return `${String(hour % 24).padStart(2, "0")}:00`;
+}
+
+function addMinutesToDateTime(dateStr, timeStr, minutesToAdd = 60) {
+  const safeDate = isDateInputValue(dateStr) ? dateStr : (state.selectedDate || todayStr);
+  const [rawHour = "0", rawMinute = "0"] = String(timeStr || "00:00").split(":");
+  const d = new Date(`${safeDate}T00:00:00`);
+  d.setHours(Number(rawHour) || 0, Number(rawMinute) || 0, 0, 0);
+  d.setMinutes(d.getMinutes() + (Number(minutesToAdd) || 0));
+  return {
+    date: formatDateInput(d),
+    time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  };
+}
+
 function syncAppointmentDateTimeDisplays() {
   const dateInput = document.getElementById("appointmentDate");
   const timeInput = document.getElementById("appointmentTime");
@@ -3916,16 +3936,25 @@ function syncAppointmentDateTimeDisplays() {
   if (privateEndTimeBtn && privateEndTimeInput) privateEndTimeBtn.textContent = formatAppointmentTimeLabel(privateEndTimeInput.value);
 }
 
-function syncPrivateEndTimeWithStart() {
+function syncPrivateEndTimeWithStart(options = {}) {
   const isPrivate = Boolean(document.getElementById("appointmentIsPrivate")?.checked);
   if (!isPrivate) return;
 
+  const startDateInput = document.getElementById("appointmentDate");
   const startInput = document.getElementById("appointmentTime");
+  const endDateInput = document.getElementById("appointmentPrivateEndDate");
   const endInput = document.getElementById("appointmentPrivateEndTime");
   if (!startInput || !endInput || !startInput.value) return;
 
-  if (!endInput.value || minutesFromTimeString(endInput.value) < minutesFromTimeString(startInput.value)) {
-    endInput.value = startInput.value;
+  const force = Boolean(options.force);
+  const editingEndTime = document.activeElement === endInput;
+  const nextEnd = addMinutesToDateTime(startDateInput?.value || state.selectedDate || todayStr, startInput.value, 60);
+  const endBeforeStartSameDay = (endDateInput?.value || startDateInput?.value || state.selectedDate || todayStr) === (startDateInput?.value || state.selectedDate || todayStr)
+    && minutesFromTimeString(endInput.value) < minutesFromTimeString(startInput.value);
+
+  if (force || !endInput.value || (!editingEndTime && endBeforeStartSameDay)) {
+    endInput.value = nextEnd.time;
+    if (endDateInput) endDateInput.value = nextEnd.date;
   }
 
   syncAppointmentDateTimeDisplays();
@@ -4171,9 +4200,10 @@ function applyAppointmentWheelPickerSelection() {
   if (appointmentPickerState.mode === "time") {
     const hour = Math.max(0, Math.min(23, Number(appointmentPickerState.selected.hour) || 0));
     const minute = Math.max(0, Math.min(59, Number(appointmentPickerState.selected.minute) || 0));
-    const timeInput = document.getElementById(appointmentPickerState.targetInputId || "appointmentTime");
+    const targetInputId = appointmentPickerState.targetInputId || "appointmentTime";
+    const timeInput = document.getElementById(targetInputId);
     if (timeInput) timeInput.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-    syncPrivateEndTimeWithStart();
+    if (targetInputId === "appointmentTime") syncPrivateEndTimeWithStart({ force: true });
     syncAppointmentDateTimeDisplays();
     syncFollowUpDisplays();
     return;
@@ -7356,7 +7386,7 @@ function setAppointmentPrivateMode(isPrivate) {
   if (timeLabel) timeLabel.textContent = privateMode ? "Tijd van" : t("time");
 
   updatePrivateRepeatWeeklyLabel();
-  if (privateMode) syncPrivateEndTimeWithStart();
+  if (privateMode) syncPrivateEndTimeWithStart({ force: true });
   updateAppointmentOpenCustomerButton();
 }
 
@@ -7413,11 +7443,13 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   setAppointmentPrivateMode(false);
   document.getElementById("appointmentModalTitle").textContent = t("newAppointment");
   document.getElementById("appointmentId").value = "";
+  const defaultAppointmentTime = getNearestFullHourTime();
+  const defaultPrivateEnd = addMinutesToDateTime(state.selectedDate, defaultAppointmentTime, 60);
   document.getElementById("appointmentDate").value = state.selectedDate;
-  document.getElementById("appointmentTime").value = "10:00";
-  document.getElementById("appointmentPrivateEndTime").value = "10:00";
+  document.getElementById("appointmentTime").value = defaultAppointmentTime;
+  document.getElementById("appointmentPrivateEndTime").value = defaultPrivateEnd.time;
   const privateEndDateInput = document.getElementById("appointmentPrivateEndDate");
-  if (privateEndDateInput) privateEndDateInput.value = state.selectedDate;
+  if (privateEndDateInput) privateEndDateInput.value = defaultPrivateEnd.date;
   document.getElementById("appointmentPrivateTitle").value = "";
   document.getElementById("appointmentPrivateDetails").value = "";
   document.getElementById("appointmentPrivateRepeat").value = "none";
@@ -10149,10 +10181,10 @@ function registerEvents() {
     }
     syncAppointmentDateTimeDisplays();
   });
-  ["appointmentTime", "appointmentPrivateEndTime"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", syncPrivateEndTimeWithStart);
-    document.getElementById(id)?.addEventListener("input", syncPrivateEndTimeWithStart);
-  });
+  document.getElementById("appointmentTime")?.addEventListener("change", () => syncPrivateEndTimeWithStart({ force: true }));
+  document.getElementById("appointmentTime")?.addEventListener("input", () => syncPrivateEndTimeWithStart({ force: true }));
+  document.getElementById("appointmentPrivateEndTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
+  document.getElementById("appointmentPrivateEndTime")?.addEventListener("input", syncAppointmentDateTimeDisplays);
   document.getElementById("appointmentIsPrivate")?.addEventListener("change", event => setAppointmentPrivateMode(event.target.checked));
   document.getElementById("appointmentDate")?.addEventListener("change", () => {
     const startDateInput = document.getElementById("appointmentDate");
@@ -11398,6 +11430,36 @@ async function startApp() {
   }
 
 
+  function updateAgendaDayOverflowMarkers(dayWrap = document.getElementById("agendaDayCalendar")) {
+    if (!dayWrap || state.agendaCalendarMode !== "day") return;
+
+    const scroll = dayWrap.querySelector(".agenda-day-scroll");
+    const topMarker = dayWrap.querySelector(".agenda-day-overflow-marker-top");
+    const bottomMarker = dayWrap.querySelector(".agenda-day-overflow-marker-bottom");
+    if (!scroll || !topMarker || !bottomMarker) return;
+
+    const blocks = Array.from(dayWrap.querySelectorAll(".agenda-day-scroll .agenda-day-appointment"));
+    const visibleTop = scroll.scrollTop;
+    const visibleBottom = visibleTop + scroll.clientHeight;
+    const tolerance = 2;
+
+    // Toon de puntjes zodra een afspraakblok deels buiten het zichtbare
+    // scrollgebied valt: boven wanneer de bovenkant boven beeld zit,
+    // onder wanneer de onderkant onder beeld zit. Zo worden ook lange
+    // afspraken die doorlopen buiten beeld correct aangeduid.
+    const hasEarlierAppointment = blocks.some(block => block.offsetTop < (visibleTop - tolerance));
+    const hasLaterAppointment = blocks.some(block => (block.offsetTop + block.offsetHeight) > (visibleBottom + tolerance));
+
+    topMarker.classList.toggle("show", hasEarlierAppointment);
+    bottomMarker.classList.toggle("show", hasLaterAppointment);
+
+    const scrollTopInWrap = scroll.offsetTop || 0;
+    const bottomGap = Math.max(0, dayWrap.clientHeight - scrollTopInWrap - scroll.clientHeight);
+    topMarker.style.top = `${scrollTopInWrap + 6}px`;
+    bottomMarker.style.bottom = `${bottomGap + 6}px`;
+  }
+
+
   function buildAgendaDayCalendarMarkupForDate(dateStr) {
     const previousSelectedDate = state.selectedDate;
     state.selectedDate = dateStr;
@@ -11588,6 +11650,8 @@ async function startApp() {
           <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
         </div>
       </div>
+      <div class="agenda-day-overflow-marker agenda-day-overflow-marker-top" aria-hidden="true">•••</div>
+      <div class="agenda-day-overflow-marker agenda-day-overflow-marker-bottom" aria-hidden="true">•••</div>
     `;
 
     wrap.querySelectorAll(".agenda-day-appointment, .agenda-day-pinned-private").forEach(button => {
@@ -11614,6 +11678,14 @@ async function startApp() {
         }
       });
     });
+
+    const dayScroll = wrap.querySelector(".agenda-day-scroll");
+    if (dayScroll) {
+      dayScroll.addEventListener("scroll", () => {
+        wrap.dataset.userScrolled = "1";
+        updateAgendaDayOverflowMarkers(wrap);
+      }, { passive: true });
+    }
 
     if (!wrap.dataset.daySwipeBound) {
       wrap.dataset.daySwipeBound = "1";
@@ -11857,6 +11929,7 @@ async function startApp() {
       if (scroll && !wrap.dataset.userScrolled) {
         scroll.scrollTop = START_SCROLL_HOUR * HOUR_HEIGHT;
       }
+      updateAgendaDayOverflowMarkers(wrap);
     }, 0);
   }
 
