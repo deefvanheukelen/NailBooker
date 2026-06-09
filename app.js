@@ -11274,6 +11274,18 @@ async function startApp() {
     return Math.max(1, agendaDayVisualTop(safeEnd) - agendaDayVisualTop(safeStart));
   }
 
+  function getAgendaDayInitialScrollTop(scroll) {
+    if (!scroll) return 0;
+
+    const now = new Date();
+    const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+    const currentPosition = agendaDayVisualTop(currentMinutes);
+    const maxScroll = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+
+    // Plaats het huidige uur ongeveer in het midden van de zichtbare dagkalender.
+    return Math.max(0, Math.min(maxScroll, Math.round(currentPosition - (scroll.clientHeight / 2))));
+  }
+
 
   const originalRenderCalendar = renderCalendar;
   const originalRenderAgendaList = renderAgendaList;
@@ -11287,6 +11299,18 @@ async function startApp() {
 
   function setAgendaCalendarMode(mode) {
     const nextMode = mode === "day" ? "day" : "month";
+
+    // Alleen bij het openen van maand- naar dagweergave centreren we opnieuw
+    // rond het huidige uur. Bij dag-swipes blijft de bestaande scrollpositie bewaard.
+    if (nextMode === "day" && state.agendaCalendarMode !== "day") {
+      const existingDayCalendar = document.getElementById("agendaDayCalendar");
+      if (existingDayCalendar) {
+        delete existingDayCalendar.dataset.userScrolled;
+        existingDayCalendar.dataset.forceInitialScroll = "1";
+      }
+      state.agendaDayPreserveScrollTop = null;
+    }
+
     state.agendaCalendarMode = nextMode;
     document.body.classList.toggle("agenda-day-mode", nextMode === "day");
     closeAgendaFabMenu?.();
@@ -11924,26 +11948,44 @@ async function startApp() {
       }, { passive: true });
     }
 
-    window.setTimeout(() => {
+    const applyAgendaDayScrollAfterRender = () => {
       const scroll = wrap.querySelector(".agenda-day-scroll");
-      if (scroll && !wrap.dataset.userScrolled) {
-        scroll.scrollTop = START_SCROLL_HOUR * HOUR_HEIGHT;
+      if (!scroll) return;
+
+      const maxScroll = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      const rawPreserveScrollTop = state.agendaDayPreserveScrollTop;
+      const preserveScrollTop = Number(rawPreserveScrollTop);
+
+      if (rawPreserveScrollTop !== null && rawPreserveScrollTop !== undefined && Number.isFinite(preserveScrollTop)) {
+        scroll.scrollTop = Math.max(0, Math.min(maxScroll, preserveScrollTop));
+        wrap.dataset.userScrolled = "1";
+        state.agendaDayPreserveScrollTop = null;
+      } else if (wrap.dataset.forceInitialScroll === "1" || !wrap.dataset.userScrolled) {
+        scroll.scrollTop = getAgendaDayInitialScrollTop(scroll);
+        delete wrap.dataset.forceInitialScroll;
       }
+
       updateAgendaDayOverflowMarkers(wrap);
-    }, 0);
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(applyAgendaDayScrollAfterRender);
+    });
   }
 
   function shiftSelectedDay(step) {
+    const dayCalendar = document.getElementById("agendaDayCalendar");
+    const currentDayScroll = dayCalendar?.querySelector(".agenda-day-scroll");
+    if (currentDayScroll) {
+      state.agendaDayPreserveScrollTop = currentDayScroll.scrollTop;
+    }
+
     const d = getSelectedDateObject();
     d.setDate(d.getDate() + step);
     state.selectedDate = formatDateInput(d);
     state.currentYear = d.getFullYear();
     state.currentMonth = d.getMonth();
     state.revenueSyncSelectedDateOnOpen = true;
-    const dayCalendar = document.getElementById("agendaDayCalendar");
-    if (dayCalendar) {
-      delete dayCalendar.dataset.userScrolled;
-    }
     renderCalendar();
     renderAgendaList();
     renderRevenue();
