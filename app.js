@@ -2293,6 +2293,7 @@ function updateTopbar(screenId, title) {
 
   document.body.classList.toggle("costs-fab-pair", showStandardCostsFab);
   document.body.classList.toggle("costs-action-mode", screenId === "costsScreen");
+  if (typeof updateCostsActionBar === "function") updateCostsActionBar();
 
   if (screenId !== "agendaScreen") {
     closeAgendaFabMenu();
@@ -3494,12 +3495,7 @@ function shiftRevenueDate(baseDateStr, mode, step) {
 }
 
 function getRevenueStatusFilterState() {
-  const paidCheckbox = document.getElementById("revenueShowPaid");
-  const unpaidCheckbox = document.getElementById("revenueShowUnpaid");
-  return {
-    showPaid: paidCheckbox ? paidCheckbox.checked : true,
-    showUnpaid: unpaidCheckbox ? unpaidCheckbox.checked : true
-  };
+  return { showPaid: true, showUnpaid: true };
 }
 
 function getRevenueStatusFilterLabel() {
@@ -3514,8 +3510,7 @@ function getRevenueRenderSignature() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType")?.value || "day";
   const anchor = document.getElementById("revenueDate")?.value || todayStr;
-  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
-  const statusFilter = `${showPaid ? "paid" : ""}|${showUnpaid ? "unpaid" : ""}`;
+  const statusFilter = "all";
   const appointmentSignature = (data.appointments || [])
     .map(a => [
       a.id,
@@ -3718,8 +3713,6 @@ function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
-  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
-
   let filtered = data.appointments.filter(a => a.status !== "no-show");
 
   if (type === "day") {
@@ -3735,13 +3728,11 @@ function revenueFilteredAppointments() {
     filtered = filtered.filter(a => a.date.startsWith(prefix));
   }
 
-  filtered = filtered.filter(a => (a.paid && showPaid) || (!a.paid && showUnpaid));
-
   return filtered;
 }
 
 function renderRevenueFilters() {
-  // De betaalwijze/status-keuzelijsten zijn vervangen door twee directe status-checkboxen.
+  // De betaalde en onbetaalde omzet worden altijd samen getoond.
 }
 
 
@@ -4889,18 +4880,19 @@ function renderRevenueChart(filtered, type, anchor) {
             const total = item.paid + item.unpaid;
             const hasRevenue = total > 0;
             const totalHeight = hasRevenue ? Math.max(8, (total / scaleMax) * chartHeight) : 0;
-            const paidHeight = hasRevenue ? (item.paid / total) * totalHeight : 0;
-            const unpaidHeight = hasRevenue ? totalHeight - paidHeight : 0;
-            const title = hasRevenue ? `${item.label} · ${euro(total)}` : "";
+            const paidHeight = hasRevenue && item.paid > 0 ? Math.max(2, (item.paid / scaleMax) * chartHeight) : 0;
+            const unpaidHeight = hasRevenue && item.unpaid > 0 ? Math.max(2, (item.unpaid / scaleMax) * chartHeight) : 0;
+            const title = hasRevenue ? `${item.label} · ${t("total")}: ${euro(total)} · ${t("paid")}: ${euro(item.paid)} · ${t("unpaid")}: ${euro(item.unpaid)}` : "";
 
             return `
               <div class="revenue-bar-col${hasRevenue ? "" : " is-empty"}" title="${title}">
                 ${hasRevenue ? `
-                  <div class="revenue-bar-stack" style="height:${totalHeight}px">
-                    ${unpaidHeight > 0 ? `<span class="revenue-bar-segment unpaid" style="height:${unpaidHeight}px"></span>` : ""}
-                    ${paidHeight > 0 ? `<span class="revenue-bar-segment paid" style="height:${paidHeight}px"></span>` : ""}
+                  <div class="revenue-bar-group" style="height:${totalHeight}px">
+                    <span class="revenue-bar-total" aria-hidden="true"></span>
+                    <span class="revenue-bar-single paid" style="height:${paidHeight}px"></span>
+                    <span class="revenue-bar-single unpaid" style="height:${unpaidHeight}px"></span>
                   </div>
-                ` : `<div class="revenue-bar-stack revenue-bar-stack-empty" aria-hidden="true"></div>`}
+                ` : `<div class="revenue-bar-group revenue-bar-stack-empty" aria-hidden="true"></div>`}
                 <span class="revenue-bar-label">${hasRevenue ? item.label : ""}</span>
               </div>
             `;
@@ -4910,8 +4902,8 @@ function renderRevenueChart(filtered, type, anchor) {
     </div>
     ${maxValue > 0 ? `
       <div class="revenue-chart-legend">
-        ${getRevenueStatusFilterState().showPaid ? `<span><i class="paid"></i> ${t("paid")}</span>` : ""}
-        ${getRevenueStatusFilterState().showUnpaid ? `<span><i class="unpaid"></i> ${t("unpaid")}</span>` : ""}
+        <span><i class="paid"></i> ${t("paid")}</span>
+        <span><i class="unpaid"></i> ${t("unpaid")}</span>
       </div>
     ` : ""}
   `;
@@ -4943,9 +4935,13 @@ function updateCostsActionBar() {
   const bar = document.getElementById('costsActionBar');
   const csvButton = document.getElementById('costsExportCsvBtn');
   const reportButton = document.getElementById('costsExportReportBtn');
-  if (!bar) return;
 
-  const shouldShow = state.currentScreen === 'costsScreen';
+  const hasCostsForSelection = state.currentScreen === 'costsScreen' && getFilteredCosts(getData()).length > 0;
+  const shouldShow = Boolean(hasCostsForSelection);
+
+  document.body.classList.toggle('costs-has-exports', shouldShow);
+
+  if (!bar) return;
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
@@ -9216,6 +9212,7 @@ function renderCosts() {
   if (vatEl) vatEl.textContent = euro(vatTotal);
   updateTopbar(state.currentScreen, getScreenTitle(state.currentScreen));
   refreshStandardCostsButton();
+  updateCostsActionBar();
 
   if (!costs.length) {
     list.innerHTML = `<div class="empty-state">${t("noCosts")}</div>`;
@@ -10216,7 +10213,7 @@ function registerEvents() {
 
   document.getElementById("revenueDate").value = todayStr;
 
-  ["revenuePeriodType", "revenueDate", "revenueShowPaid", "revenueShowUnpaid"].forEach(id => {
+  ["revenuePeriodType", "revenueDate"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
