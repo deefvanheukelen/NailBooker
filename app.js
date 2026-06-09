@@ -647,6 +647,20 @@ function formatShortDate(dateStr) {
   return new Intl.DateTimeFormat(getCurrentLanguage(), { day: "numeric", month: "long" }).format(d);
 }
 
+function formatLongDateWithShortWeekday(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const weekday = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "short" })
+    .format(d)
+    .replace(/\.$/, "");
+  const date = new Intl.DateTimeFormat(getCurrentLanguage(), {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(d);
+
+  return `${capitalizeFirst(weekday)} ${date}`;
+}
+
 function nextId(items) {
   return items.length ? Math.max(...items.map(i => Number(i.id))) + 1 : 1;
 }
@@ -2293,8 +2307,6 @@ function updateTopbar(screenId, title) {
 
   document.body.classList.toggle("costs-fab-pair", showStandardCostsFab);
   document.body.classList.toggle("costs-action-mode", screenId === "costsScreen");
-  if (typeof updateCostsActionBar === "function") updateCostsActionBar();
-  if (typeof updateCostsFloatingActionsLayout === "function") updateCostsFloatingActionsLayout();
 
   if (screenId !== "agendaScreen") {
     closeAgendaFabMenu();
@@ -3168,7 +3180,7 @@ function renderAgendaList() {
   const data = getData();
   const list = document.getElementById("agendaList");
 
-  document.getElementById("agendaListTitle").textContent = `${t("appointmentsOn")} ${formatLongDate(state.selectedDate)}`;
+  document.getElementById("agendaListTitle").textContent = `${t("appointmentsOn")} ${formatLongDateWithShortWeekday(state.selectedDate)}`;
   const jumpBtn = document.getElementById("jumpToTodayBtn");
   if (jumpBtn) {
     jumpBtn.classList.toggle("hidden", state.selectedDate === todayStr);
@@ -3496,7 +3508,12 @@ function shiftRevenueDate(baseDateStr, mode, step) {
 }
 
 function getRevenueStatusFilterState() {
-  return { showPaid: true, showUnpaid: true };
+  const paidCheckbox = document.getElementById("revenueShowPaid");
+  const unpaidCheckbox = document.getElementById("revenueShowUnpaid");
+  return {
+    showPaid: paidCheckbox ? paidCheckbox.checked : true,
+    showUnpaid: unpaidCheckbox ? unpaidCheckbox.checked : true
+  };
 }
 
 function getRevenueStatusFilterLabel() {
@@ -3511,7 +3528,8 @@ function getRevenueRenderSignature() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType")?.value || "day";
   const anchor = document.getElementById("revenueDate")?.value || todayStr;
-  const statusFilter = "all";
+  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
+  const statusFilter = `${showPaid ? "paid" : ""}|${showUnpaid ? "unpaid" : ""}`;
   const appointmentSignature = (data.appointments || [])
     .map(a => [
       a.id,
@@ -3714,6 +3732,8 @@ function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
+  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
+
   let filtered = data.appointments.filter(a => a.status !== "no-show");
 
   if (type === "day") {
@@ -3729,11 +3749,13 @@ function revenueFilteredAppointments() {
     filtered = filtered.filter(a => a.date.startsWith(prefix));
   }
 
+  filtered = filtered.filter(a => (a.paid && showPaid) || (!a.paid && showUnpaid));
+
   return filtered;
 }
 
 function renderRevenueFilters() {
-  // De betaalde en onbetaalde omzet worden altijd samen getoond.
+  // De betaalwijze/status-keuzelijsten zijn vervangen door twee directe status-checkboxen.
 }
 
 
@@ -4930,27 +4952,18 @@ function updateRevenueActionBar() {
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
-  if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
 }
 
 function updateCostsActionBar() {
   const bar = document.getElementById('costsActionBar');
   const csvButton = document.getElementById('costsExportCsvBtn');
   const reportButton = document.getElementById('costsExportReportBtn');
+  if (!bar) return;
 
-  const hasCostsForSelection = state.currentScreen === 'costsScreen' && getFilteredCosts(getData()).length > 0;
-  const shouldShow = Boolean(hasCostsForSelection);
-
-  document.body.classList.toggle('costs-has-exports', shouldShow);
-
-  if (!bar) {
-    if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
-    return;
-  }
+  const shouldShow = state.currentScreen === 'costsScreen';
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
-  if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
 }
 
 function getRevenueExportTitle() {
@@ -9218,7 +9231,6 @@ function renderCosts() {
   if (vatEl) vatEl.textContent = euro(vatTotal);
   updateTopbar(state.currentScreen, getScreenTitle(state.currentScreen));
   refreshStandardCostsButton();
-  updateCostsActionBar();
 
   if (!costs.length) {
     list.innerHTML = `<div class="empty-state">${t("noCosts")}</div>`;
@@ -9453,7 +9465,6 @@ function refreshStandardCostsButton() {
   const btn = document.getElementById("standardCostsBtn");
   if (!btn) return;
   btn.classList.toggle("hidden", !(state.currentScreen === "costsScreen" && getStandardCosts(getData()).length > 0));
-  if (typeof updateCostsFloatingActionsLayout === "function") updateCostsFloatingActionsLayout();
 }
 
 function getStandardCostSearchText(item) {
@@ -10220,7 +10231,7 @@ function registerEvents() {
 
   document.getElementById("revenueDate").value = todayStr;
 
-  ["revenuePeriodType", "revenueDate"].forEach(id => {
+  ["revenuePeriodType", "revenueDate", "revenueShowPaid", "revenueShowUnpaid"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
@@ -11310,12 +11321,7 @@ async function startApp() {
   function setMonthHeaderForDayMode() {
     const title = document.getElementById("monthPickerBtn");
     if (!title) return;
-    const d = getSelectedDateObject();
-    title.textContent = new Intl.DateTimeFormat(getCurrentLanguage(), {
-      day: "numeric",
-      month: "long",
-      year: "numeric"
-    }).format(d);
+    title.textContent = formatLongDateWithShortWeekday(state.selectedDate);
   }
 
   function minutesForDayView(appointment) {
@@ -11945,98 +11951,6 @@ async function startApp() {
     }, true);
   };
 })();
-
-
-/* =========================================================
-   KOSTEN: automatische centrering zwevende knoppen
-   - De zichtbare knoppen worden tijdelijk in één vaste flex-groep gezet
-   - Daardoor kan Android geen losse fixed-knoppen meer laten overlappen
-========================================================= */
-function ensureCostsFloatingActionGroup() {
-  let group = document.getElementById("costsFloatingActionGroup");
-  if (!group) {
-    group = document.createElement("div");
-    group.id = "costsFloatingActionGroup";
-    group.className = "costs-floating-action-group hidden";
-    group.setAttribute("aria-label", "Kostenacties");
-    document.body.appendChild(group);
-  }
-  return group;
-}
-
-function rememberOriginalParent(el) {
-  if (!el || el._costsOriginalParent) return;
-  el._costsOriginalParent = el.parentNode;
-  el._costsOriginalNextSibling = el.nextSibling;
-}
-
-function restoreOriginalParent(el) {
-  if (!el || !el._costsOriginalParent) return;
-  const parent = el._costsOriginalParent;
-  const next = el._costsOriginalNextSibling;
-  if (next && next.parentNode === parent) parent.insertBefore(el, next);
-  else parent.appendChild(el);
-  el._costsOriginalParent = null;
-  el._costsOriginalNextSibling = null;
-}
-
-function resetCostsFloatingActionsLayout() {
-  const group = document.getElementById("costsFloatingActionGroup");
-  const bar = document.getElementById("costsActionBar");
-  const standardBtn = document.getElementById("standardCostsBtn");
-  const fab = document.getElementById("floatingAddBtn");
-
-  [bar, standardBtn, fab].forEach(el => {
-    if (!el) return;
-    el.style.left = "";
-    el.style.right = "";
-    el.style.transform = "";
-    el.style.width = "";
-    el.style.position = "";
-    el.style.bottom = "";
-  });
-
-  restoreOriginalParent(bar);
-  restoreOriginalParent(standardBtn);
-  restoreOriginalParent(fab);
-
-  if (group) group.classList.add("hidden");
-}
-
-function updateCostsFloatingActionsLayout() {
-  const bar = document.getElementById("costsActionBar");
-  const standardBtn = document.getElementById("standardCostsBtn");
-  const fab = document.getElementById("floatingAddBtn");
-
-  if (state.currentScreen !== "costsScreen" || !fab) {
-    resetCostsFloatingActionsLayout();
-    return;
-  }
-
-  const group = ensureCostsFloatingActionGroup();
-
-  [bar, standardBtn, fab].forEach(rememberOriginalParent);
-
-  if (bar) group.appendChild(bar);
-  if (standardBtn) group.appendChild(standardBtn);
-  group.appendChild(fab);
-
-  group.classList.remove("hidden");
-
-  // Geen individuele absolute/fixed berekeningen meer: flex centreert de volledige zichtbare groep.
-  [bar, standardBtn, fab].forEach(el => {
-    if (!el) return;
-    el.style.left = "";
-    el.style.right = "";
-    el.style.transform = "";
-    el.style.width = "";
-    el.style.position = "";
-    el.style.bottom = "";
-  });
-}
-
-window.addEventListener("resize", updateCostsFloatingActionsLayout);
-window.visualViewport?.addEventListener("resize", updateCostsFloatingActionsLayout);
 
 
 startApp();
