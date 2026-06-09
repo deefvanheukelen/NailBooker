@@ -2294,6 +2294,7 @@ function updateTopbar(screenId, title) {
   document.body.classList.toggle("costs-fab-pair", showStandardCostsFab);
   document.body.classList.toggle("costs-action-mode", screenId === "costsScreen");
   if (typeof updateCostsActionBar === "function") updateCostsActionBar();
+  if (typeof updateCostsFloatingActionsLayout === "function") updateCostsFloatingActionsLayout();
 
   if (screenId !== "agendaScreen") {
     closeAgendaFabMenu();
@@ -4929,6 +4930,7 @@ function updateRevenueActionBar() {
   bar.classList.toggle('hidden', !shouldShow);
   if (csvButton) csvButton.disabled = !shouldShow;
   if (reportButton) reportButton.disabled = !shouldShow;
+  if (typeof updateCostsFloatingActionsLayout === 'function') updateCostsFloatingActionsLayout();
 }
 
 function updateCostsActionBar() {
@@ -11938,6 +11940,95 @@ async function startApp() {
     }, true);
   };
 })();
+
+
+/* =========================================================
+   KOSTEN: automatische centrering zwevende knoppen
+   - De zichtbare knoppen worden als één groep behandeld
+   - CSV/PDF, standaardkosten en + blijven daardoor altijd centraal
+========================================================= */
+function resetCostsFloatingActionsLayout() {
+  const bar = document.getElementById("costsActionBar");
+  const standardBtn = document.getElementById("standardCostsBtn");
+  const fab = document.getElementById("floatingAddBtn");
+
+  [bar, standardBtn, fab].forEach(el => {
+    if (!el) return;
+    el.style.left = "";
+    el.style.right = "";
+    el.style.transform = "";
+    el.style.width = "";
+  });
+}
+
+function updateCostsFloatingActionsLayout() {
+  const bar = document.getElementById("costsActionBar");
+  const csvBtn = document.getElementById("costsExportCsvBtn");
+  const reportBtn = document.getElementById("costsExportReportBtn");
+  const standardBtn = document.getElementById("standardCostsBtn");
+  const fab = document.getElementById("floatingAddBtn");
+
+  if (state.currentScreen !== "costsScreen" || !fab) {
+    resetCostsFloatingActionsLayout();
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    const hasExports = Boolean(bar && !bar.classList.contains("hidden"));
+    const hasStandard = Boolean(standardBtn && !standardBtn.classList.contains("hidden"));
+
+    const fabSize = Math.round(fab.getBoundingClientRect().width || 58);
+    const gap = window.matchMedia("(max-width: 420px)").matches ? 10 : 10;
+
+    const exportCount = hasExports ? [csvBtn, reportBtn].filter(Boolean).length : 0;
+    const exportGroupWidth = exportCount > 0
+      ? (exportCount * fabSize) + ((exportCount - 1) * gap)
+      : 0;
+
+    const separateCount = 1 + (hasStandard ? 1 : 0);
+    const groupParts = [];
+    if (exportGroupWidth) groupParts.push(exportGroupWidth);
+    if (hasStandard) groupParts.push(fabSize);
+    groupParts.push(fabSize);
+
+    const totalWidth = groupParts.reduce((sum, width) => sum + width, 0) + Math.max(0, groupParts.length - 1) * gap;
+    let cursor = (window.innerWidth - totalWidth) / 2;
+
+    if (bar) {
+      if (hasExports) {
+        bar.style.left = `${Math.round(cursor)}px`;
+        bar.style.right = "auto";
+        bar.style.transform = "none";
+        bar.style.width = `${Math.round(exportGroupWidth)}px`;
+        cursor += exportGroupWidth + gap;
+      } else {
+        bar.style.left = "";
+        bar.style.right = "";
+        bar.style.transform = "";
+        bar.style.width = "";
+      }
+    }
+
+    if (standardBtn) {
+      if (hasStandard) {
+        standardBtn.style.left = `${Math.round(cursor + fabSize / 2)}px`;
+        standardBtn.style.right = "auto";
+        standardBtn.style.transform = "translateX(-50%)";
+        cursor += fabSize + gap;
+      } else {
+        standardBtn.style.left = "";
+        standardBtn.style.right = "";
+        standardBtn.style.transform = "";
+      }
+    }
+
+    fab.style.left = `${Math.round(cursor + fabSize / 2)}px`;
+    fab.style.right = "auto";
+    fab.style.transform = "translateX(-50%)";
+  });
+}
+
+window.addEventListener("resize", updateCostsFloatingActionsLayout);
 
 
 startApp();
