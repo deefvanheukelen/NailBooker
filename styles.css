@@ -5922,6 +5922,10 @@ button.is-action-locked .app-action-nav-label {
   animation: revenueBarGrow 0.55s ease-out both;
 }
 
+.revenue-bar-stack.is-mixed {
+  background: #f3e7ec;
+}
+
 .revenue-bar-segment {
   animation: revenueSegmentFade 0.45s ease-out both;
 }
@@ -10289,84 +10293,189 @@ body.agenda-day-mode #agendaCalendarModeToggle {
   align-self: start !important;
 }
 
+/* =========================================================
+   FIX OMZETGRAFIEK 2026-06-10
+   - Betaald/onbetaald staan naast elkaar per x-waarde.
+   - Lichte totaalbalk enkel bij combinatie betaald + onbetaald.
+========================================================= */
+.revenue-bar-stack {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: visible;
+  background: transparent;
+}
+
+.revenue-bar-stack.is-mixed {
+  background: #f3e7ec;
+}
+
+.revenue-bar-segments {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+
+.revenue-bar-segment {
+  flex: 0 0 4px;
+  width: 4px;
+  min-width: 4px;
+  border-radius: 0;
+}
+
+.revenue-bar-stack:not(.is-mixed) .revenue-bar-segments {
+  gap: 0;
+}
+
+.revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed,
+.revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed,
+.revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
+  width: 12px;
+}
+
+.revenue-bars.revenue-bars-day-dynamic .revenue-bar-stack.is-mixed {
+  width: max(12px, min(32px, var(--revenue-day-stack-width, 16px)));
+}
+
+@media (max-width: 420px) {
+  .revenue-bar-segment {
+    flex-basis: 3px;
+    width: 3px;
+    min-width: 3px;
+  }
+
+  .revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed,
+  .revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed,
+  .revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
+    width: 9px;
+  }
+}
 
 /* =========================================================
-   OMZETGRAFIEK: betaalde/onbetaalde balken naast elkaar
-   - lichte achtergrondbalk = totaal betaald + onbetaald
-   - groen links, rood rechts, tegen elkaar
+   FIX OMZETGRAFIEK 2026-06-10
+   - Behoud dynamische staafbreedte.
+   - Betaald/onbetaald staan naast elkaar binnen dezelfde dynamische breedte.
+   - Lichte totaalbalk blijft enkel zichtbaar bij gemengde omzet.
 ========================================================= */
-.revenue-hidden-filter-card {
+.revenue-bar-segments {
+  width: 100%;
+}
+
+.revenue-bar-segment {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.revenue-bars.revenue-bars-even .revenue-bar-stack.is-mixed {
+  width: min(70%, 22px);
+}
+
+.revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed {
+  width: min(72%, 10px);
+}
+
+.revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
+  width: min(72%, 18px);
+}
+
+.revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed {
+  width: min(62%, 28px);
+}
+
+.revenue-bars.revenue-bars-day-dynamic .revenue-bar-stack.is-mixed {
+  width: var(--revenue-day-stack-width, 20px);
+  max-width: 72%;
+}
+
+@media (max-width: 520px) {
+  .revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed {
+    width: min(72%, 9px);
+  }
+}
+
+/* =========================================================
+   NOODFIX KOSTEN: standaardkostenknop terug compact
+   - Overschrijft eerdere 58px-regels die de knop opnieuw te groot maakten
+   - Laat de omzetgrafiek ongemoeid
+========================================================= */
+#standardCostsBtn.fab.fab-secondary {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex: 0 0 52px !important;
+  padding: 0 !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+#standardCostsBtn.fab.fab-secondary > span {
+  display: grid !important;
+  place-items: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  line-height: 1 !important;
+  transform: translateY(-1px) !important;
+}
+
+#standardCostsBtn.fab.fab-secondary .fab-menu-lines,
+#standardCostsBtn.fab.fab-secondary svg,
+#standardCostsBtn.fab.fab-secondary .standard-costs-icon {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+}
+
+/* =========================================================
+   DEFINITIEVE FIX: Kosten-acties alleen op kostenpagina
+   + dynamisch gecentreerd volgens zichtbare knoppen
+========================================================= */
+#standardCostsBtn.hidden,
+#costsActionBar.hidden,
+body:not(.costs-action-mode) #standardCostsBtn,
+body:not(.costs-action-mode) #costsActionBar {
   display: none !important;
 }
 
-.revenue-bar-group {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: end;
-  justify-items: stretch;
-  width: 16px;
-  min-height: 0;
-  background: transparent;
-  overflow: visible;
-  transform-origin: bottom;
-  animation: revenueBarGrow 0.55s ease-out both;
+body.costs-action-mode #standardCostsBtn:not(.hidden) {
+  display: grid !important;
+  place-items: center !important;
 }
 
-.revenue-bar-total {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: #f6e3e5;
-  opacity: 0.9;
+body.costs-action-mode #floatingAddBtn {
+  left: calc(50% + var(--costs-add-offset, 0px)) !important;
 }
 
-.revenue-bar-single {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  align-self: end;
-  border-radius: 0;
-  animation: revenueSegmentFade 0.45s ease-out both;
+body.costs-action-mode #standardCostsBtn {
+  left: calc(50% + var(--costs-standard-offset, 0px)) !important;
 }
 
-.revenue-bar-single.paid {
-  background: #2d8b4e;
-  grid-column: 1;
+#costsActionBar.costs-action-bar {
+  left: calc(50% + var(--costs-export-offset, 0px)) !important;
+  transform: translateX(-50%) !important;
+  gap: 10px !important;
+  justify-content: center !important;
 }
 
-.revenue-bar-single.unpaid {
-  background: #d46a6a;
-  grid-column: 2;
+#costsActionBar.costs-action-bar .client-action-btn.hidden {
+  display: none !important;
 }
 
-.revenue-bars.revenue-bars-even .revenue-bar-group {
-  width: min(72%, 28px);
-}
-
-.revenue-bars.revenue-bars-month .revenue-bar-group {
-  width: min(88%, 14px);
-}
-
-.revenue-bars.revenue-bars-year .revenue-bar-group {
-  width: min(82%, 24px);
-}
-
-.revenue-bars.revenue-bars-week .revenue-bar-group {
-  width: min(70%, 38px);
-}
-
-.revenue-bars.revenue-bars-day-dynamic .revenue-bar-group {
-  width: min(72%, var(--revenue-day-stack-width, 24px));
-}
-
-/* =========================================================
-   KOSTEN: standaardknop exact dezelfde diameter als + knop
-   Laatste override om oudere kostenknop-regels te neutraliseren.
-========================================================= */
-body.costs-action-mode #standardCostsBtn,
-body.costs-action-mode .fab-secondary {
+#costsActionBar #costsExportCsvBtn,
+#costsActionBar #costsExportReportBtn {
   width: 58px !important;
   height: 58px !important;
   min-width: 58px !important;
@@ -10379,18 +10488,24 @@ body.costs-action-mode .fab-secondary {
   box-sizing: border-box !important;
 }
 
-body.costs-action-mode #standardCostsBtn .fab-menu-lines,
-body.costs-action-mode #standardCostsBtn svg,
-body.costs-action-mode #standardCostsBtn .standard-costs-icon {
-  width: 20px !important;
-  height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
+#standardCostsBtn.fab.fab-secondary {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex: 0 0 52px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 @media (max-width: 420px) {
-  body.costs-action-mode #standardCostsBtn,
-  body.costs-action-mode .fab-secondary {
+  #costsActionBar #costsExportCsvBtn,
+  #costsActionBar #costsExportReportBtn,
+  #standardCostsBtn.fab.fab-secondary {
     width: 52px !important;
     height: 52px !important;
     min-width: 52px !important;
@@ -10400,60 +10515,28 @@ body.costs-action-mode #standardCostsBtn .standard-costs-icon {
     flex: 0 0 52px !important;
     padding: 0 !important;
   }
-
-  body.costs-action-mode #standardCostsBtn .fab-menu-lines,
-  body.costs-action-mode #standardCostsBtn svg,
-  body.costs-action-mode #standardCostsBtn .standard-costs-icon {
-    width: 18px !important;
-    height: 18px !important;
-    max-width: 18px !important;
-    max-height: 18px !important;
-  }
 }
 
 /* =========================================================
-   DAGKALENDER: subtiele overlay-labels voor afspraken buiten beeld
+   FINALE FIX: standaardkostenknop nooit buiten geldige context
+   Deze regels staan bewust helemaal onderaan, zodat oudere noodfixes
+   met display:grid !important de verborgen status niet meer overrulen.
 ========================================================= */
-.agenda-day-calendar {
-  position: relative;
-}
-
-.agenda-day-overflow-marker {
-  position: absolute;
-  left: 58px;
-  z-index: 18;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 14px;
-  padding: 0 6px 2px;
-  border: 1px solid rgba(184, 109, 135, 0.12);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.78);
-  color: rgba(184, 109, 135, 0.72);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 1px;
-  box-shadow: 0 1px 3px rgba(84, 48, 65, 0.06);
-  pointer-events: none;
-  backdrop-filter: blur(3px);
-}
-
-.agenda-day-overflow-marker.show {
-  display: inline-flex;
-}
-
-.agenda-day-overflow-marker-top {
-  top: 4px;
-}
-
-.agenda-day-overflow-marker-bottom {
-  bottom: 4px;
-}
-
-.agenda-day-calendar.is-day-swiping .agenda-day-overflow-marker,
-.agenda-day-calendar.is-day-swipe-animating .agenda-day-overflow-marker {
+#standardCostsBtn.hidden,
+body:not(.costs-action-mode) #standardCostsBtn,
+body:not(.costs-action-mode) #standardCostsBtn.fab.fab-secondary {
   display: none !important;
+  pointer-events: none !important;
+}
+
+body.costs-action-mode #standardCostsBtn.hidden,
+body.costs-action-mode #standardCostsBtn.fab.fab-secondary.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
+  display: grid !important;
+  place-items: center !important;
+  pointer-events: auto !important;
 }
