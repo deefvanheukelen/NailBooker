@@ -1505,6 +1505,16 @@ async function getCurrentProfile() {
     return profile ?? null;
 }
 
+function updateAdminNavVisibility(profile = null) {
+  const adminNavBtn = document.getElementById("adminNavBtn");
+  if (!adminNavBtn) return;
+
+  const showAdminNav = Boolean(profile?.is_admin);
+  adminNavBtn.classList.toggle("hidden", !showAdminNav);
+  adminNavBtn.disabled = !showAdminNav || isAuthLocked();
+  adminNavBtn.setAttribute("aria-hidden", String(!showAdminNav));
+  adminNavBtn.tabIndex = showAdminNav ? 0 : -1;
+}
 
 function extractFirstNameFromUser(user, profile = null) {
   if (profile?.first_name?.trim()) return profile.first_name.trim();
@@ -1614,6 +1624,7 @@ async function upsertProfile(userId, values) {
 async function syncAuthUI() {
 	const { data: { user } } = await supabaseClient.auth.getUser();
 	const profile = await getCurrentProfile();
+  updateAdminNavVisibility(profile);
   currentProfilePreferences = {
     language: normalizeLanguage(profile?.language || user?.user_metadata?.language || getData()?.settings?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(profile?.currency || user?.user_metadata?.currency || getData()?.settings?.currency || DEFAULT_CURRENCY)
@@ -2716,7 +2727,7 @@ function switchScreen(screenId, title, options = {}) {
 
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "adminScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -3207,6 +3218,10 @@ function getMainSwipeScreens() {
       title: btn.dataset.title || btn.textContent.trim()
     }))
     .filter(item => item.screenId && document.getElementById(item.screenId))
+    .filter(item => {
+      const btn = document.querySelector(`.bottom-nav .nav-btn[data-screen="${item.screenId}"]`);
+      return !btn || (!btn.classList.contains("hidden") && btn.getAttribute("aria-hidden") !== "true" && !btn.disabled);
+    })
     .filter(item => !isAuthLocked() || item.screenId === "accountScreen");
 }
 
