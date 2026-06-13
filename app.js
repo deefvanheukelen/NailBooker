@@ -142,6 +142,11 @@ function buildCurrencyOptions(selected = DEFAULT_CURRENCY) {
   return SUPPORTED_CURRENCIES.map(item => `<option value="${item.code}"${item.code === safe ? " selected" : ""}>${item.label} (${item.symbol})</option>`).join("");
 }
 
+function normalizePaymentReferencePrefix(value) {
+  const text = String(value || "").trim();
+  return text === "Idle & Ease" ? "" : text;
+}
+
 function updateStaticI18n() {
   document.documentElement.lang = getCurrentLanguage().slice(0, 2);
 
@@ -400,10 +405,8 @@ function capitalizeFirst(value) {
 
 const defaultPaymentMethods = [
   { id: 1, name: "Cash", sortOrder: 1 },
-  { id: 2, name: "Bancontact", sortOrder: 2 },
-  { id: 3, name: "Kaart", sortOrder: 3 },
-  { id: 4, name: "Overschrijving", sortOrder: 4 },
-  { id: 5, name: "Andere", sortOrder: 5 }
+  { id: 2, name: "Overschrijving", sortOrder: 2 },
+  { id: 3, name: "QR-Code", sortOrder: 3 }
 ];
 
 const revenuePickerState = {
@@ -478,12 +481,13 @@ function getDefaultSettings() {
     reminderMinutes: 30,
     overlapWarningsEnabled: true,
     agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
+    showTipsOnOpen: true,
     language: DEFAULT_LANGUAGE,
     currency: DEFAULT_CURRENCY,
     paymentBeneficiaryName: "",
     paymentIban: "",
     paymentBic: "",
-    paymentReferencePrefix: "Idle & Ease",
+    paymentReferencePrefix: "",
     calendarFeedToken: ""
   };
 }
@@ -1136,7 +1140,7 @@ async function ensureCalendarFeedToken({ forceNew = false } = {}) {
     payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
     payment_iban: currentSettings.paymentIban || null,
     payment_bic: currentSettings.paymentBic || null,
-    payment_reference_prefix: currentSettings.paymentReferencePrefix || "Idle & Ease",
+    payment_reference_prefix: String(currentSettings.paymentReferencePrefix || "").trim() || null,
     calendar_feed_token: token,
     updated_at: new Date().toISOString()
   };
@@ -1494,7 +1498,7 @@ async function getCurrentProfile() {
 
     const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("first_name, last_name, salon_name, vat_number, language, currency, terms_accepted, terms_accepted_at")
+        .select("first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -1586,10 +1590,14 @@ async function uploadAvatar(userId, file) {
 async function upsertProfile(userId, values) {
   const payload = {
     id: userId,
+    email: values.email || null,
     first_name: values.first_name || "",
     last_name: values.last_name || "",
     salon_name: values.salon_name || null,
     vat_number: values.vat_number || null,
+    country: values.country || null,
+    region: values.region || null,
+    timezone: values.timezone || null,
     language: normalizeLanguage(values.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(values.currency || DEFAULT_CURRENCY),
     terms_accepted: Boolean(values.terms_accepted),
@@ -1610,6 +1618,17 @@ async function syncAuthUI() {
     language: normalizeLanguage(profile?.language || user?.user_metadata?.language || getData()?.settings?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(profile?.currency || user?.user_metadata?.currency || getData()?.settings?.currency || DEFAULT_CURRENCY)
   };
+
+  if (user && profile?.is_blocked) {
+    await supabaseClient.auth.signOut();
+    setAuthLocked(true);
+    const reason = profile?.blocked_reason ? `
+
+Reden: ${profile.blocked_reason}` : "";
+    await appAlert(`Dit account is tijdelijk geblokkeerd. Neem contact op met NailBooker support.${reason}`, { title: "Account geblokkeerd", variant: "warning" });
+    return;
+  }
+
   updateStaticI18n();
 
   setAuthLocked(!user);
@@ -1772,6 +1791,29 @@ function scheduleAuthUiRefresh() {
   }, 0);
 }
 
+function refreshEditProfileSelects() {
+  ["editLanguage", "editCountry", "editRegion", "editTimezone", "editCurrency"].forEach(id => {
+    const select = document.getElementById(id);
+    if (select && typeof refreshAppSelect === "function") refreshAppSelect(select);
+  });
+}
+
+function syncEditProfileRegionOptions() {
+  const countryEl = document.getElementById("editCountry");
+  const regionEl = document.getElementById("editRegion");
+  const timezoneEl = document.getElementById("editTimezone");
+  if (!countryEl || !regionEl) return;
+
+  const previousRegion = regionEl.value;
+  const regions = getRegistrationRegions(countryEl.value || "BE");
+  regionEl.innerHTML = regions.map(region => `<option value="${region.value}">${region.label}</option>`).join("");
+  regionEl.value = regions.some(region => region.value === previousRegion) ? previousRegion : regions[0]?.value || "";
+
+  const selectedRegion = regions.find(region => region.value === regionEl.value) || regions[0];
+  if (timezoneEl && selectedRegion?.timezone) timezoneEl.value = selectedRegion.timezone;
+  refreshEditProfileSelects();
+}
+
 async function openEditProfileDialog() {
   const { data: userData } = await supabaseClient.auth.getUser();
   const user = userData?.user;
@@ -1783,13 +1825,47 @@ async function openEditProfileDialog() {
   const profile = await getCurrentProfile();
   document.getElementById("editFirstName").value = profile?.first_name || user.user_metadata?.first_name || "";
   document.getElementById("editLastName").value = profile?.last_name || user.user_metadata?.last_name || "";
-  document.getElementById("editSalonName").value = profile?.salon_name || "";
-  document.getElementById("editVatNumber").value = profile?.vat_number || "";
+  document.getElementById("editSalonName").value = profile?.salon_name || user.user_metadata?.salon_name || "";
+  document.getElementById("editVatNumber").value = profile?.vat_number || user.user_metadata?.vat_number || "";
+
   const editLanguage = document.getElementById("editLanguage");
+  const editCountry = document.getElementById("editCountry");
+  const editRegion = document.getElementById("editRegion");
+  const editTimezone = document.getElementById("editTimezone");
   const editCurrency = document.getElementById("editCurrency");
-  if (editLanguage) editLanguage.innerHTML = buildLanguageOptions(profile?.language || getCurrentLanguage());
-  if (editCurrency) editCurrency.innerHTML = buildCurrencyOptions(profile?.currency || getCurrentCurrency());
+
+  const selectedLanguage = normalizeLanguage(profile?.language || user.user_metadata?.language || getCurrentLanguage());
+  const selectedCurrency = normalizeCurrency(profile?.currency || user.user_metadata?.currency || getCurrentCurrency());
+  const selectedCountry = profile?.country || user.user_metadata?.country || "BE";
+  const selectedRegion = profile?.region || user.user_metadata?.region || "";
+  const selectedTimezone = profile?.timezone || user.user_metadata?.timezone || "Europe/Brussels";
+
+  if (editLanguage) {
+    editLanguage.innerHTML = buildLanguageOptions(selectedLanguage);
+    editLanguage.value = selectedLanguage;
+  }
+
+  if (editCountry) editCountry.value = selectedCountry;
+  syncEditProfileRegionOptions();
+
+  if (editRegion && selectedRegion) {
+    const regionExists = Array.from(editRegion.options || []).some(option => option.value === selectedRegion);
+    if (regionExists) editRegion.value = selectedRegion;
+  }
+
+  if (editTimezone) editTimezone.value = selectedTimezone;
+
+  if (editCurrency) {
+    editCurrency.innerHTML = buildCurrencyOptions(selectedCurrency);
+    editCurrency.value = selectedCurrency;
+  }
+
+  refreshEditProfileSelects();
   document.getElementById("editProfileDialog").showModal();
+  window.requestAnimationFrame(() => {
+    refreshEditProfileSelects();
+    window.requestAnimationFrame(refreshEditProfileSelects);
+  });
 }
 
 async function saveProfileFromForm(event) {
@@ -1799,6 +1875,9 @@ async function saveProfileFromForm(event) {
   const lastName = document.getElementById("editLastName")?.value.trim();
   const salonName = document.getElementById("editSalonName")?.value.trim() || "";
   const vatNumber = document.getElementById("editVatNumber")?.value.trim() || "";
+  const country = document.getElementById("editCountry")?.value || "BE";
+  const region = document.getElementById("editRegion")?.value || "Flanders";
+  const timezone = document.getElementById("editTimezone")?.value || "Europe/Brussels";
   const language = normalizeLanguage(document.getElementById("editLanguage")?.value || getCurrentLanguage());
   const currency = normalizeCurrency(document.getElementById("editCurrency")?.value || getCurrentCurrency());
 
@@ -1824,6 +1903,9 @@ async function saveProfileFromForm(event) {
         full_name: `${firstName} ${lastName}`.trim(),
         salon_name: salonName,
         vat_number: vatNumber,
+        country,
+        region,
+        timezone,
         language,
         currency,
         terms_accepted: true
@@ -1839,6 +1921,9 @@ async function saveProfileFromForm(event) {
       last_name: lastName,
       salon_name: salonName,
       vat_number: vatNumber,
+      country,
+      region,
+      timezone,
       language,
       currency,
       terms_accepted: true,
@@ -1994,76 +2079,346 @@ async function savePasswordFromForm(event) {
   }
 }
 
+
+const registerWizardState = { step: 1 };
+
+const registerWizardCopy = {
+  "nl-BE": {
+    title: "Registreren",
+    subtitle: "Maak je NailBooker-account aan in enkele korte stappen.",
+    stepTitles: ["Taal", "E-mail", "Gegevens", "Beveiliging"],
+    languageHint: "De app wordt meteen in deze taal gezet.",
+    emailHint: "Dit e-mailadres gebruik je om in te loggen en om je account te verifiëren.",
+    verifyHint: "Na registratie krijg je een e-mail om je account te voltooien.",
+    terms: "Akkoord met gebruiksvoorwaarden",
+    previous: "Vorige",
+    next: "Volgende",
+    register: "Registreren",
+    country: "Land",
+    region: "Regio",
+    timezone: "Tijdzone",
+    emailExists: "Er bestaat al een account voor dit e-mailadres. Log in of gebruik een ander e-mailadres.",
+    emailCheckFailed: "E-mailcontrole mislukt. Probeer opnieuw.",
+    requiredEmail: "Vul een geldig e-mailadres in.",
+    requiredDetails: "Vul voornaam, naam, salonnaam, land, regio en tijdzone in.",
+    requiredPassword: "Vul je wachtwoord en bevestiging in.",
+    termsRequired: "Je moet akkoord gaan met de gebruiksvoorwaarden om te registreren.",
+    passwordMismatch: "De wachtwoorden komen niet overeen.",
+    registrationDone: "Registratie gelukt. Controleer je mailbox en klik op de bevestigingslink om je account te voltooien.",
+    duplicateFallback: "Er bestaat mogelijk al een account voor dit e-mailadres. Probeer in te loggen of gebruik een ander e-mailadres."
+  },
+  "en-GB": {
+    title: "Register",
+    subtitle: "Create your NailBooker account in a few short steps.",
+    stepTitles: ["Language", "Email", "Details", "Security"],
+    languageHint: "The app switches to this language immediately.",
+    emailHint: "You use this email address to log in and verify your account.",
+    verifyHint: "After registration, you will receive an email to complete your account.",
+    terms: "I agree to the terms of use",
+    previous: "Previous",
+    next: "Next",
+    register: "Register",
+    country: "Country",
+    region: "Region",
+    timezone: "Time zone",
+    emailExists: "An account already exists for this email address. Log in or use another email address.",
+    emailCheckFailed: "Email check failed. Please try again.",
+    requiredEmail: "Enter a valid email address.",
+    requiredDetails: "Enter first name, last name, salon name, country, region and time zone.",
+    requiredPassword: "Enter your password and confirmation.",
+    termsRequired: "You must agree to the terms of use to register.",
+    passwordMismatch: "The passwords do not match.",
+    registrationDone: "Registration successful. Check your mailbox and click the confirmation link to complete your account.",
+    duplicateFallback: "An account may already exist for this email address. Try logging in or use another email address."
+  },
+  "fr-FR": {
+    title: "S'inscrire",
+    subtitle: "Créez votre compte NailBooker en quelques étapes courtes.",
+    stepTitles: ["Langue", "E-mail", "Données", "Sécurité"],
+    languageHint: "L'application passe immédiatement dans cette langue.",
+    emailHint: "Vous utilisez cette adresse e-mail pour vous connecter et vérifier votre compte.",
+    verifyHint: "Après l'inscription, vous recevrez un e-mail pour compléter votre compte.",
+    terms: "J'accepte les conditions d'utilisation",
+    previous: "Précédent",
+    next: "Suivant",
+    register: "S'inscrire",
+    country: "Pays",
+    region: "Région",
+    timezone: "Fuseau horaire",
+    emailExists: "Un compte existe déjà pour cette adresse e-mail. Connectez-vous ou utilisez une autre adresse.",
+    emailCheckFailed: "La vérification de l'e-mail a échoué. Réessayez.",
+    requiredEmail: "Saisissez une adresse e-mail valable.",
+    requiredDetails: "Saisissez le prénom, le nom, le nom du salon, le pays, la région et le fuseau horaire.",
+    requiredPassword: "Saisissez votre mot de passe et sa confirmation.",
+    termsRequired: "Vous devez accepter les conditions d'utilisation pour vous inscrire.",
+    passwordMismatch: "Les mots de passe ne correspondent pas.",
+    registrationDone: "Inscription réussie. Consultez votre boîte mail et cliquez sur le lien de confirmation pour compléter votre compte.",
+    duplicateFallback: "Un compte existe peut-être déjà pour cette adresse e-mail. Essayez de vous connecter ou utilisez une autre adresse."
+  }
+};
+
+function getRegisterCopy() {
+  return registerWizardCopy[getCurrentLanguage()] || registerWizardCopy[DEFAULT_LANGUAGE];
+}
+
+function getRegistrationRegions(country) {
+  if (country === "NL") return [{ value: "NL", label: "Nederland", timezone: "Europe/Amsterdam" }];
+  return [
+    { value: "Flanders", label: "Vlaanderen", timezone: "Europe/Brussels" },
+    { value: "Brussels", label: "Brussel", timezone: "Europe/Brussels" }
+  ];
+}
+
+function syncRegisterRegionOptions() {
+  const countryEl = document.getElementById("registerCountry");
+  const regionEl = document.getElementById("registerRegion");
+  const timezoneEl = document.getElementById("registerTimezone");
+  if (!countryEl || !regionEl) return;
+
+  const previousRegion = regionEl.value;
+  const regions = getRegistrationRegions(countryEl.value || "BE");
+  regionEl.innerHTML = regions.map(region => `<option value="${region.value}">${region.label}</option>`).join("");
+  regionEl.value = regions.some(region => region.value === previousRegion) ? previousRegion : regions[0]?.value || "";
+
+  const selectedRegion = regions.find(region => region.value === regionEl.value) || regions[0];
+  if (timezoneEl && selectedRegion?.timezone) timezoneEl.value = selectedRegion.timezone;
+  refreshRegisterWizardSelects();
+}
+
+function refreshRegisterWizardSelects() {
+  ["registerLanguage", "registerCountry", "registerRegion", "registerTimezone", "registerCurrency"].forEach(id => {
+    const select = document.getElementById(id);
+    if (select && typeof refreshAppSelect === "function") refreshAppSelect(select);
+  });
+}
+
+function setRegisterStep(step) {
+  registerWizardState.step = Math.min(4, Math.max(1, Number(step) || 1));
+  const copy = getRegisterCopy();
+
+  document.querySelectorAll(".register-step").forEach(section => {
+    section.classList.toggle("active", Number(section.dataset.registerStep) === registerWizardState.step);
+  });
+  document.querySelectorAll(".register-progress-dot").forEach(dot => {
+    const value = Number(dot.dataset.registerProgress);
+    dot.classList.toggle("active", value === registerWizardState.step);
+    dot.classList.toggle("done", value < registerWizardState.step);
+  });
+
+  const title = document.getElementById("registerDialogTitle");
+  const subtitle = document.getElementById("registerDialogSubtitle");
+  if (title) title.textContent = `${copy.title} · ${copy.stepTitles[registerWizardState.step - 1]}`;
+  if (subtitle) subtitle.textContent = copy.subtitle;
+
+  document.getElementById("registerLanguageHint") && (document.getElementById("registerLanguageHint").textContent = copy.languageHint);
+  document.getElementById("registerEmailHint") && (document.getElementById("registerEmailHint").textContent = copy.emailHint);
+  document.getElementById("registerVerifyHint") && (document.getElementById("registerVerifyHint").textContent = copy.verifyHint);
+  document.getElementById("registerTermsLabel") && (document.getElementById("registerTermsLabel").textContent = copy.terms);
+  document.getElementById("registerBackBtn") && (document.getElementById("registerBackBtn").textContent = copy.previous);
+  document.getElementById("registerNextBtn") && (document.getElementById("registerNextBtn").textContent = copy.next);
+  document.getElementById("registerBtn") && (document.getElementById("registerBtn").textContent = copy.register);
+
+  const backBtn = document.getElementById("registerBackBtn");
+  const nextBtn = document.getElementById("registerNextBtn");
+  const submitBtn = document.getElementById("registerBtn");
+  if (backBtn) backBtn.classList.toggle("hidden", registerWizardState.step === 1);
+  if (nextBtn) nextBtn.classList.toggle("hidden", registerWizardState.step === 4);
+  if (submitBtn) submitBtn.classList.toggle("hidden", registerWizardState.step !== 4);
+
+  const labelMap = {
+    registerEmail: "email",
+    registerFirstName: "firstName",
+    registerLastName: "lastName",
+    registerSalonName: "salonName",
+    registerCurrency: "currency",
+    registerPassword: "password",
+    registerPasswordConfirm: "confirmPassword"
+  };
+  Object.entries(labelMap).forEach(([id, key]) => {
+    const label = document.querySelector(`label[for="${id}"]`);
+    if (label) label.textContent = t(key);
+  });
+  const countryLabel = document.querySelector('label[for="registerCountry"]');
+  const regionLabel = document.querySelector('label[for="registerRegion"]');
+  const timezoneLabel = document.querySelector('label[for="registerTimezone"]');
+  if (countryLabel) countryLabel.textContent = copy.country;
+  if (regionLabel) regionLabel.textContent = copy.region;
+  if (timezoneLabel) timezoneLabel.textContent = copy.timezone;
+
+  window.requestAnimationFrame(refreshRegisterWizardSelects);
+}
+
+function resetRegisterWizard() {
+  const form = document.getElementById("registerForm");
+  if (form) form.reset();
+  const lang = document.getElementById("registerLanguage");
+  if (lang) lang.value = getCurrentLanguage();
+  syncRegisterRegionOptions();
+  setRegisterStep(1);
+  window.requestAnimationFrame(refreshRegisterWizardSelects);
+}
+
+function getRegisterValues() {
+  return {
+    language: normalizeLanguage(document.getElementById("registerLanguage")?.value || DEFAULT_LANGUAGE),
+    email: document.getElementById("registerEmail")?.value.trim() || "",
+    firstName: document.getElementById("registerFirstName")?.value.trim() || "",
+    lastName: document.getElementById("registerLastName")?.value.trim() || "",
+    salonName: document.getElementById("registerSalonName")?.value.trim() || "",
+    country: document.getElementById("registerCountry")?.value || "BE",
+    region: document.getElementById("registerRegion")?.value || "Flanders",
+    timezone: document.getElementById("registerTimezone")?.value || "Europe/Brussels",
+    currency: normalizeCurrency(document.getElementById("registerCurrency")?.value || DEFAULT_CURRENCY),
+    password: document.getElementById("registerPassword")?.value || "",
+    passwordConfirm: document.getElementById("registerPasswordConfirm")?.value || "",
+    termsAccepted: Boolean(document.getElementById("registerTermsAccepted")?.checked)
+  };
+}
+
+async function checkRegisterEmailAlreadyExists(email) {
+  const cleanEmail = String(email || "").trim().toLocaleLowerCase();
+  if (!cleanEmail) return false;
+
+  try {
+    const { data, error } = await supabaseClient.rpc("email_exists", { check_email: cleanEmail });
+    if (error) {
+      console.warn("email_exists RPC niet beschikbaar of mislukt:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (error) {
+    console.warn("E-mailcontrole overgeslagen:", error?.message || error);
+    return false;
+  }
+}
+
+async function validateRegisterStep(step = registerWizardState.step) {
+  const values = getRegisterValues();
+  const copy = getRegisterCopy();
+
+  if (step === 2) {
+    if (!values.email || !values.email.includes("@")) {
+      await appAlert(copy.requiredEmail, { title: copy.stepTitles[1], variant: "warning" });
+      return false;
+    }
+    const exists = await checkRegisterEmailAlreadyExists(values.email);
+    if (exists) {
+      await appAlert(copy.emailExists, { title: copy.stepTitles[1], variant: "warning" });
+      return false;
+    }
+  }
+
+  if (step === 3) {
+    if (!values.firstName || !values.lastName || !values.salonName || !values.country || !values.region || !values.timezone) {
+      await appAlert(copy.requiredDetails, { title: copy.stepTitles[2], variant: "warning" });
+      return false;
+    }
+  }
+
+  if (step === 4) {
+    if (!values.password || !values.passwordConfirm) {
+      await appAlert(copy.requiredPassword, { title: copy.stepTitles[3], variant: "warning" });
+      return false;
+    }
+    if (!values.termsAccepted) {
+      await appAlert(copy.termsRequired, { title: copy.stepTitles[3], variant: "warning" });
+      return false;
+    }
+    if (values.password !== values.passwordConfirm) {
+      await appAlert(copy.passwordMismatch, { title: copy.stepTitles[3], variant: "warning" });
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function goToNextRegisterStep() {
+  if (!(await validateRegisterStep(registerWizardState.step))) return;
+  setRegisterStep(registerWizardState.step + 1);
+}
+
+function goToPreviousRegisterStep() {
+  setRegisterStep(registerWizardState.step - 1);
+}
+
+function handleRegisterLanguageChange(event) {
+  currentProfilePreferences.language = normalizeLanguage(event.target.value || DEFAULT_LANGUAGE);
+  const data = getData();
+  data.settings = { ...getSettings(), language: currentProfilePreferences.language, currency: getCurrentCurrency() };
+  saveData(data);
+  updateStaticI18n();
+  setRegisterStep(registerWizardState.step);
+}
+
 async function registerAccount(event) {
   if (event) event.preventDefault();
 
-  const firstName = document.getElementById("registerFirstName").value.trim();
-  const lastName = document.getElementById("registerLastName").value.trim();
-  const salonName = document.getElementById("registerSalonName")?.value.trim() || "";
-  const vatNumber = document.getElementById("registerVatNumber")?.value.trim() || "";
-  const email = document.getElementById("registerEmail").value.trim();
-  const password = document.getElementById("registerPassword").value;
-  const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
-  const language = normalizeLanguage(document.getElementById("registerLanguage")?.value || DEFAULT_LANGUAGE);
-  const currency = normalizeCurrency(document.getElementById("registerCurrency")?.value || DEFAULT_CURRENCY);
-  const termsAccepted = Boolean(document.getElementById("registerTermsAccepted")?.checked);
+  const copy = getRegisterCopy();
+  if (!(await validateRegisterStep(4))) return;
 
-  if (!firstName || !lastName || !email || !password || !passwordConfirm) {
-    await appAlert("Vul voornaam, naam, e-mail, wachtwoord en bevestiging in.");
+  const values = getRegisterValues();
+  const duplicate = await checkRegisterEmailAlreadyExists(values.email);
+  if (duplicate) {
+    await appAlert(copy.emailExists, { title: copy.stepTitles[1], variant: "warning" });
     return;
   }
 
-  if (!termsAccepted) {
-    await appAlert("Je moet akkoord gaan met de gebruiksvoorwaarden om te registreren.");
-    return;
-  }
-
-  if (password !== passwordConfirm) {
-    await appAlert("De wachtwoorden komen niet overeen.");
-    return;
-  }
+  const emailRedirectTo = `${window.location.origin}${window.location.pathname}`;
 
   const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
+    email: values.email,
+    password: values.password,
     options: {
+      emailRedirectTo,
       data: {
-        first_name: firstName,
-        last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim(),
-        salon_name: salonName,
-        vat_number: vatNumber,
-        language,
-        currency,
+        first_name: values.firstName,
+        last_name: values.lastName,
+        full_name: `${values.firstName} ${values.lastName}`.trim(),
+        salon_name: values.salonName,
+        country: values.country,
+        region: values.region,
+        timezone: values.timezone,
+        language: values.language,
+        currency: values.currency,
         terms_accepted: true
       }
     }
   });
 
   if (error) {
-    await appAlert("Registratie mislukt: " + error.message, { title: "Registratie mislukt", variant: "danger" });
+    const message = String(error.message || "");
+    const isDuplicate = /already|registered|exists|user/i.test(message);
+    await appAlert(isDuplicate ? copy.duplicateFallback : "Registratie mislukt: " + message, { title: copy.title, variant: "danger" });
+    return;
+  }
+
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    await appAlert(copy.duplicateFallback, { title: copy.title, variant: "warning" });
     return;
   }
 
   try {
     if (data.user && data.session) {
       await upsertProfile(data.user.id, {
-        first_name: firstName,
-        last_name: lastName,
-        salon_name: salonName,
-        vat_number: vatNumber,
-        language,
-        currency,
+        email: values.email,
+        first_name: values.firstName,
+        last_name: values.lastName,
+        salon_name: values.salonName,
+        country: values.country,
+        region: values.region,
+        timezone: values.timezone,
+        language: values.language,
+        currency: values.currency,
         terms_accepted: true,
         terms_accepted_at: new Date().toISOString()
       });
     }
   } catch (profileError) {
     console.error("Profiel opslaan mislukt:", profileError.message);
-    await appAlert("Je account is aangemaakt, maar de profielgegevens konden niet volledig opgeslagen worden.", { title: "Registratie voltooid", variant: "warning" });
   }
 
-  document.getElementById("registerForm").reset();
+  resetRegisterWizard();
   closeDialog("registerDialog");
 
   await refreshAuthState();
@@ -2073,12 +2428,18 @@ async function registerAccount(event) {
     rerenderAll();
     await syncAuthUI();
     switchScreen("agendaScreen", t("agenda"));
-    await appAlert("Registratie gelukt. Je bent nu ingelogd.", { title: "Registratie gelukt", variant: "success" });
+    await appAlert("Registratie gelukt. Je bent nu ingelogd.", { title: copy.title, variant: "success" });
+    openWelcomeGuide(true);
   } else {
     await syncAuthUI();
     switchScreen("accountScreen", t("account"));
-    await appAlert("Registratie gelukt. Controleer eventueel je mailbox en log daarna in.", { title: "Registratie gelukt", variant: "success" });
+    await appAlert(copy.registrationDone, { title: copy.title, variant: "success" });
   }
+}
+
+async function isCurrentAccountBlocked() {
+  const profile = await getCurrentProfile();
+  return Boolean(profile?.is_blocked);
 }
 
 async function loginAccount() {
@@ -2092,6 +2453,12 @@ async function loginAccount() {
 
   if (error) {
     await appAlert("Inloggen mislukt: " + error.message, { title: "Inloggen mislukt", variant: "danger" });
+    return;
+  }
+
+  if (await isCurrentAccountBlocked()) {
+    await supabaseClient.auth.signOut();
+    await appAlert("Dit account is tijdelijk geblokkeerd. Neem contact op met de beheerder van NailBooker.", { title: "Account geblokkeerd", variant: "danger" });
     return;
   }
 
@@ -2404,6 +2771,10 @@ function switchScreen(screenId, title, options = {}) {
   updateClientActionBar(activeClient);
   updateRevenueActionBar();
   updateCostsActionBar();
+
+  if (screenId === "agendaScreen") {
+    scheduleWelcomeGuideCheck();
+  }
 
   syncAppBrowserHistory(screenId, title, {
     replace: Boolean(options.replaceHistory),
@@ -6479,6 +6850,7 @@ function getSettingsFormSnapshot() {
     "settingsReminderMinutes",
     "settingsOverlapWarningsEnabled",
     "settingsAgendaFabMenuEnabled",
+    "settingsShowTipsOnOpen",
     "settingsLanguage",
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
@@ -6557,6 +6929,7 @@ function renderSettings() {
   const reminderSelect = document.getElementById("settingsReminderMinutes");
   const overlapToggle = document.getElementById("settingsOverlapWarningsEnabled");
   const agendaFabMenuToggle = document.getElementById("settingsAgendaFabMenuEnabled");
+  const tipsToggle = document.getElementById("settingsShowTipsOnOpen");
   const reminderWrap = document.getElementById("settingsReminderWrap");
   const saveHint = document.getElementById("settingsSaveHint");
   const languageSelect = document.getElementById("settingsLanguage");
@@ -6575,10 +6948,11 @@ function renderSettings() {
   reminderSelect.value = String(settings.reminderMinutes || 30);
   overlapToggle.checked = settings.overlapWarningsEnabled !== false;
   if (agendaFabMenuToggle) agendaFabMenuToggle.checked = settings.agendaFabMenuEnabled !== false;
+  if (tipsToggle) tipsToggle.checked = settings.showTipsOnOpen !== false;
   if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
   if (paymentIbanInput) paymentIbanInput.value = settings.paymentIban || "";
   if (paymentBicInput) paymentBicInput.value = settings.paymentBic || "";
-  if (paymentReferencePrefixInput) paymentReferencePrefixInput.value = settings.paymentReferencePrefix || "Idle & Ease";
+  if (paymentReferencePrefixInput) paymentReferencePrefixInput.value = settings.paymentReferencePrefix || "";
 
   refreshAppSelect(reminderSelect);
   refreshAppSelect(languageSelect);
@@ -6603,9 +6977,72 @@ function renderSettings() {
     saveHint.textContent = t("notificationsPermissionHint");
   }
 
+
   markSettingsCleanFromCurrentForm();
 }
 
+function getWelcomeGuideStorageKey() {
+  try {
+    const email = document.getElementById("accountProfileEmail")?.textContent || "local";
+    return `nailbooker_welcome_guide_seen_${String(email || "local").trim().toLowerCase() || "local"}`;
+  } catch (error) {
+    return "nailbooker_welcome_guide_seen_local";
+  }
+}
+
+function shouldShowWelcomeGuide() {
+  const settings = getSettings();
+  if (settings.showTipsOnOpen === false) return false;
+  if (sessionStorage.getItem("nailbooker_welcome_guide_shown_this_session") === "true") return false;
+
+  const data = getData();
+  const hasClient = Array.isArray(data.customers) && data.customers.length > 0;
+  const hasService = Array.isArray(data.services) && data.services.some(service => service?.isActive !== false);
+  return !hasClient || !hasService;
+}
+
+function setWelcomeGuideVisible(visible) {
+  const overlay = document.getElementById("welcomeGuideOverlay");
+  if (!overlay) return;
+  overlay.classList.toggle("hidden", !visible);
+  overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+  if (visible) {
+    sessionStorage.setItem("nailbooker_welcome_guide_shown_this_session", "true");
+  }
+}
+
+function closeWelcomeGuide({ remember = false } = {}) {
+  if (remember) {
+    try { localStorage.setItem(getWelcomeGuideStorageKey(), "true"); } catch (error) {}
+  }
+  setWelcomeGuideVisible(false);
+}
+
+function openWelcomeGuide(force = false) {
+  if (!force && !shouldShowWelcomeGuide()) return;
+  const data = getData();
+  const clientDone = Array.isArray(data.customers) && data.customers.length > 0;
+  const serviceDone = Array.isArray(data.services) && data.services.some(service => service?.isActive !== false);
+  const appointmentReady = clientDone && serviceDone;
+  const guideToggle = document.getElementById("welcomeGuideTipsToggle");
+  if (guideToggle) guideToggle.checked = getSettings().showTipsOnOpen !== false;
+
+  document.getElementById("welcomeGuideClientCheck")?.classList.toggle("done", clientDone);
+  document.getElementById("welcomeGuideServiceCheck")?.classList.toggle("done", serviceDone);
+  document.getElementById("welcomeGuideAppointmentCheck")?.classList.toggle("done", appointmentReady);
+
+  setWelcomeGuideVisible(true);
+}
+
+function scheduleWelcomeGuideCheck() {
+  window.setTimeout(() => openWelcomeGuide(false), 450);
+}
+
+async function setTipsOnOpenPreference(enabled) {
+  const data = getData();
+  data.settings = { ...getSettings(), showTipsOnOpen: Boolean(enabled) };
+  saveData(data);
+}
 
 async function loadSettingsFromSupabase() {
   const user = await getCurrentUser();
@@ -6628,12 +7065,13 @@ async function loadSettingsFromSupabase() {
     reminderMinutes: Number(data?.reminder_minutes ?? 30),
     overlapWarningsEnabled: data?.overlap_warnings_enabled !== false,
     agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
+    showTipsOnOpen: getData()?.settings?.showTipsOnOpen !== false,
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
     paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
     paymentIban: normalizeIban(data?.payment_iban || ""),
     paymentBic: String(data?.payment_bic || "").trim().toUpperCase(),
-    paymentReferencePrefix: String(data?.payment_reference_prefix || "Idle & Ease").trim() || "Idle & Ease",
+    paymentReferencePrefix: normalizePaymentReferencePrefix(data?.payment_reference_prefix),
     calendarFeedToken: String(data?.calendar_feed_token || "")
   };
 }
@@ -6647,12 +7085,13 @@ async function saveSettingsFromForm(event) {
     reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
     overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked),
     agendaFabMenuEnabled: Boolean(document.getElementById("settingsAgendaFabMenuEnabled")?.checked),
+    showTipsOnOpen: document.getElementById("settingsShowTipsOnOpen")?.checked !== false,
     language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
     paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
     paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
-    paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "Idle & Ease").trim() || "Idle & Ease",
+    paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
 
@@ -6701,7 +7140,7 @@ async function saveSettingsFromForm(event) {
     payment_beneficiary_name: settings.paymentBeneficiaryName || null,
     payment_iban: settings.paymentIban || null,
     payment_bic: settings.paymentBic || null,
-    payment_reference_prefix: settings.paymentReferencePrefix || "Idle & Ease",
+    payment_reference_prefix: settings.paymentReferencePrefix || null,
     calendar_feed_token: settings.calendarFeedToken || null,
     updated_at: new Date().toISOString()
   };
@@ -7771,8 +8210,8 @@ function buildPaymentReference(app, data = getData()) {
   const settings = getSettings();
   const service = serviceById(data, app?.serviceId);
   const treatmentName = service?.name || app?.serviceName || "behandeling";
-  const prefix = String(settings.paymentReferencePrefix || "Idle & Ease").trim() || "Idle & Ease";
-  return `${prefix} - ${treatmentName}`.slice(0, 140);
+  const prefix = String(settings.paymentReferencePrefix || "").trim();
+  return (prefix ? `${prefix} - ${treatmentName}` : treatmentName).slice(0, 140);
 }
 
 function buildEpcQrPayload(app, data = getData()) {
@@ -10116,6 +10555,11 @@ function registerEvents() {
     saveData(data);
     rerenderAll();
   });
+  document.getElementById("settingsShowTipsOnOpen")?.addEventListener("change", event => {
+    setTipsOnOpenPreference(event.target.checked !== false);
+    updateSettingsDirtyState();
+  });
+
   document.getElementById("settingsNotificationsEnabled")?.addEventListener("change", async event => {
     const checked = Boolean(event.target.checked);
     const data = getData();
@@ -10306,11 +10750,18 @@ function registerEvents() {
   const editProfileForm = document.getElementById("editProfileForm");
   const passwordForm = document.getElementById("passwordForm");
 
-  if (registerBtn) registerBtn.addEventListener("click", withActionLock(registerAccount));
   if (registerForm) registerForm.addEventListener("submit", withActionLock(registerAccount));
+  document.getElementById("registerNextBtn")?.addEventListener("click", withActionLock(goToNextRegisterStep));
+  document.getElementById("registerBackBtn")?.addEventListener("click", goToPreviousRegisterStep);
+  document.getElementById("registerLanguage")?.addEventListener("change", handleRegisterLanguageChange);
+  document.getElementById("registerCountry")?.addEventListener("change", syncRegisterRegionOptions);
+  document.getElementById("registerRegion")?.addEventListener("change", syncRegisterRegionOptions);
+  document.getElementById("editCountry")?.addEventListener("change", syncEditProfileRegionOptions);
+  document.getElementById("editRegion")?.addEventListener("change", syncEditProfileRegionOptions);
 
   if (openRegisterBtn) {
     openRegisterBtn.addEventListener("click", () => {
+      resetRegisterWizard();
       document.getElementById("registerDialog").showModal();
       setupPasswordToggleButtons();
     });
@@ -10322,6 +10773,21 @@ function registerEvents() {
   if (changePasswordBtn) changePasswordBtn.addEventListener("click", openPasswordDialog);
   if (editProfileForm) editProfileForm.addEventListener("submit", withActionLock(saveProfileFromForm));
   if (passwordForm) passwordForm.addEventListener("submit", withActionLock(savePasswordFromForm));
+
+  document.getElementById("welcomeGuideCloseBtn")?.addEventListener("click", () => closeWelcomeGuide());
+  document.getElementById("welcomeGuideStartClientBtn")?.addEventListener("click", () => {
+    closeWelcomeGuide();
+    switchScreen("clientsScreen", t("clients"));
+    window.setTimeout(openNewClientDialog, 180);
+  });
+  document.getElementById("welcomeGuideStartServiceBtn")?.addEventListener("click", () => {
+    closeWelcomeGuide();
+    switchScreen("servicesScreen", t("services"));
+    window.setTimeout(openNewServiceDialog, 180);
+  });
+  document.getElementById("welcomeGuideTipsToggle")?.addEventListener("change", event => {
+    setTipsOnOpenPreference(event.target.checked !== false);
+  });
 
   setupPasswordToggleButtons();
   setupAppSelectDropdowns();

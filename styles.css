@@ -7686,7 +7686,7 @@ button.is-action-locked .app-action-nav-label {
   height: 100%;
   min-height: 0;
   overflow: auto;
-  padding: 14px 12px 108px;
+  padding: 14px 12px 168px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -7901,13 +7901,16 @@ button.is-action-locked .app-action-nav-label {
 
 .settings-actions-sticky {
   display: none;
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  margin-top: 2px;
-  padding: 12px;
+  position: fixed;
+  left: max(6px, env(safe-area-inset-left));
+  right: max(6px, env(safe-area-inset-right));
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 6px);
+  z-index: 90;
+  margin: 0 auto;
+  width: min(calc(100% - 12px), 760px);
+  padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 -6px 18px rgba(170, 120, 145, 0.10);
   backdrop-filter: blur(10px);
@@ -7920,9 +7923,17 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .settings-card-modern.is-dirty .settings-actions-sticky {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border-color: #e7bfd0;
   background: #fff8fb;
+}
+
+.settings-actions-sticky .action-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .settings-card-modern.is-dirty .settings-save-hint {
@@ -10581,4 +10592,268 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   background: var(--primary-soft);
   border-color: var(--primary);
   color: var(--text);
+}
+
+/* =========================================================
+   REGISTRATIE WIZARD
+========================================================= */
+.register-modal {
+  width: min(94vw, 430px);
+}
+
+.register-wizard-card {
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.register-wizard-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.register-wizard-head h3 {
+  margin-bottom: 4px;
+}
+
+.register-wizard-subtitle,
+.register-step-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.register-progress {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.register-progress-dot {
+  height: 6px;
+  border-radius: 999px;
+  background: #f0e3e9;
+  transition: background-color 0.18s ease, opacity 0.18s ease;
+}
+
+.register-progress-dot.active,
+.register-progress-dot.done {
+  background: var(--primary);
+}
+
+.register-step {
+  display: none;
+}
+
+.register-step.active {
+  display: block;
+}
+
+.register-step .field-label:not(:first-child) {
+  margin-top: 14px;
+}
+
+.register-step-hint {
+  margin-top: 10px;
+}
+
+.register-wizard-actions {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.register-wizard-actions .btn {
+  flex: 1 1 0;
+}
+
+
+/* ===================== WELKOM / RONDLEIDING ===================== */
+.welcome-guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(42, 31, 38, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+.welcome-guide-overlay.hidden {
+  display: none;
+}
+
+.welcome-guide-card {
+  position: relative;
+  width: min(100%, 430px);
+  max-height: min(88vh, 720px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid #efd8e2;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fffafd 0%, #ffffff 68%);
+  box-shadow: 0 22px 56px rgba(98, 56, 78, 0.24);
+  animation: welcomeGuideIn 0.28s ease both;
+}
+
+@keyframes welcomeGuideIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.welcome-guide-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #f7e8ef;
+  color: var(--primary-dark);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.welcome-guide-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 14px;
+  border-radius: 24px;
+  background: #f9e6ef;
+  color: var(--primary-dark);
+  box-shadow: inset 0 0 0 1px rgba(168, 91, 127, 0.12);
+}
+
+.welcome-guide-calendar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 25px;
+  font-weight: 900;
+  animation: welcomePulse 1.6s ease-in-out infinite;
+}
+
+.welcome-guide-sparkle {
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  font-size: 18px;
+  animation: welcomeSparkle 1.8s ease-in-out infinite;
+}
+
+@keyframes welcomePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes welcomeSparkle {
+  0%, 100% { opacity: 0.45; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(12deg); }
+}
+
+.welcome-guide-card h3 {
+  margin: 0 34px 8px;
+  text-align: center;
+  color: var(--text);
+  font-size: 22px;
+}
+
+.welcome-guide-intro {
+  margin: 0 0 18px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.welcome-guide-steps {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.welcome-guide-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #f0dce5;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.welcome-guide-step strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.welcome-guide-step small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.welcome-guide-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f3e5ec;
+  color: transparent;
+  font-weight: 900;
+}
+
+.welcome-guide-step.done .welcome-guide-check {
+  background: var(--primary);
+  color: #fff;
+}
+
+.welcome-guide-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.welcome-guide-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.welcome-guide-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.welcome-guide-actions .btn {
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .welcome-guide-card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  .welcome-guide-actions {
+    grid-template-columns: 1fr;
+  }
 }

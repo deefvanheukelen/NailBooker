@@ -16,3 +16,6 @@ const supabaseClient = supabase.createClient(
 
 window.supabaseClient = supabaseClient;
 window.recreateSupabaseClient = () => supabaseClient;
+
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
