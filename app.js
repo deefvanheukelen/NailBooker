@@ -2099,6 +2099,7 @@ async function loginAccount() {
 
   await refreshAuthState();
   await loadAllDataFromSupabase();
+  state.revenueLastRenderSignature = "";
   rerenderAll();
   await syncAuthUI();
   switchScreen("agendaScreen", t("agenda"));
@@ -2118,6 +2119,7 @@ async function logoutAccount() {
 
   localStorage.removeItem(STORAGE_KEY);
   seedData();
+  state.revenueLastRenderSignature = "";
   rerenderAll();
   await syncAuthUI();
   switchScreen("accountScreen", t("account"));
@@ -2415,120 +2417,143 @@ function panelIsCalendarSwiping() {
   return panel?.dataset?.swipeAnimating === "true" || panel?.classList?.contains("is-swipe-animating");
 }
 
-function renderCalendar() {
+function createCalendarDayCell(dateStr, dayNumber, { isOtherMonth = false, interactive = true, preview = false } = {}) {
   const data = getData();
-  const grid = document.getElementById("calendarGrid");
+  const appts = getAppointmentsForDate(dateStr, data);
+  const cell = document.createElement("div");
+  const isSelected = dateStr === state.selectedDate;
+  const isToday = dateStr === todayStr;
+  cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}${isOtherMonth ? " other-month" : ""}`;
+  cell.innerHTML = `<button class="day-button" aria-label="${dateStr}"${preview ? ' tabindex="-1" aria-hidden="true"' : ""}></button><span class="day-number">${dayNumber}</span>`;
 
-  grid.innerHTML = "";
-  document.getElementById("monthPickerBtn").textContent = `${getMonthNameUpper(state.currentMonth)} ${state.currentYear}`;
+  if (appts.length) {
+    const dots = document.createElement("div");
+    dots.className = "day-dots";
 
-  const first = new Date(state.currentYear, state.currentMonth, 1);
-  const last = new Date(state.currentYear, state.currentMonth + 1, 0);
+    const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
+    const visibleDots = Math.min(appts.length, maxVisibleDots);
 
-  let weekday = first.getDay();
-  weekday = weekday === 0 ? 7 : weekday;
+    appts.slice(0, visibleDots).forEach(appointment => {
+      const i = document.createElement("i");
+      if (isPrivateAppointment(appointment)) i.classList.add("private-dot");
+      dots.appendChild(i);
+    });
 
-  for (let i = 1; i < weekday; i++) {
-    const empty = document.createElement("div");
-    empty.className = "empty-cell";
-    grid.appendChild(empty);
+    if (appts.length > visibleDots) {
+      const more = document.createElement("span");
+      more.className = "day-dots-more";
+      more.textContent = "+";
+      dots.appendChild(more);
+    }
+
+    cell.appendChild(dots);
   }
 
-  for (let day = 1; day <= last.getDate(); day++) {
-    const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = getAppointmentsForDate(dateStr, data);
+  if (!interactive || preview) return cell;
 
-    const cell = document.createElement("div");
-    const isSelected = dateStr === state.selectedDate;
-    const isToday = dateStr === todayStr;
-    cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}`;
-    cell.innerHTML = `<button class="day-button" aria-label="${dateStr}"></button><span class="day-number">${day}</span>`;
+  let dayTapStartX = 0;
+  let dayTapStartY = 0;
+  let dayTapMoved = false;
+  const dayTapMoveTolerance = 12;
 
-    if (appts.length) {
-      const dots = document.createElement("div");
-      dots.className = "day-dots";
-
-      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
-      const visibleDots = Math.min(appts.length, maxVisibleDots);
-
-      appts.slice(0, visibleDots).forEach(appointment => {
-        const i = document.createElement("i");
-        if (isPrivateAppointment(appointment)) i.classList.add("private-dot");
-        dots.appendChild(i);
-      });
-
-      if (appts.length > visibleDots) {
-        const more = document.createElement("span");
-        more.className = "day-dots-more";
-        more.textContent = "+";
-        dots.appendChild(more);
-      }
-
-      cell.appendChild(dots);
+  const selectCalendarDate = (event = null) => {
+    closeAgendaFabMenu();
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
     }
-
-    let dayTapStartX = 0;
-    let dayTapStartY = 0;
-    let dayTapMoved = false;
-    const dayTapMoveTolerance = 12;
-
-    const selectCalendarDate = (event = null) => {
-      closeAgendaFabMenu();
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      if (state.selectedDate !== dateStr) {
-        state.revenueSyncSelectedDateOnOpen = true;
-      }
-      state.selectedDate = dateStr;
-      renderCalendar();
-      renderAgendaList();
-    };
-
-    const rememberDayTapStart = (x, y) => {
-      dayTapStartX = x;
-      dayTapStartY = y;
-      dayTapMoved = false;
-    };
-
-    const updateDayTapMove = (x, y) => {
-      if (Math.abs(x - dayTapStartX) > dayTapMoveTolerance || Math.abs(y - dayTapStartY) > dayTapMoveTolerance) {
-        dayTapMoved = true;
-      }
-    };
-
-    if (window.PointerEvent) {
-      cell.addEventListener("pointerdown", event => rememberDayTapStart(event.clientX, event.clientY));
-      cell.addEventListener("pointermove", event => updateDayTapMove(event.clientX, event.clientY));
-      cell.addEventListener("pointerup", event => {
-        if (dayTapMoved || panelIsCalendarSwiping()) return;
-        selectCalendarDate(event);
-      });
-    } else {
-      cell.addEventListener("touchstart", event => {
-        if (event.touches.length !== 1) return;
-        rememberDayTapStart(event.touches[0].clientX, event.touches[0].clientY);
-      }, { passive: true });
-      cell.addEventListener("touchmove", event => {
-        if (event.touches.length !== 1) return;
-        updateDayTapMove(event.touches[0].clientX, event.touches[0].clientY);
-      }, { passive: true });
-      cell.addEventListener("touchend", event => {
-        if (dayTapMoved || panelIsCalendarSwiping()) return;
-        selectCalendarDate(event);
-      }, { passive: false });
+    if (state.selectedDate !== dateStr) {
+      state.revenueSyncSelectedDateOnOpen = true;
     }
+    state.selectedDate = dateStr;
+    const picked = new Date(dateStr + "T00:00:00");
+    if (!Number.isNaN(picked.getTime())) {
+      state.currentYear = picked.getFullYear();
+      state.currentMonth = picked.getMonth();
+    }
+    renderCalendar();
+    renderAgendaList();
+  };
 
-    cell.addEventListener("click", event => {
+  const rememberDayTapStart = (x, y) => {
+    dayTapStartX = x;
+    dayTapStartY = y;
+    dayTapMoved = false;
+  };
+
+  const updateDayTapMove = (x, y) => {
+    if (Math.abs(x - dayTapStartX) > dayTapMoveTolerance || Math.abs(y - dayTapStartY) > dayTapMoveTolerance) {
+      dayTapMoved = true;
+    }
+  };
+
+  if (window.PointerEvent) {
+    cell.addEventListener("pointerdown", event => rememberDayTapStart(event.clientX, event.clientY));
+    cell.addEventListener("pointermove", event => updateDayTapMove(event.clientX, event.clientY));
+    cell.addEventListener("pointerup", event => {
       if (dayTapMoved || panelIsCalendarSwiping()) return;
       selectCalendarDate(event);
     });
+  } else {
+    cell.addEventListener("touchstart", event => {
+      if (event.touches.length !== 1) return;
+      rememberDayTapStart(event.touches[0].clientX, event.touches[0].clientY);
+    }, { passive: true });
+    cell.addEventListener("touchmove", event => {
+      if (event.touches.length !== 1) return;
+      updateDayTapMove(event.touches[0].clientX, event.touches[0].clientY);
+    }, { passive: true });
+    cell.addEventListener("touchend", event => {
+      if (dayTapMoved || panelIsCalendarSwiping()) return;
+      selectCalendarDate(event);
+    }, { passive: false });
+  }
 
-    grid.appendChild(cell);
+  cell.addEventListener("click", event => {
+    if (dayTapMoved || panelIsCalendarSwiping()) return;
+    selectCalendarDate(event);
+  });
+
+  return cell;
+}
+
+function appendCalendarMonthCells(grid, year, month, { interactive = true, preview = false } = {}) {
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  const first = new Date(year, month, 1);
+  const start = new Date(first);
+  const weekday = first.getDay() === 0 ? 7 : first.getDay();
+  start.setDate(first.getDate() - (weekday - 1));
+
+  const last = new Date(year, month + 1, 0);
+  const end = new Date(last);
+  const lastWeekday = last.getDay() === 0 ? 7 : last.getDay();
+  end.setDate(last.getDate() + (7 - lastWeekday));
+
+  // Toon enkel de volledige weken die de huidige maand effectief raken:
+  // - vóór de 1ste enkel aanvullen tot maandag
+  // - na de laatste dag enkel aanvullen tot zondag
+  // - geen extra volledige weken van vorige/volgende maand
+  let index = 0;
+  while (true) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + index);
+    if (d > end) break;
+
+    const dateStr = formatDateInput(d);
+    const isOtherMonth = d.getMonth() !== month;
+    grid.appendChild(createCalendarDayCell(dateStr, d.getDate(), { isOtherMonth, interactive, preview }));
+    index += 1;
   }
 }
 
+function renderCalendar() {
+  const grid = document.getElementById("calendarGrid");
+  if (!grid) return;
+  document.getElementById("monthPickerBtn").textContent = `${getMonthNameUpper(state.currentMonth)} ${state.currentYear}`;
+  appendCalendarMonthCells(grid, state.currentYear, state.currentMonth, { interactive: true, preview: false });
+}
 
 function shiftedCalendarMonth(year, month, step) {
   const d = new Date(year, month + step, 1);
@@ -2548,7 +2573,6 @@ function setCalendarMonth(step) {
 }
 
 function fillCalendarPreview(preview, year, month) {
-  const data = getData();
   const panel = document.querySelector(".calendar-panel");
   if (!preview || !panel) return;
 
@@ -2564,47 +2588,7 @@ function fillCalendarPreview(preview, year, month) {
   if (!title || !grid) return;
 
   title.textContent = `${getMonthNameUpper(month)} ${year}`;
-  grid.innerHTML = "";
-
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  let weekday = first.getDay();
-  weekday = weekday === 0 ? 7 : weekday;
-
-  for (let i = 1; i < weekday; i++) {
-    const empty = document.createElement("div");
-    empty.className = "empty-cell";
-    grid.appendChild(empty);
-  }
-
-  for (let day = 1; day <= last.getDate(); day++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const appts = getAppointmentsForDate(dateStr, data);
-    const cell = document.createElement("div");
-    const isToday = dateStr === todayStr;
-    cell.className = `day-cell${isToday ? " today" : ""}`;
-    cell.innerHTML = `<button class="day-button" aria-label="${dateStr}" tabindex="-1" aria-hidden="true"></button><span class="day-number">${day}</span>`;
-
-    if (appts.length) {
-      const dots = document.createElement("div");
-      dots.className = "day-dots";
-      const maxVisibleDots = window.matchMedia("(max-width: 420px)").matches ? 3 : 4;
-      const visibleDots = Math.min(appts.length, maxVisibleDots);
-      Array.from({ length: visibleDots }).forEach(() => {
-        const i = document.createElement("i");
-        dots.appendChild(i);
-      });
-      if (appts.length > visibleDots) {
-        const more = document.createElement("span");
-        more.className = "day-dots-more";
-        more.textContent = "+";
-        dots.appendChild(more);
-      }
-      cell.appendChild(dots);
-    }
-
-    grid.appendChild(cell);
-  }
+  appendCalendarMonthCells(grid, year, month, { interactive: false, preview: true });
 }
 
 function animateCalendarMonth(step) {
@@ -3494,11 +3478,9 @@ function shiftRevenueDate(baseDateStr, mode, step) {
 }
 
 function getRevenueStatusFilterState() {
-  const paidCheckbox = document.getElementById("revenueShowPaid");
-  const unpaidCheckbox = document.getElementById("revenueShowUnpaid");
   return {
-    showPaid: paidCheckbox ? paidCheckbox.checked : true,
-    showUnpaid: unpaidCheckbox ? unpaidCheckbox.checked : true
+    showPaid: true,
+    showUnpaid: true
   };
 }
 
@@ -3510,31 +3492,23 @@ function getRevenueStatusFilterLabel() {
   return "Geen status geselecteerd";
 }
 
-function isNoShowAppointment(appointment) {
-  const status = String(appointment?.status || "").trim().toLowerCase();
-  return status === "no-show" || status === "noshow" || status === "no_show";
-}
-
 function getRevenueRenderSignature() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType")?.value || "day";
   const anchor = document.getElementById("revenueDate")?.value || todayStr;
-  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
-  const statusFilter = `${showPaid ? "paid" : ""}|${showUnpaid ? "unpaid" : ""}`;
   const appointmentSignature = (data.appointments || [])
     .map(a => [
       a.id,
       a.date,
       a.time,
       a.price,
-      a.status || "",
       a.paid ? 1 : 0,
       a.paymentMethodName || "",
       a.currency || ""
     ].join(":"))
     .join("|");
 
-  return [type, anchor, statusFilter, appointmentSignature].join("||");
+  return [type, anchor, appointmentSignature].join("||");
 }
 
 function syncRevenueToSelectedDateBeforePreview() {
@@ -3724,9 +3698,7 @@ function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
-  const { showPaid, showUnpaid } = getRevenueStatusFilterState();
-
-  let filtered = data.appointments.filter(a => !isNoShowAppointment(a));
+  let filtered = data.appointments.filter(a => String(a.status || "").toLowerCase() !== "no-show");
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
@@ -3741,13 +3713,11 @@ function revenueFilteredAppointments() {
     filtered = filtered.filter(a => a.date.startsWith(prefix));
   }
 
-  filtered = filtered.filter(a => (a.paid && showPaid) || (!a.paid && showUnpaid));
-
   return filtered;
 }
 
 function renderRevenueFilters() {
-  // De betaalwijze/status-keuzelijsten zijn vervangen door twee directe status-checkboxen.
+  // Geen zichtbare omzetfilters meer nodig.
 }
 
 
@@ -3916,8 +3886,8 @@ function syncPrivateEndTimeWithStart() {
   const endInput = document.getElementById("appointmentPrivateEndTime");
   if (!startInput || !endInput || !startInput.value) return;
 
-  if (!endInput.value || minutesFromTimeString(endInput.value) < minutesFromTimeString(startInput.value)) {
-    endInput.value = startInput.value;
+  if (!endInput.value || minutesFromTimeString(endInput.value) <= minutesFromTimeString(startInput.value)) {
+    endInput.value = getAppointmentTimePlusMinutes(startInput.value, 60);
   }
 
   syncAppointmentDateTimeDisplays();
@@ -4853,26 +4823,23 @@ function renderRevenueChart(filtered, type, anchor) {
   if (!chartWrap) return;
 
   const chartData = buildRevenueChartData(filtered, type, anchor);
-  const visibleData = chartData.filter(item => item.paid > 0 || item.unpaid > 0);
-  const isMonthChart = type === "month";
+  const visibleData = chartData.filter(item => Number(item.paid || 0) > 0 || Number(item.unpaid || 0) > 0);
   const useFullPeriodWidth = ["week", "month", "year"].includes(type);
   const dataToRender = useFullPeriodWidth ? chartData : (visibleData.length ? visibleData : chartData);
-  const maxValue = Math.max(...dataToRender.map(item => item.paid + item.unpaid), 0);
+  const renderedBarCount = Math.max(dataToRender.length, 1);
+  const maxValue = Math.max(...dataToRender.map(item => Number(item.paid || 0) + Number(item.unpaid || 0)), 0);
   const scaleMax = maxValue > 0 ? maxValue : 1;
   const chartHeight = 220;
-  const isDayChart = type === "day";
-  const renderedBarCount = Math.max(dataToRender.length, 1);
-  const chartAvailableWidth = chartWrap.clientWidth || 320;
-  const dayGap = Math.max(6, Math.min(14, Math.round(chartAvailableWidth * 0.02)));
-  const calculatedDayColumnWidth = isDayChart
-    ? Math.max(32, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * dayGap) - 16) / renderedBarCount))
-    : null;
-  const dayColumnMinWidth = isDayChart
-    ? Math.max(32, Math.min(92, calculatedDayColumnWidth))
-    : null;
-  const dayStackWidth = isDayChart
-    ? Math.max(8, Math.min(48, Math.round(dayColumnMinWidth * 0.48)))
-    : null;
+  const chartAvailableWidth = Math.max(280, chartWrap.clientWidth || chartWrap.offsetWidth || 320);
+  const chartGap = type === "month" ? 2 : Math.max(3, Math.min(10, Math.round(chartAvailableWidth * 0.012)));
+  const columnWidth = useFullPeriodWidth
+    ? Math.max(7, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * chartGap) - 16) / renderedBarCount))
+    : Math.max(34, Math.min(92, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * chartGap) - 16) / renderedBarCount)));
+  const maxStackWidth = type === "week" ? 28 : type === "year" ? 18 : type === "month" ? 10 : 46;
+  const barGroupWidth = Math.max(4, Math.min(maxStackWidth, Math.round(columnWidth * 0.72)));
+  const singleBarWidth = Math.max(3, Math.min(barGroupWidth, Math.round(barGroupWidth * 0.82)));
+  const splitBarWidth = Math.max(3, Math.floor((barGroupWidth - 2) / 2));
+
   const formatAxisAmount = value => new Intl.NumberFormat(getCurrentLanguage(), {
     maximumFractionDigits: 0,
     minimumFractionDigits: 0
@@ -4883,33 +4850,36 @@ function renderRevenueChart(filtered, type, anchor) {
   const axisWidth = Math.max(18, Math.min(64, Math.ceil(longestAxisLabel * 6.2) + 4));
 
   chartWrap.innerHTML = `
-    <div class="revenue-chart-plot" style="--revenue-chart-height:${chartHeight}px;--revenue-y-axis-width:${axisWidth}px;">
+    <div class="revenue-chart-plot revenue-chart-plot-v2" style="--revenue-chart-height:${chartHeight}px;--revenue-y-axis-width:${axisWidth}px;">
       <div class="revenue-y-axis" aria-hidden="true">
         ${axisLabels.map(label => `<span>${label}</span>`).join("")}
       </div>
-      <div class="revenue-chart-area">
+      <div class="revenue-chart-area revenue-chart-area-v2">
         <div class="revenue-y-axis-line" aria-hidden="true"></div>
         <div class="revenue-x-axis-line" aria-hidden="true"></div>
-        <div class="revenue-bars ${useFullPeriodWidth ? `revenue-bars-even revenue-bars-${type}` : (isDayChart ? "revenue-bars-day-dynamic" : "")}" style="--revenue-bar-count:${renderedBarCount};${isDayChart ? `--revenue-day-gap:${dayGap}px;--revenue-day-col-width:${dayColumnMinWidth}px;--revenue-day-stack-width:${dayStackWidth}px;` : ""}">
+        <div class="revenue-bars revenue-bars-v2 revenue-bars-${type}" style="--revenue-bar-count:${renderedBarCount};--revenue-bar-gap:${chartGap}px;--revenue-bar-column-width:${columnWidth}px;--revenue-bar-group-width:${barGroupWidth}px;--revenue-bar-single-width:${singleBarWidth}px;--revenue-bar-split-width:${splitBarWidth}px;">
           ${dataToRender.map(item => {
-            const total = item.paid + item.unpaid;
+            const paid = Number(item.paid || 0);
+            const unpaid = Number(item.unpaid || 0);
+            const total = paid + unpaid;
+            const hasPaid = paid > 0;
+            const hasUnpaid = unpaid > 0;
+            const hasBoth = hasPaid && hasUnpaid;
             const hasRevenue = total > 0;
             const totalHeight = hasRevenue ? Math.max(8, (total / scaleMax) * chartHeight) : 0;
-            const paidHeight = item.paid > 0 ? Math.max(8, (item.paid / scaleMax) * chartHeight) : 0;
-            const unpaidHeight = item.unpaid > 0 ? Math.max(8, (item.unpaid / scaleMax) * chartHeight) : 0;
-            const hasPaidAndUnpaid = item.paid > 0 && item.unpaid > 0;
+            const paidHeight = hasPaid ? Math.max(8, (paid / scaleMax) * chartHeight) : 0;
+            const unpaidHeight = hasUnpaid ? Math.max(8, (unpaid / scaleMax) * chartHeight) : 0;
             const title = hasRevenue ? `${item.label} · ${euro(total)}` : "";
 
             return `
               <div class="revenue-bar-col${hasRevenue ? "" : " is-empty"}" title="${title}">
-                ${hasRevenue ? `
-                  <div class="revenue-bar-stack${hasPaidAndUnpaid ? " is-mixed" : ""}" style="height:${totalHeight}px">
-                    <div class="revenue-bar-segments">
-                      ${unpaidHeight > 0 ? `<span class="revenue-bar-segment unpaid" style="height:${unpaidHeight}px"></span>` : ""}
-                      ${paidHeight > 0 ? `<span class="revenue-bar-segment paid" style="height:${paidHeight}px"></span>` : ""}
-                    </div>
+                <div class="revenue-bar-cell" aria-hidden="true">
+                  ${hasBoth ? `<span class="revenue-bar-total-bg" style="height:${totalHeight}px"></span>` : ""}
+                  <div class="revenue-bar-pair${hasBoth ? " has-both" : ""}">
+                    ${hasPaid ? `<span class="revenue-bar-fill paid" style="height:${paidHeight}px"></span>` : ""}
+                    ${hasUnpaid ? `<span class="revenue-bar-fill unpaid" style="height:${unpaidHeight}px"></span>` : ""}
                   </div>
-                ` : `<div class="revenue-bar-stack revenue-bar-stack-empty" aria-hidden="true"></div>`}
+                </div>
                 <span class="revenue-bar-label">${hasRevenue ? item.label : ""}</span>
               </div>
             `;
@@ -4919,8 +4889,8 @@ function renderRevenueChart(filtered, type, anchor) {
     </div>
     ${maxValue > 0 ? `
       <div class="revenue-chart-legend">
-        ${getRevenueStatusFilterState().showPaid ? `<span><i class="paid"></i> ${t("paid")}</span>` : ""}
-        ${getRevenueStatusFilterState().showUnpaid ? `<span><i class="unpaid"></i> ${t("unpaid")}</span>` : ""}
+        <span><i class="paid"></i> ${t("paid")}</span>
+        <span><i class="unpaid"></i> ${t("unpaid")}</span>
       </div>
     ` : ""}
   `;
@@ -4952,68 +4922,12 @@ function updateCostsActionBar() {
   const bar = document.getElementById('costsActionBar');
   const csvButton = document.getElementById('costsExportCsvBtn');
   const reportButton = document.getElementById('costsExportReportBtn');
-  const addButton = document.getElementById('floatingAddBtn');
-  const standardCostsButton = document.getElementById('standardCostsBtn');
   if (!bar) return;
 
-  const onCostsScreen = state.currentScreen === 'costsScreen';
-  const data = getData();
-  const hasCostsForSelection = onCostsScreen && getFilteredCosts(data).length > 0;
-  const hasStandardCosts = onCostsScreen && getStandardCosts(data).length > 0;
-
-  bar.classList.toggle('hidden', !hasCostsForSelection);
-  if (csvButton) {
-    csvButton.disabled = !hasCostsForSelection;
-    csvButton.classList.toggle('hidden', !hasCostsForSelection);
-  }
-  if (reportButton) {
-    reportButton.disabled = !hasCostsForSelection;
-    reportButton.classList.toggle('hidden', !hasCostsForSelection);
-  }
-
-  if (standardCostsButton) {
-    standardCostsButton.onclick = openStandardCostsPopover;
-    standardCostsButton.classList.toggle('hidden', !hasStandardCosts);
-  }
-
-  if (!onCostsScreen) {
-    document.body.style.setProperty('--costs-export-offset', '0px');
-    document.body.style.setProperty('--costs-standard-offset', '0px');
-    document.body.style.setProperty('--costs-add-offset', '0px');
-    return;
-  }
-
-  const visibleItems = [];
-  if (hasCostsForSelection) {
-    visibleItems.push('csv', 'pdf');
-  }
-  if (hasStandardCosts) {
-    visibleItems.push('standard');
-  }
-  if (addButton) {
-    visibleItems.push('add');
-  }
-
-  const compact = window.matchMedia?.('(max-width: 420px)').matches;
-  const buttonSize = compact ? 52 : 58;
-  const gap = 10;
-  const step = buttonSize + gap;
-  const offsets = {};
-
-  visibleItems.forEach((key, index) => {
-    offsets[key] = (index - ((visibleItems.length - 1) / 2)) * step;
-  });
-
-  const exportOffsets = ['csv', 'pdf']
-    .filter(key => Number.isFinite(offsets[key]))
-    .map(key => offsets[key]);
-  const exportOffset = exportOffsets.length
-    ? exportOffsets.reduce((sum, value) => sum + value, 0) / exportOffsets.length
-    : 0;
-
-  document.body.style.setProperty('--costs-export-offset', `${exportOffset}px`);
-  document.body.style.setProperty('--costs-standard-offset', `${offsets.standard ?? 0}px`);
-  document.body.style.setProperty('--costs-add-offset', `${offsets.add ?? 0}px`);
+  const shouldShow = state.currentScreen === 'costsScreen';
+  bar.classList.toggle('hidden', !shouldShow);
+  if (csvButton) csvButton.disabled = !shouldShow;
+  if (reportButton) reportButton.disabled = !shouldShow;
 }
 
 function getRevenueExportTitle() {
@@ -6021,7 +5935,16 @@ function renderRevenue() {
 
   const renderSignature = getRevenueRenderSignature();
   const chartWrapForSignature = document.getElementById("revenueChart");
-  if (renderSignature && state.revenueLastRenderSignature === renderSignature && chartWrapForSignature?.children?.length) {
+  const chartHasVisibleBars = Boolean(
+    chartWrapForSignature?.querySelector(
+      ".revenue-bar-col:not(.is-empty) .revenue-bar-fill.paid, .revenue-bar-col:not(.is-empty) .revenue-bar-fill.unpaid"
+    )
+  );
+
+  // Alleen overslaan als de bestaande grafiek effectief zichtbare staven bevat.
+  // Na accountwissel / data-herlaad kan de signature gelijk lijken terwijl de grafiek
+  // nog leeg opgebouwd werd; dan moet Omzet opnieuw renderen.
+  if (renderSignature && state.revenueLastRenderSignature === renderSignature && chartHasVisibleBars) {
     return;
   }
   state.revenueLastRenderSignature = renderSignature;
@@ -7464,8 +7387,9 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   document.getElementById("appointmentModalTitle").textContent = t("newAppointment");
   document.getElementById("appointmentId").value = "";
   document.getElementById("appointmentDate").value = state.selectedDate;
-  document.getElementById("appointmentTime").value = "10:00";
-  document.getElementById("appointmentPrivateEndTime").value = "10:00";
+  const defaultStartTime = getRoundedCurrentAppointmentTime();
+  document.getElementById("appointmentTime").value = defaultStartTime;
+  document.getElementById("appointmentPrivateEndTime").value = getAppointmentTimePlusMinutes(defaultStartTime, 60);
   const privateEndDateInput = document.getElementById("appointmentPrivateEndDate");
   if (privateEndDateInput) privateEndDateInput.value = state.selectedDate;
   document.getElementById("appointmentPrivateTitle").value = "";
@@ -8469,6 +8393,20 @@ async function saveServiceFromForm(event) {
   rerenderAll();
 }
 
+
+function getRoundedCurrentAppointmentTime() {
+  const now = new Date();
+  const rounded = new Date(now);
+  const minutes = rounded.getMinutes();
+  const add = minutes === 0 ? 0 : 60 - minutes;
+  rounded.setMinutes(minutes + add, 0, 0);
+  return timeStringFromMinutes((rounded.getHours() * 60) + rounded.getMinutes());
+}
+
+function getAppointmentTimePlusMinutes(timeStr, minutesToAdd = 60) {
+  return timeStringFromMinutes(minutesFromTimeString(timeStr || "00:00") + Number(minutesToAdd || 0));
+}
+
 async function saveAppointmentFromForm(event) {
   event.preventDefault();
 
@@ -8683,15 +8621,19 @@ async function saveAppointmentFromForm(event) {
           recurrence_rule: item.recurrenceRule || "none"
         }))
       : payload;
-    ({ error } = await supabaseClient
+
+    const insertResult = await supabaseClient
       .from("appointments")
-      .insert(rows));
+      .insert(rows);
+
+    error = insertResult.error;
   }
 
   if (error) {
     await appAlert("Opslaan afspraak mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
+
 
   await loadAllDataFromSupabase();
   closeDialog("appointmentDialog");
@@ -9281,7 +9223,6 @@ function renderCosts() {
   if (vatEl) vatEl.textContent = euro(vatTotal);
   updateTopbar(state.currentScreen, getScreenTitle(state.currentScreen));
   refreshStandardCostsButton();
-  updateCostsActionBar();
 
   if (!costs.length) {
     list.innerHTML = `<div class="empty-state">${t("noCosts")}</div>`;
@@ -9357,7 +9298,6 @@ async function saveStandardCost(description, vatRate, existingId = null) {
     data.standardCosts.push(item);
     saveData(data);
     refreshStandardCostsButton();
-    updateCostsActionBar();
     return item;
   }
 
@@ -9375,8 +9315,6 @@ async function saveStandardCost(description, vatRate, existingId = null) {
   }
 
   await loadAllDataFromSupabase();
-  refreshStandardCostsButton();
-  updateCostsActionBar();
   return inserted ? { id: inserted.id, description: inserted.description, vatRate: inserted.vat_rate } : null;
 }
 
@@ -10285,7 +10223,7 @@ function registerEvents() {
 
   document.getElementById("revenueDate").value = todayStr;
 
-  ["revenuePeriodType", "revenueDate", "revenueShowPaid", "revenueShowUnpaid"].forEach(id => {
+  ["revenuePeriodType", "revenueDate"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", renderRevenue);
   });
@@ -10638,6 +10576,7 @@ async function loadAllDataFromSupabase() {
     settings
   });
 
+  state.revenueLastRenderSignature = "";
   await syncNotificationState();
 }
 
@@ -11307,8 +11246,48 @@ async function startApp() {
     return Number.isNaN(d.getTime()) ? new Date(todayStr + "T00:00:00") : d;
   }
 
+  function clampAgendaDayScrollTop(scroll, value) {
+    if (!scroll) return 0;
+    const maxScrollTop = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    return Math.max(0, Math.min(Number(value) || 0, maxScrollTop));
+  }
+
+  function preferredAgendaDayScrollTop(scroll, dateStr = state.selectedDate) {
+    if (!scroll) return 0;
+    if (dateStr === todayStr) {
+      const now = new Date();
+      const minutes = (now.getHours() * 60) + now.getMinutes();
+      return clampAgendaDayScrollTop(scroll, agendaDayVisualTop(minutes) - (scroll.clientHeight / 2));
+    }
+    return clampAgendaDayScrollTop(scroll, START_SCROLL_HOUR * HOUR_HEIGHT);
+  }
+
+  function applyAgendaDayScrollPosition(scroll, wrap, dateStr = state.selectedDate) {
+    if (!scroll) return;
+
+    const forceDefault = Boolean(state.agendaDayForceDefaultScroll);
+    const restoreScrollTop = Number(state.agendaDayRestoreScrollTop);
+
+    if (!forceDefault && Number.isFinite(restoreScrollTop) && restoreScrollTop >= 0) {
+      scroll.scrollTop = clampAgendaDayScrollTop(scroll, restoreScrollTop);
+      if (wrap) wrap.dataset.userScrolled = "1";
+      return;
+    }
+
+    if (forceDefault || !wrap?.dataset.userScrolled) {
+      scroll.scrollTop = preferredAgendaDayScrollTop(scroll, dateStr);
+      if (wrap && forceDefault) wrap.dataset.userScrolled = "1";
+    }
+  }
+
   function setAgendaCalendarMode(mode) {
     const nextMode = mode === "day" ? "day" : "month";
+    if (nextMode === "day") {
+      state.agendaDayForceDefaultScroll = true;
+      delete state.agendaDayRestoreScrollTop;
+      const existingWrap = document.getElementById("agendaDayCalendar");
+      if (existingWrap) delete existingWrap.dataset.userScrolled;
+    }
     state.agendaCalendarMode = nextMode;
     document.body.classList.toggle("agenda-day-mode", nextMode === "day");
     closeAgendaFabMenu?.();
@@ -11559,6 +11538,22 @@ async function startApp() {
     const wrap = ensureAgendaDayCalendar();
     if (!wrap) return;
 
+    // Bewaar de huidige scrollpositie vóór de dagkalender opnieuw wordt opgebouwd.
+    // renderCalendar() en renderAgendaList() kunnen kort na elkaar renderAgendaDayCalendar()
+    // aanroepen. Zonder deze buffer kan de tweede render de herstelde positie opnieuw
+    // verliezen, waardoor de dagkalender na een swipe terug naar 00:00 springt.
+    const existingDayScroll = wrap.querySelector(".agenda-day-scroll");
+    const existingScrollTop = existingDayScroll ? existingDayScroll.scrollTop : null;
+    if (
+      !state.agendaDayForceDefaultScroll &&
+      existingDayScroll &&
+      wrap.dataset.userScrolled === "1" &&
+      !Number.isFinite(Number(state.agendaDayRestoreScrollTop)) &&
+      Number.isFinite(existingScrollTop)
+    ) {
+      state.agendaDayRestoreScrollTop = existingScrollTop;
+    }
+
     const data = getData();
     const appts = getAppointmentsForDate(state.selectedDate, data);
     const totalHeight = 24 * HOUR_HEIGHT;
@@ -11640,6 +11635,7 @@ async function startApp() {
     wrap.classList.toggle("has-pinned-private-day", pinnedPrivateAppointments.length > 0);
     wrap.innerHTML = `
       ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
+      <button class="agenda-day-hidden-nav agenda-day-hidden-nav-top hidden" type="button" aria-label="Toon eerdere verborgen afspraken">...</button>
       <div class="agenda-day-scroll">
         <div class="agenda-day-grid" style="height:${totalHeight}px">
           ${hourRows}
@@ -11647,7 +11643,73 @@ async function startApp() {
           <div class="agenda-day-appointments-layer">${appointmentBlocks}</div>
         </div>
       </div>
+      <button class="agenda-day-hidden-nav agenda-day-hidden-nav-bottom hidden" type="button" aria-label="Toon latere verborgen afspraken">...</button>
     `;
+
+    const dayScroll = wrap.querySelector(".agenda-day-scroll");
+    const hiddenTopBtn = wrap.querySelector(".agenda-day-hidden-nav-top");
+    const hiddenBottomBtn = wrap.querySelector(".agenda-day-hidden-nav-bottom");
+
+    // Meteen scrollen, niet pas in een setTimeout. Zo verschijnt de dagkalender
+    // bij openen en tijdens swipen direct op het juiste uur, zonder 00:00-flits.
+    applyAgendaDayScrollPosition(dayScroll, wrap, state.selectedDate);
+
+    const getVisibleDayAppointmentButtons = () => Array.from(wrap.querySelectorAll(".agenda-day-scroll .agenda-day-appointment"));
+
+    const updateAgendaDayHiddenNavButtons = () => {
+      if (!dayScroll || !hiddenTopBtn || !hiddenBottomBtn) return;
+
+      const appointments = getVisibleDayAppointmentButtons();
+      const scrollTop = dayScroll.scrollTop;
+      const viewportBottom = scrollTop + dayScroll.clientHeight;
+      const tolerance = 6;
+
+      const hasHiddenAbove = appointments.some(button => (button.offsetTop + button.offsetHeight) < (scrollTop + tolerance));
+      const hasHiddenBelow = appointments.some(button => button.offsetTop > (viewportBottom - tolerance));
+
+      hiddenTopBtn.classList.toggle("hidden", !hasHiddenAbove);
+      hiddenBottomBtn.classList.toggle("hidden", !hasHiddenBelow);
+    };
+
+    const scrollToNearestHiddenAppointment = direction => {
+      if (!dayScroll) return;
+
+      const appointments = getVisibleDayAppointmentButtons()
+        .map(button => ({ button, top: button.offsetTop, bottom: button.offsetTop + button.offsetHeight }))
+        .sort((a, b) => a.top - b.top);
+
+      const scrollTop = dayScroll.scrollTop;
+      const viewportBottom = scrollTop + dayScroll.clientHeight;
+      const target = direction < 0
+        ? appointments.filter(item => item.bottom < scrollTop + 6).pop()
+        : appointments.find(item => item.top > viewportBottom - 6);
+
+      if (!target) return;
+
+      dayScroll.scrollTo({
+        top: Math.max(0, target.top - 10),
+        behavior: "smooth"
+      });
+    };
+
+    [hiddenTopBtn, hiddenBottomBtn].forEach((button, index) => {
+      if (!button) return;
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        closeAgendaFabMenu?.();
+        scrollToNearestHiddenAppointment(index === 0 ? -1 : 1);
+      });
+    });
+
+    if (dayScroll) {
+      dayScroll.addEventListener("scroll", () => {
+        wrap.dataset.userScrolled = "1";
+        updateAgendaDayHiddenNavButtons();
+      }, { passive: true });
+      window.setTimeout(updateAgendaDayHiddenNavButtons, 0);
+    }
 
     wrap.querySelectorAll(".agenda-day-appointment, .agenda-day-pinned-private").forEach(button => {
       button.addEventListener("click", event => {
@@ -11738,9 +11800,9 @@ async function startApp() {
 
         const currentScroll = dayWrap.querySelector(".agenda-day-scroll")?.scrollTop || 0;
         const previewScroll = daySwipePreview.querySelector(".agenda-day-scroll");
-        if (previewScroll) previewScroll.scrollTop = currentScroll;
 
         dayWrap.appendChild(daySwipePreview);
+        if (previewScroll) previewScroll.scrollTop = clampAgendaDayScrollTop(previewScroll, currentScroll);
         dayWrap.classList.remove("is-day-swipe-animating");
         dayWrap.classList.add("is-day-swiping");
         return true;
@@ -11793,6 +11855,10 @@ async function startApp() {
             state.agendaCalendarMode = "day";
             document.body.classList.add("agenda-day-mode");
             closeAgendaFabMenu?.();
+            const preservedDayScrollTop = dayWrap.querySelector(".agenda-day-scroll")?.scrollTop;
+            if (Number.isFinite(preservedDayScrollTop)) {
+              state.agendaDayRestoreScrollTop = preservedDayScrollTop;
+            }
             clearDaySwipe();
             shiftSelectedDay(step);
             window.setTimeout(() => {
@@ -11825,7 +11891,7 @@ async function startApp() {
         // Laat swipen ook toe wanneer de vinger start op een afspraakblok.
         // Op dagen met een grote afspraak bedekt dat blok bijna de volledige dagkalender;
         // een algemene button-blokkering zorgde er dan voor dat de swipe nooit startte.
-        if (event.target.closest("input, select, textarea, dialog, #agendaCalendarModeToggle, .price-chip")) return;
+        if (event.target.closest("input, select, textarea, dialog, #agendaCalendarModeToggle")) return;
         if (state.agendaCalendarMode !== "day") return;
 
         tracking = true;
@@ -11913,23 +11979,36 @@ async function startApp() {
 
     window.setTimeout(() => {
       const scroll = wrap.querySelector(".agenda-day-scroll");
-      if (scroll && !wrap.dataset.userScrolled) {
-        scroll.scrollTop = START_SCROLL_HOUR * HOUR_HEIGHT;
+      if (!scroll) return;
+
+      applyAgendaDayScrollPosition(scroll, wrap, state.selectedDate);
+
+      if (Number.isFinite(Number(state.agendaDayRestoreScrollTop))) {
+        window.clearTimeout(state.agendaDayRestoreScrollTopClearTimer);
+        state.agendaDayRestoreScrollTopClearTimer = window.setTimeout(() => {
+          delete state.agendaDayRestoreScrollTop;
+          delete state.agendaDayRestoreScrollTopClearTimer;
+        }, 500);
+      }
+
+      if (state.agendaDayForceDefaultScroll) {
+        delete state.agendaDayForceDefaultScroll;
       }
     }, 0);
   }
 
   function shiftSelectedDay(step) {
+    const currentDayScrollTop = document.querySelector("#agendaDayCalendar .agenda-day-scroll")?.scrollTop;
+    if (!Number.isFinite(Number(state.agendaDayRestoreScrollTop)) && Number.isFinite(currentDayScrollTop)) {
+      state.agendaDayRestoreScrollTop = currentDayScrollTop;
+    }
+
     const d = getSelectedDateObject();
     d.setDate(d.getDate() + step);
     state.selectedDate = formatDateInput(d);
     state.currentYear = d.getFullYear();
     state.currentMonth = d.getMonth();
     state.revenueSyncSelectedDateOnOpen = true;
-    const dayCalendar = document.getElementById("agendaDayCalendar");
-    if (dayCalendar) {
-      delete dayCalendar.dataset.userScrolled;
-    }
     renderCalendar();
     renderAgendaList();
     renderRevenue();

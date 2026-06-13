@@ -5922,10 +5922,6 @@ button.is-action-locked .app-action-nav-label {
   animation: revenueBarGrow 0.55s ease-out both;
 }
 
-.revenue-bar-stack.is-mixed {
-  background: #f3e7ec;
-}
-
 .revenue-bar-segment {
   animation: revenueSegmentFade 0.45s ease-out both;
 }
@@ -9594,6 +9590,7 @@ body.agenda-day-mode #agendaScreen .agenda-list-panel {
 }
 
 .agenda-day-calendar {
+  position: relative;
   min-height: 0;
   overflow: hidden;
   border: 1px solid #f1e5eb;
@@ -10293,118 +10290,143 @@ body.agenda-day-mode #agendaCalendarModeToggle {
   align-self: start !important;
 }
 
+
 /* =========================================================
-   FIX OMZETGRAFIEK 2026-06-10
-   - Betaald/onbetaald staan naast elkaar per x-waarde.
-   - Lichte totaalbalk enkel bij combinatie betaald + onbetaald.
+   FIX: OMZETGRAFIEK ROBUUSTE BAR-OPBOUW
+   - staven blijven zichtbaar ondanks oudere .revenue-bar-stack regels
+   - lichte achtergrond alleen bij betaald + onbetaald
+   - breedte blijft dynamisch volgens aantal x-waarden
 ========================================================= */
-.revenue-bar-stack {
+.revenue-chart-plot-v2 {
+  grid-template-columns: var(--revenue-y-axis-width, 42px) minmax(0, 1fr) !important;
+  gap: 4px !important;
+  min-width: 100%;
+}
+
+.revenue-chart-area-v2 {
   position: relative;
+  min-width: 0;
+  padding-bottom: 22px;
+}
+
+.revenue-bars-v2 {
+  height: calc(var(--revenue-chart-height, 220px) + 22px) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: var(--revenue-bar-gap, 2px) !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 0 4px 0 8px !important;
+  scrollbar-width: none;
+}
+
+.revenue-bars-v2::-webkit-scrollbar {
+  display: none;
+}
+
+.revenue-bars-v2 .revenue-bar-col {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: calc(var(--revenue-chart-height, 220px) + 22px) !important;
+  display: grid !important;
+  grid-template-rows: var(--revenue-chart-height, 220px) 22px !important;
+  gap: 0 !important;
+  justify-items: center !important;
+  align-items: stretch !important;
+}
+
+.revenue-bars-v2.revenue-bars-day .revenue-bar-col {
+  flex: 0 0 var(--revenue-bar-column-width, 48px) !important;
+  min-width: var(--revenue-bar-column-width, 48px) !important;
+}
+
+.revenue-bar-cell {
+  position: relative;
+  width: var(--revenue-bar-group-width, 10px);
+  height: var(--revenue-chart-height, 220px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  overflow: visible;
-  background: transparent;
 }
 
-.revenue-bar-stack.is-mixed {
-  background: #f3e7ec;
-}
-
-.revenue-bar-segments {
+.revenue-bar-total-bg {
   position: absolute;
   left: 50%;
   bottom: 0;
+  width: var(--revenue-bar-group-width, 10px);
+  transform: translateX(-50%);
+  background: #f3e7ec;
+  z-index: 0;
+}
+
+.revenue-bar-pair {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 2px;
-  transform: translateX(-50%);
+  width: var(--revenue-bar-group-width, 10px);
+  height: var(--revenue-chart-height, 220px);
 }
 
-.revenue-bar-segment {
-  flex: 0 0 4px;
-  width: 4px;
-  min-width: 4px;
+.revenue-bar-fill {
+  display: block;
+  width: var(--revenue-bar-single-width, 8px);
+  min-height: 0;
   border-radius: 0;
+  animation: revenueBarGrow 0.45s ease-out both;
+  transform-origin: bottom;
 }
 
-.revenue-bar-stack:not(.is-mixed) .revenue-bar-segments {
-  gap: 0;
+.revenue-bar-pair.has-both .revenue-bar-fill {
+  width: var(--revenue-bar-split-width, 4px);
 }
 
-.revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed,
-.revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed,
-.revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
-  width: 12px;
+.revenue-bar-fill.paid {
+  background: #2d8b4e;
 }
 
-.revenue-bars.revenue-bars-day-dynamic .revenue-bar-stack.is-mixed {
-  width: max(12px, min(32px, var(--revenue-day-stack-width, 16px)));
+.revenue-bar-fill.unpaid {
+  background: #d46a6a;
+}
+
+.revenue-bars-v2 .revenue-bar-label {
+  align-self: start;
+  line-height: 1;
+  padding-top: 8px;
+  font-size: 10px;
+  color: #453f46;
+  white-space: nowrap;
+}
+
+.revenue-bars-v2 .revenue-bar-col.is-empty .revenue-bar-label {
+  visibility: hidden;
 }
 
 @media (max-width: 420px) {
-  .revenue-bar-segment {
-    flex-basis: 3px;
-    width: 3px;
-    min-width: 3px;
+  .revenue-bars-v2.revenue-bars-month {
+    gap: 1px !important;
   }
 
-  .revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed,
-  .revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed,
-  .revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
-    width: 9px;
+  .revenue-bars-v2.revenue-bars-month .revenue-bar-label {
+    font-size: 9px;
   }
 }
 
 /* =========================================================
-   FIX OMZETGRAFIEK 2026-06-10
-   - Behoud dynamische staafbreedte.
-   - Betaald/onbetaald staan naast elkaar binnen dezelfde dynamische breedte.
-   - Lichte totaalbalk blijft enkel zichtbaar bij gemengde omzet.
+   FIX KOSTEN: achtergrond + compacte standaardkostenknop
+   - Enkel Kosten-pagina: witte achtergrond zoals de andere pagina's
+   - Standaardkostenknop terug compact, zonder layout/functionality impact
 ========================================================= */
-.revenue-bar-segments {
-  width: 100%;
+#costsScreen,
+#costsScreen .costs-screen-shell {
+  background: #ffffff !important;
 }
 
-.revenue-bar-segment {
-  flex: 1 1 0;
-  width: auto;
-  min-width: 0;
-}
-
-.revenue-bars.revenue-bars-even .revenue-bar-stack.is-mixed {
-  width: min(70%, 22px);
-}
-
-.revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed {
-  width: min(72%, 10px);
-}
-
-.revenue-bars.revenue-bars-year .revenue-bar-stack.is-mixed {
-  width: min(72%, 18px);
-}
-
-.revenue-bars.revenue-bars-week .revenue-bar-stack.is-mixed {
-  width: min(62%, 28px);
-}
-
-.revenue-bars.revenue-bars-day-dynamic .revenue-bar-stack.is-mixed {
-  width: var(--revenue-day-stack-width, 20px);
-  max-width: 72%;
-}
-
-@media (max-width: 520px) {
-  .revenue-bars.revenue-bars-month .revenue-bar-stack.is-mixed {
-    width: min(72%, 9px);
-  }
-}
-
-/* =========================================================
-   NOODFIX KOSTEN: standaardkostenknop terug compact
-   - Overschrijft eerdere 58px-regels die de knop opnieuw te groot maakten
-   - Laat de omzetgrafiek ongemoeid
-========================================================= */
 #standardCostsBtn.fab.fab-secondary {
   width: 52px !important;
   height: 52px !important;
@@ -10416,9 +10438,17 @@ body.agenda-day-mode #agendaCalendarModeToggle {
   padding: 0 !important;
   font-size: 22px !important;
   line-height: 1 !important;
-  display: grid !important;
   place-items: center !important;
   overflow: hidden !important;
+}
+
+body:not(.costs-action-mode) #standardCostsBtn.fab.fab-secondary,
+#standardCostsBtn.fab.fab-secondary.hidden {
+  display: none !important;
+}
+
+body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
+  display: grid !important;
 }
 
 #standardCostsBtn.fab.fab-secondary > span {
@@ -10440,103 +10470,115 @@ body.agenda-day-mode #agendaCalendarModeToggle {
 }
 
 /* =========================================================
-   DEFINITIEVE FIX: Kosten-acties alleen op kostenpagina
-   + dynamisch gecentreerd volgens zichtbare knoppen
+   DAGKALENDER: ... knoppen voor verborgen afspraken
 ========================================================= */
-#standardCostsBtn.hidden,
-#costsActionBar.hidden,
-body:not(.costs-action-mode) #standardCostsBtn,
-body:not(.costs-action-mode) #costsActionBar {
-  display: none !important;
+.agenda-day-hidden-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  min-width: 52px;
+  height: 26px;
+  border: 1px solid #ead6aa;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.96);
+  color: #7a5631;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 12px 4px;
+  box-shadow: 0 2px 8px rgba(84, 48, 65, 0.14);
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
-body.costs-action-mode #standardCostsBtn:not(.hidden) {
-  display: grid !important;
-  place-items: center !important;
+.agenda-day-hidden-nav-top {
+  top: 8px;
 }
 
-body.costs-action-mode #floatingAddBtn {
-  left: calc(50% + var(--costs-add-offset, 0px)) !important;
+.agenda-day-hidden-nav-bottom {
+  bottom: 8px;
 }
 
-body.costs-action-mode #standardCostsBtn {
-  left: calc(50% + var(--costs-standard-offset, 0px)) !important;
+.agenda-day-hidden-nav:hover,
+.agenda-day-hidden-nav:active {
+  background: #fff4d8;
+  transform: translateX(-50%);
 }
 
-#costsActionBar.costs-action-bar {
-  left: calc(50% + var(--costs-export-offset, 0px)) !important;
-  transform: translateX(-50%) !important;
-  gap: 10px !important;
-  justify-content: center !important;
-}
 
-#costsActionBar.costs-action-bar .client-action-btn.hidden {
-  display: none !important;
-}
-
-#costsActionBar #costsExportCsvBtn,
-#costsActionBar #costsExportReportBtn {
-  width: 58px !important;
-  height: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
-  min-height: 58px !important;
-  max-height: 58px !important;
-  flex: 0 0 58px !important;
-  padding: 0 !important;
+/* =========================================================
+   FIX: dagkalender ... knoppen subtiel links + kleiner
+   - niet meer gecentreerd
+   - compact en net naast de uurkolom
+========================================================= */
+.agenda-day-hidden-nav {
+  left: 56px !important;
+  transform: none !important;
+  min-width: 34px !important;
+  width: 34px !important;
+  height: 20px !important;
   border-radius: 999px !important;
-  box-sizing: border-box !important;
+  padding: 0 0 3px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  box-shadow: 0 1px 4px rgba(84, 48, 65, 0.12) !important;
 }
 
-#standardCostsBtn.fab.fab-secondary {
-  width: 52px !important;
-  height: 52px !important;
-  min-width: 52px !important;
-  max-width: 52px !important;
-  min-height: 52px !important;
-  max-height: 52px !important;
-  flex: 0 0 52px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
+.agenda-day-hidden-nav:hover,
+.agenda-day-hidden-nav:active {
+  transform: none !important;
+}
+
+.agenda-day-hidden-nav-top {
+  top: 6px !important;
+}
+
+.agenda-day-hidden-nav-bottom {
+  bottom: 6px !important;
 }
 
 @media (max-width: 420px) {
-  #costsActionBar #costsExportCsvBtn,
-  #costsActionBar #costsExportReportBtn,
-  #standardCostsBtn.fab.fab-secondary {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    max-width: 52px !important;
-    min-height: 52px !important;
-    max-height: 52px !important;
-    flex: 0 0 52px !important;
-    padding: 0 !important;
+  .agenda-day-hidden-nav {
+    left: 52px !important;
+    min-width: 32px !important;
+    width: 32px !important;
+    height: 19px !important;
+    font-size: 12px !important;
   }
 }
 
+
 /* =========================================================
-   FINALE FIX: standaardkostenknop nooit buiten geldige context
-   Deze regels staan bewust helemaal onderaan, zodat oudere noodfixes
-   met display:grid !important de verborgen status niet meer overrulen.
+   FIX: bovenste ...-knop dagkalender onder de smalle switchknop
+   Het knopje positioneert nu relatief t.o.v. de dagkalender zelf,
+   niet meer t.o.v. het volledige kalenderpaneel.
 ========================================================= */
-#standardCostsBtn.hidden,
-body:not(.costs-action-mode) #standardCostsBtn,
-body:not(.costs-action-mode) #standardCostsBtn.fab.fab-secondary {
-  display: none !important;
-  pointer-events: none !important;
+body.agenda-day-mode #agendaDayCalendar {
+  position: relative !important;
 }
 
-body.costs-action-mode #standardCostsBtn.hidden,
-body.costs-action-mode #standardCostsBtn.fab.fab-secondary.hidden {
-  display: none !important;
-  pointer-events: none !important;
+body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
+  top: 6px !important;
 }
 
-body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
-  display: grid !important;
-  place-items: center !important;
-  pointer-events: auto !important;
+/* =========================================================
+   AGENDA: dagen van vorige/volgende maand opnieuw zichtbaar
+========================================================= */
+.day-cell.other-month {
+  background: #fbf7f9;
+  border-color: #f1e7ed;
+  color: #b7a9b2;
+  opacity: 0.72;
+}
+
+.day-cell.other-month .day-dots {
+  opacity: 0.55;
+}
+
+.day-cell.other-month.selected {
+  opacity: 1;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--text);
 }
