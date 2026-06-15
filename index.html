@@ -378,7 +378,7 @@
       <section id="settingsScreen" class="screen">
         <section class="settings-page">
           <div class="settings-scroll">
-            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog">
+            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog" autocomplete="off">
               <div class="settings-hero">
                 <div>
                   <img class="settings-hero-logo" src="img/logo-landscape.png" alt="NailBooker logo" />
@@ -475,13 +475,13 @@
                   </div>
 
                   <label class="field-label" for="settingsPaymentBeneficiaryName">Naam begunstigde</label>
-                  <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" />
+                  <input id="settingsPaymentBeneficiaryName" name="settings_qr_beneficiary_ref" class="field" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Bijv. Salonnaam" />
 
                   <label class="field-label" for="settingsPaymentIban">IBAN</label>
-                  <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
+                  <input id="settingsPaymentIban" name="settings_qr_reference_code" class="field" type="text" inputmode="text" autocomplete="new-password" autocorrect="off" autocapitalize="characters" spellcheck="false" data-lpignore="true" data-form-type="other" data-1p-ignore="true" placeholder="BE00 0000 0000 0000" />
 
                   <label class="field-label" for="settingsPaymentBic">BIC <span class="optional-label">optioneel</span></label>
-                  <input id="settingsPaymentBic" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Bijv. GEBABEBB" />
+                  <input id="settingsPaymentBic" name="settings_qr_bank_ref" class="field" type="text" inputmode="text" autocomplete="new-password" autocorrect="off" autocapitalize="characters" spellcheck="false" data-lpignore="true" data-form-type="other" data-1p-ignore="true" placeholder="Bijv. GEBABEBB" />
 
                   <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling/prefix</label>
                   <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" placeholder="" />

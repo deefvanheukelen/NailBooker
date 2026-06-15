@@ -6914,7 +6914,28 @@ function confirmLeaveSettingsIfDirty() {
   return window.confirm("Je hebt wijzigingen in Instellingen die nog niet opgeslagen zijn.\n\nWil je deze pagina verlaten zonder op te slaan?");
 }
 
+function hardenPaymentAutocompleteFields() {
+  const fields = [
+    ["settingsPaymentBeneficiaryName", "settings_qr_beneficiary_ref", "off"],
+    ["settingsPaymentIban", "settings_qr_reference_code", "new-password"],
+    ["settingsPaymentBic", "settings_qr_bank_ref", "new-password"]
+  ];
+
+  fields.forEach(([id, safeName, autocomplete]) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.setAttribute("name", safeName);
+    input.setAttribute("autocomplete", autocomplete);
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("data-lpignore", "true");
+    input.setAttribute("data-1p-ignore", "true");
+    input.setAttribute("data-form-type", "other");
+  });
+}
+
 function setupSettingsDirtyTracking() {
+  hardenPaymentAutocompleteFields();
   const form = document.getElementById("settingsForm");
   if (!form || form.dataset.dirtyTrackingReady === "true") return;
   form.dataset.dirtyTrackingReady = "true";
@@ -6937,6 +6958,7 @@ function setupSettingsDirtyTracking() {
 }
 
 function renderSettings() {
+  hardenPaymentAutocompleteFields();
   const settings = getSettings();
 
   const breakInput = document.getElementById("settingsDefaultBreakMinutes");
