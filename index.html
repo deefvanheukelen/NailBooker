@@ -525,10 +525,47 @@
         </section>
       </section>
 
-      <!-- ===================== KLANTDETAIL ================= -->
+      <!-- ===================== ADMIN ======================= -->
       <section id="adminScreen" class="screen">
         <section class="admin-page-shell">
-          <iframe id="adminPageFrame" class="admin-page-frame" src="admin.html" title="Admin" loading="lazy"></iframe>
+          <section class="admin-overview-card">
+            <div class="admin-section-headline">
+              <div>
+                <h2>Dashboard</h2>
+                <p>Gebruikers, salons, abonnementen en accountstatus.</p>
+              </div>
+              <button id="adminRefreshBtn" class="btn btn-secondary small" type="button">Vernieuwen</button>
+            </div>
+
+            <div class="admin-stats-grid">
+              <article class="admin-stat-card"><span>Totaal gebruikers</span><strong id="adminTotalUsers">0</strong></article>
+              <article class="admin-stat-card"><span>Actief</span><strong id="adminActiveUsers">0</strong></article>
+              <article class="admin-stat-card"><span>Geblokkeerd</span><strong id="adminBlockedUsers">0</strong></article>
+              <article class="admin-stat-card"><span>Abonnement actief</span><strong id="adminActiveSubscriptions">0</strong></article>
+            </div>
+          </section>
+
+          <section class="admin-overview-card">
+            <div class="admin-section-headline admin-section-headline-compact">
+              <div>
+                <h2>Accounts</h2>
+                <p>Blokkeren behoudt gegevens. Verwijderen wist alles definitief.</p>
+              </div>
+            </div>
+
+            <div class="admin-toolbar">
+              <input id="adminSearch" class="field" type="search" placeholder="Zoek op naam, e-mail, salon of locatie..." />
+              <select id="adminStatusFilter" class="field">
+                <option value="all">Alle accounts</option>
+                <option value="active">Actief</option>
+                <option value="blocked">Geblokkeerd</option>
+              </select>
+            </div>
+
+            <div id="adminUsersList" class="admin-users-list">
+              <div class="admin-empty-state">Open deze pagina met een admin-account om gebruikers te laden.</div>
+            </div>
+          </section>
         </section>
       </section>
 
@@ -1786,6 +1823,8 @@
       </div>
     </section>
   </div>
+
+  <div id="adminToast" class="admin-toast hidden" role="status" aria-live="polite"></div>
 
   <div id="appBusyOverlay" class="app-busy-overlay hidden" aria-hidden="true">
     <div class="app-busy-card" role="status" aria-live="polite">
