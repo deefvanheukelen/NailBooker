@@ -11047,3 +11047,360 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   SUPPORT-PAGINA
+========================================================= */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-support-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(184, 109, 135, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(54, 22, 36, 0.08);
+  cursor: pointer;
+}
+
+.header-support-btn:hover,
+.header-support-btn:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.support-page {
+  min-height: 0;
+  display: grid;
+}
+
+.support-scroll {
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.support-hero,
+.support-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft);
+}
+
+.support-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+}
+
+.support-kicker {
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.support-hero h2,
+.support-card h3 {
+  margin: 0 0 8px;
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+}
+
+.support-hero h2 {
+  font-size: 22px;
+}
+
+.support-hero p:not(.support-kicker),
+.support-card p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.support-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.support-card {
+  padding: 16px;
+}
+
+.support-card-wide {
+  grid-row: span 2;
+}
+
+.support-faq-item {
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.support-faq-item:first-of-type {
+  border-top: 0;
+}
+
+.support-faq-item summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.support-form {
+  display: grid;
+  gap: 10px;
+}
+
+.support-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.support-diagnostics-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.support-muted {
+  font-size: 13px;
+}
+
+.support-info-table {
+  display: grid;
+  gap: 8px;
+}
+
+.support-info-table div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.support-info-table span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.support-info-table strong {
+  color: var(--text);
+  font-size: 13px;
+  text-align: right;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-actions {
+    flex-direction: column;
+  }
+
+  .support-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-support-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+}
+
+/* =========================================================
+   SUPPORT-PAGINA - verfijning snelle hulp + headerknop
+========================================================= */
+.topbar-actions {
+  align-items: flex-start;
+}
+
+.header-support-btn {
+  margin-top: 4px;
+}
+
+.support-card h3 {
+  margin-bottom: 14px;
+}
+
+.support-faq-item {
+  padding: 14px 0;
+}
+
+.support-faq-item summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style-position: inside;
+  padding: 2px 0;
+  line-height: 1.35;
+}
+
+.support-faq-item summary::-webkit-details-marker {
+  color: var(--primary);
+}
+
+.support-answer {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(184, 109, 135, 0.16);
+  border-radius: 16px;
+  background: rgba(251, 246, 248, 0.78);
+}
+
+.support-answer p {
+  margin: 0 0 12px;
+}
+
+.support-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.support-steps li {
+  padding-left: 4px;
+  color: var(--primary-dark);
+}
+
+.support-steps li::marker {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.support-steps strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.support-steps span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.support-steps em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+@media (max-width: 480px) {
+  .header-support-btn {
+    margin-top: 2px;
+  }
+
+  .support-answer {
+    padding: 12px;
+  }
+}
+
+/* =========================================================
+   FULLSCREEN MODALS
+   Alle echte dialog/pop-upvensters worden schermvullend getoond.
+   Agenda-popovers gebruiken geen .modal en blijven hierdoor ongemoeid.
+========================================================= */
+dialog.modal {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+dialog.modal.modal-small,
+dialog.modal.payment-qr-dialog,
+dialog.modal.revenue-wheel-dialog,
+dialog.modal.appointment-wheel-dialog,
+#appointmentDialog.modal,
+#registerDialog.modal {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
+dialog.modal > .modal-card,
+dialog.modal > form.modal-card,
+dialog.modal > div.modal-card,
+#appointmentForm.modal-card,
+#registerForm.modal-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+  min-height: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 700px) {
+  dialog.modal > .modal-card,
+  dialog.modal > form.modal-card,
+  dialog.modal > div.modal-card {
+    padding: 28px;
+  }
+}

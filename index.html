@@ -68,20 +68,31 @@
         </div>
       </div>
 
-      <button
-        id="headerAccountBtn"
-        class="header-account-btn"
-        type="button"
-        aria-label="Account openen"
-      >
-        <span class="header-account-icon" aria-hidden="true">
-          <svg class="header-account-svg" width="28" height="28" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-    <path d="M 3.8617798 0.31005859 C 2.9582518 0.26493829 2.025428 0.58087526 1.2950114 1.333252 C -0.69412006 3.3821882 0.57271814 6.7574126 3.4437174 7.0579671 C 5.5379113 7.2772007 7.3912588 5.3012295 7.0631348 3.1992879 C 6.7922288 1.4638815 5.3676597 0.3852591 3.8617798 0.31005859 z M 3.716569 1.5673462 C 4.5693501 1.5673462 4.896384 2.2967116 4.8906576 2.740918 C 4.8906576 3.5393214 4.2681271 3.9021506 3.753776 3.9155233 C 3.1213517 3.9318815 2.5429972 3.4892773 2.5429972 2.740918 C 2.5429972 2.2320433 2.8406225 1.5755089 3.716569 1.5673462 z M 3.6958984 2.0102132 A 0.75140572 0.75140572 0 0 0 2.9445231 2.7615885 A 0.75140572 0.75140572 0 0 0 3.6958984 3.5129639 A 0.75140572 0.75140572 0 0 0 4.4472738 2.7615885 A 0.75140572 0.75140572 0 0 0 3.6958984 2.0102132 z M 3.8147542 4.0741699 L 4.3883626 4.0808879 L 4.4896484 4.104659 C 5.0513905 4.2380308 5.5324788 4.7773655 5.5324788 5.2730632 C 5.5324788 5.6237649 5.1140306 5.6046287 5.0462036 5.2508423 C 4.9819262 4.9155692 4.7152747 4.6477208 4.37441 4.5764648 L 4.2710571 4.5552775 L 3.6654093 4.5599284 L 3.0597616 4.5645793 L 2.949174 4.6043701 C 2.6609871 4.7095437 2.4412234 4.9624788 2.3869344 5.2508423 C 2.3633283 5.3762204 2.3262513 5.448053 2.2665283 5.483903 L 2.2665283 5.4833862 C 2.1507059 5.5529145 2.0199 5.5288422 1.9435506 5.4234416 L 1.9006592 5.3645304 L 1.9006592 5.2808146 C 1.9006592 4.8959817 2.2341795 4.4116338 2.6318807 4.2183472 C 2.9142584 4.0811219 3.0500538 4.0649184 3.8147542 4.0741699 z " fill="currentColor" />
-  </svg>
-        
-</span>
-        <span id="headerUserName" class="header-account-name">log in</span>
-      </button>
+      <div class="topbar-actions">
+        <button
+          id="headerSupportBtn"
+          class="header-support-btn"
+          type="button"
+          aria-label="Support openen"
+          title="Support"
+        >
+          <span aria-hidden="true">?</span>
+        </button>
+
+        <button
+          id="headerAccountBtn"
+          class="header-account-btn"
+          type="button"
+          aria-label="Account openen"
+        >
+          <span class="header-account-icon" aria-hidden="true">
+            <svg class="header-account-svg" width="28" height="28" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 3.8617798 0.31005859 C 2.9582518 0.26493829 2.025428 0.58087526 1.2950114 1.333252 C -0.69412006 3.3821882 0.57271814 6.7574126 3.4437174 7.0579671 C 5.5379113 7.2772007 7.3912588 5.3012295 7.0631348 3.1992879 C 6.7922288 1.4638815 5.3676597 0.3852591 3.8617798 0.31005859 z M 3.716569 1.5673462 C 4.5693501 1.5673462 4.896384 2.2967116 4.8906576 2.740918 C 4.8906576 3.5393214 4.2681271 3.9021506 3.753776 3.9155233 C 3.1213517 3.9318815 2.5429972 3.4892773 2.5429972 2.740918 C 2.5429972 2.2320433 2.8406225 1.5755089 3.716569 1.5673462 z M 3.6958984 2.0102132 A 0.75140572 0.75140572 0 0 0 2.9445231 2.7615885 A 0.75140572 0.75140572 0 0 0 3.6958984 3.5129639 A 0.75140572 0.75140572 0 0 0 4.4472738 2.7615885 A 0.75140572 0.75140572 0 0 0 3.6958984 2.0102132 z M 3.8147542 4.0741699 L 4.3883626 4.0808879 L 4.4896484 4.104659 C 5.0513905 4.2380308 5.5324788 4.7773655 5.5324788 5.2730632 C 5.5324788 5.6237649 5.1140306 5.6046287 5.0462036 5.2508423 C 4.9819262 4.9155692 4.7152747 4.6477208 4.37441 4.5764648 L 4.2710571 4.5552775 L 3.6654093 4.5599284 L 3.0597616 4.5645793 L 2.949174 4.6043701 C 2.6609871 4.7095437 2.4412234 4.9624788 2.3869344 5.2508423 C 2.3633283 5.3762204 2.3262513 5.448053 2.2665283 5.483903 L 2.2665283 5.4833862 C 2.1507059 5.5529145 2.0199 5.5288422 1.9435506 5.4234416 L 1.9006592 5.3645304 L 1.9006592 5.2808146 C 1.9006592 4.8959817 2.2341795 4.4116338 2.6318807 4.2183472 C 2.9142584 4.0811219 3.0500538 4.0649184 3.8147542 4.0741699 z " fill="currentColor" />
+    </svg>
+          </span>
+          <span id="headerUserName" class="header-account-name">log in</span>
+        </button>
+      </div>
     </header>
 
     <!-- =========================================================
@@ -378,7 +389,7 @@
       <section id="settingsScreen" class="screen">
         <section class="settings-page">
           <div class="settings-scroll">
-            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog" autocomplete="off">
+            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog">
               <div class="settings-hero">
                 <div>
                   <img class="settings-hero-logo" src="img/logo-landscape.png" alt="NailBooker logo" />
@@ -475,13 +486,13 @@
                   </div>
 
                   <label class="field-label" for="settingsPaymentBeneficiaryName">Naam begunstigde</label>
-                  <input id="settingsPaymentBeneficiaryName" name="settings_qr_beneficiary_ref" class="field" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Bijv. Salonnaam" />
+                  <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" />
 
                   <label class="field-label" for="settingsPaymentIban">IBAN</label>
-                  <input id="settingsPaymentIban" name="settings_qr_reference_code" class="field" type="text" inputmode="text" autocomplete="new-password" autocorrect="off" autocapitalize="characters" spellcheck="false" data-lpignore="true" data-form-type="other" data-1p-ignore="true" placeholder="BE00 0000 0000 0000" />
+                  <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
 
                   <label class="field-label" for="settingsPaymentBic">BIC <span class="optional-label">optioneel</span></label>
-                  <input id="settingsPaymentBic" name="settings_qr_bank_ref" class="field" type="text" inputmode="text" autocomplete="new-password" autocorrect="off" autocapitalize="characters" spellcheck="false" data-lpignore="true" data-form-type="other" data-1p-ignore="true" placeholder="Bijv. GEBABEBB" />
+                  <input id="settingsPaymentBic" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Bijv. GEBABEBB" />
 
                   <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling/prefix</label>
                   <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" placeholder="" />
@@ -521,6 +532,163 @@
                 <button class="btn btn-primary action-btn" type="submit" data-i18n="saveSettings">Instellingen opslaan</button>
               </div>
             </form>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== SUPPORT ======================= -->
+      <section id="supportScreen" class="screen">
+        <section class="support-page">
+          <div class="support-scroll">
+            <section class="support-hero">
+              <div class="support-hero-icon" aria-hidden="true">?</div>
+              <div>
+                <p class="support-kicker">NailBooker support</p>
+                <h2>Waarmee kunnen we helpen?</h2>
+                <p>Vind snel hulp, meld een probleem of stuur technische info mee zodat ondersteuning eenvoudiger wordt.</p>
+              </div>
+            </section>
+
+            <section class="support-grid">
+              <article class="support-card">
+                <h3>Snelle hulp</h3>
+                <details class="support-faq-item" open>
+                  <summary>Een afspraak inboeken</summary>
+                  <div class="support-answer">
+                    <p>Voor je een afspraak kunt plannen, moeten er minstens één dienst en één klant bestaan.</p>
+                    <ol class="support-steps">
+                      <li>
+                        <strong>Voeg minstens één dienst toe</strong>
+                        <span>Ga naar <em>Diensten</em>, tik op de plusknop en vul naam, duurtijd en prijs in.</span>
+                      </li>
+                      <li>
+                        <strong>Voeg minstens één klant toe</strong>
+                        <span>Ga naar <em>Klanten</em>, tik op de plusknop en bewaar de klantgegevens.</span>
+                      </li>
+                      <li>
+                        <strong>Plan de afspraak in de agenda</strong>
+                        <span>Ga naar <em>Agenda</em>, tik op <em>+</em>, kies klant, dienst, datum, uur, status en betaalwijze en bewaar de afspraak.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+                <details class="support-faq-item">
+                  <summary>Omzet filteren op dag, week, maand of jaar</summary>
+                  <div class="support-answer">
+                    <ol class="support-steps">
+                      <li>
+                        <strong>Open de pagina Omzet</strong>
+                        <span>Gebruik het menu onderaan om naar <em>Omzet</em> te gaan.</span>
+                      </li>
+                      <li>
+                        <strong>Kies de periode</strong>
+                        <span>Tik bovenaan op <em>Dag</em>, <em>Week</em>, <em>Maand</em> of <em>Jaar</em>.</span>
+                      </li>
+                      <li>
+                        <strong>Wijzig de datum of periode</strong>
+                        <span>Gebruik de pijltjes of datumkeuze om de gewenste periode te bekijken.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+                <details class="support-faq-item">
+                  <summary>Klanten of diensten aanpassen</summary>
+                  <div class="support-answer">
+                    <ol class="support-steps">
+                      <li>
+                        <strong>Open Klanten of Diensten</strong>
+                        <span>Kies de juiste pagina via het menu.</span>
+                      </li>
+                      <li>
+                        <strong>Tik op het item dat je wilt wijzigen</strong>
+                        <span>Pas de gegevens aan en bewaar je wijziging.</span>
+                      </li>
+                      <li>
+                        <strong>Deactiveer in plaats van verwijderen</strong>
+                        <span>Bij diensten is deactiveren vaak veiliger, omdat oude afspraken zo correct bewaard blijven.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+                <details class="support-faq-item">
+                  <summary>Bevestigingsmail of herinnering controleren</summary>
+                  <div class="support-answer">
+                    <ol class="support-steps">
+                      <li>
+                        <strong>Controleer het e-mailadres van de klant</strong>
+                        <span>Open de klant en kijk na of het e-mailadres correct ingevuld is.</span>
+                      </li>
+                      <li>
+                        <strong>Controleer de afspraak</strong>
+                        <span>Open de afspraak en kijk na of datum, uur, dienst en klant correct zijn.</span>
+                      </li>
+                      <li>
+                        <strong>Kijk ook in spam of ongewenste mail</strong>
+                        <span>Bij nieuwe verzendadressen kan een mail soms eerst in de spamfolder terechtkomen.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+                <details class="support-faq-item">
+                  <summary>Waarom zie ik soms oude gegevens?</summary>
+                  <div class="support-answer">
+                    <p>Bij GitHub Pages of browsercache kan soms nog een oude versie van de app geladen worden.</p>
+                    <ol class="support-steps">
+                      <li>
+                        <strong>Vernieuw hard</strong>
+                        <span>Gebruik Ctrl+F5 op desktop of herlaad de pagina volledig op mobiel.</span>
+                      </li>
+                      <li>
+                        <strong>Test in een privévenster</strong>
+                        <span>Zo controleer je snel of het probleem door cache komt.</span>
+                      </li>
+                      <li>
+                        <strong>Wis browsergegevens indien nodig</strong>
+                        <span>Als het probleem blijft terugkomen, wis dan de cache van de browser.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+              </article>
+
+              <article class="support-card support-card-wide">
+                <h3>Probleem melden</h3>
+                <p>Beschrijf kort wat er fout loopt. De technische info helpt om sneller te achterhalen wat er gebeurt.</p>
+                <form id="supportForm" class="support-form">
+                  <label class="field-label" for="supportSubject">Onderwerp</label>
+                  <input id="supportSubject" class="field" type="text" placeholder="Bijvoorbeeld: afspraak wordt niet opgeslagen" />
+
+                  <label class="field-label" for="supportMessage">Beschrijving</label>
+                  <textarea id="supportMessage" class="field support-textarea" rows="6" placeholder="Wat deed je? Wat verwachtte je? Wat gebeurde er?" required></textarea>
+
+                  <label class="support-diagnostics-row">
+                    <input id="supportIncludeDiagnostics" type="checkbox" checked />
+                    <span>Technische info meesturen</span>
+                  </label>
+
+                  <div class="support-actions">
+                    <button class="btn btn-primary action-btn" type="submit">Verzend supportmail</button>
+                    <button id="supportCopyDiagnosticsBtn" class="btn btn-secondary action-btn" type="button">Kopieer technische info</button>
+                  </div>
+                </form>
+              </article>
+
+              <article class="support-card">
+                <h3>Contact</h3>
+                <p>Je kunt support bereiken via:</p>
+                <p><strong>support@nailbooker.be</strong></p>
+                <p class="support-muted">Later kan dit formulier rechtstreeks als ticket in de Admin-pagina worden opgeslagen.</p>
+              </article>
+
+              <article class="support-card">
+                <h3>Over NailBooker</h3>
+                <div class="support-info-table">
+                  <div><span>Versie</span><strong id="supportAppVersion">1.0.0</strong></div>
+                  <div><span>Browser</span><strong id="supportBrowserInfo">-</strong></div>
+                  <div><span>Gebruiker</span><strong id="supportUserInfo">-</strong></div>
+                </div>
+              </article>
+            </section>
           </div>
         </section>
       </section>
@@ -1050,12 +1218,12 @@
 
         <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentDuration">Duur (min)</label>
-          <input id="appointmentDuration" class="field" type="number" min="0" required />
+          <input id="appointmentDuration" class="field" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required />
         </div>
 
         <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentPrice">Prijs</label>
-          <input id="appointmentPrice" class="field" type="number" min="0" step="0.01" required />
+          <input id="appointmentPrice" class="field" type="text" inputmode="decimal" autocomplete="off" required />
         </div>
 
         <div id="appointmentStatusWrap" class="appointment-form-field appointment-form-field-wide appointment-normal-field">
@@ -1189,12 +1357,12 @@
       <div class="field-row">
         <div>
           <label class="field-label" for="serviceDuration">Duur (min)</label>
-          <input id="serviceDuration" class="field" type="number" min="0" required />
+          <input id="serviceDuration" class="field" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required />
         </div>
 
         <div>
           <label class="field-label" for="servicePrice">Prijs</label>
-          <input id="servicePrice" class="field" type="number" min="0" step="0.01" required />
+          <input id="servicePrice" class="field" type="text" inputmode="decimal" autocomplete="off" required />
         </div>
       </div>
 

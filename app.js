@@ -26,21 +26,21 @@ const DEFAULT_CURRENCY = "EUR";
 
 const i18n = {
   "nl-BE": {
-    agenda: "Agenda", revenue: "Omzet", clients: "Klanten", services: "Diensten", paymentMethods: "Betaalwijze", statistics: "Statistieken", settings: "Instellingen", account: "Account",
+    agenda: "Agenda", revenue: "Omzet", clients: "Klanten", services: "Diensten", paymentMethods: "Betaalwijze", statistics: "Statistieken", settings: "Instellingen", support: "Support", account: "Account",
     save: "Opslaan", cancel: "Annuleren", register: "Registreren", login: "Inloggen", logout: "Uitloggen", editProfile: "Gegevens wijzigen", changePassword: "Wachtwoord wijzigen",
     language: "Taal", currency: "Valuta", appPreferences: "App-voorkeuren", currencyChangeWarning: "Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.",
     firstName: "Voornaam", lastName: "Naam", salonName: "Salonnaam", vatNumber: "BTW-nummer", email: "E-mail", password: "Wachtwoord", confirmPassword: "Bevestig wachtwoord", optional: "optioneel",
     noRevenueForSelection: "Geen omzetgegevens voor deze selectie.", paid: "Betaald", unpaid: "Onbetaald", paymentMethod: "Betaalwijze", unknown: "Onbekend", settingsSaved: "Instellingen opgeslagen.", settingsSavedDevice: "Instellingen opgeslagen op dit toestel.", saveSettings: "Instellingen opslaan", ok: "OK", confirmTitle: "Bevestiging", confirm: "Bevestigen"
   },
   "en-GB": {
-    agenda: "Agenda", revenue: "Revenue", clients: "Clients", services: "Services", paymentMethods: "Payment methods", statistics: "Statistics", settings: "Settings", account: "Account",
+    agenda: "Agenda", revenue: "Revenue", clients: "Clients", services: "Services", paymentMethods: "Payment methods", statistics: "Statistics", settings: "Settings", support: "Support", account: "Account",
     save: "Save", cancel: "Cancel", register: "Register", login: "Log in", logout: "Log out", editProfile: "Edit details", changePassword: "Change password",
     language: "Language", currency: "Currency", appPreferences: "App preferences", currencyChangeWarning: "New appointments will use this currency from now on. Existing appointments and revenue remain in their original currency and are not converted.",
     firstName: "First name", lastName: "Last name", salonName: "Salon name", vatNumber: "VAT number", email: "Email", password: "Password", confirmPassword: "Confirm password", optional: "optional",
     noRevenueForSelection: "No revenue data for this selection.", paid: "Paid", unpaid: "Unpaid", paymentMethod: "Payment method", unknown: "Unknown", settingsSaved: "Settings saved.", settingsSavedDevice: "Settings saved on this device.", saveSettings: "Save settings", ok: "OK", confirmTitle: "Confirmation", confirm: "Confirm"
   },
   "fr-FR": {
-    agenda: "Agenda", revenue: "Chiffre d’affaires", clients: "Clients", services: "Services", paymentMethods: "Modes de paiement", statistics: "Statistiques", settings: "Paramètres", account: "Compte",
+    agenda: "Agenda", revenue: "Chiffre d’affaires", clients: "Clients", services: "Services", paymentMethods: "Modes de paiement", statistics: "Statistiques", settings: "Paramètres", support: "Support", account: "Compte",
     save: "Enregistrer", cancel: "Annuler", register: "S’inscrire", login: "Connexion", logout: "Déconnexion", editProfile: "Modifier les données", changePassword: "Modifier le mot de passe",
     language: "Langue", currency: "Devise", appPreferences: "Préférences de l’application", currencyChangeWarning: "Les nouveaux rendez-vous utiliseront désormais cette devise. Les rendez-vous et revenus existants restent dans leur devise d’origine et ne sont pas convertis.",
     firstName: "Prénom", lastName: "Nom", salonName: "Nom du salon", vatNumber: "Numéro de TVA", email: "E-mail", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", optional: "optionnel",
@@ -2503,6 +2503,76 @@ async function logoutAccount() {
   switchScreen("accountScreen", t("account"));
 }
 
+
+/* =========================
+   SUPPORT
+========================= */
+
+const APP_VERSION = "1.0.0";
+
+function getSupportBrowserInfo() {
+  const ua = navigator.userAgent || "Onbekende browser";
+  if (/Edg\//.test(ua)) return "Microsoft Edge";
+  if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) return "Google Chrome";
+  if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return "Safari";
+  if (/Firefox\//.test(ua)) return "Firefox";
+  return ua.slice(0, 80);
+}
+
+function buildSupportDiagnostics() {
+  const profile = authProfileCache || {};
+  const user = authUserCache || {};
+  const salonName = profile.salon_name || getData()?.profile?.salonName || "-";
+  const userLabel = profile.email || user.email || "Niet ingelogd";
+
+  return [
+    `NailBooker versie: ${APP_VERSION}`,
+    `Datum/tijd: ${new Date().toLocaleString("nl-BE")}`,
+    `Scherm: ${getScreenTitle(state.currentScreen, state.currentScreen || "-")}`,
+    `Browser: ${getSupportBrowserInfo()}`,
+    `Platform: ${navigator.platform || "-"}`,
+    `Taal: ${navigator.language || "-"}`,
+    `Salonnaam: ${salonName}`,
+    `Gebruiker: ${userLabel}`,
+    `User ID: ${user.id || "-"}`
+  ].join("\n");
+}
+
+function renderSupportPage() {
+  const versionEl = document.getElementById("supportAppVersion");
+  const browserEl = document.getElementById("supportBrowserInfo");
+  const userEl = document.getElementById("supportUserInfo");
+  const profile = authProfileCache || {};
+  const user = authUserCache || {};
+
+  if (versionEl) versionEl.textContent = APP_VERSION;
+  if (browserEl) browserEl.textContent = getSupportBrowserInfo();
+  if (userEl) userEl.textContent = profile.email || user.email || "Niet ingelogd";
+}
+
+async function copySupportDiagnostics() {
+  const diagnostics = buildSupportDiagnostics();
+  try {
+    await navigator.clipboard.writeText(diagnostics);
+    await appAlert("Technische info gekopieerd.", { title: "Support", variant: "success" });
+  } catch (error) {
+    await appAlert(diagnostics, { title: "Technische info" });
+  }
+}
+
+function submitSupportForm(event) {
+  event.preventDefault();
+
+  const subject = document.getElementById("supportSubject")?.value?.trim() || "Supportvraag NailBooker";
+  const message = document.getElementById("supportMessage")?.value?.trim() || "";
+  const includeDiagnostics = document.getElementById("supportIncludeDiagnostics")?.checked !== false;
+  const diagnostics = includeDiagnostics ? `\n\n--- Technische info ---\n${buildSupportDiagnostics()}` : "";
+  const body = `${message}${diagnostics}`;
+
+  const mailto = `mailto:support@nailbooker.be?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+}
+
 /* =========================
    UI
 ========================= */
@@ -2519,6 +2589,7 @@ function getScreenTitle(screenId, fallback = "") {
     paymentMethodsScreen: "paymentMethods",
     statisticsScreen: "statistics",
     settingsScreen: "settings",
+    supportScreen: "support",
     accountScreen: "account"
   };
   const key = map[screenId];
@@ -2720,14 +2791,14 @@ function switchScreen(screenId, title, options = {}) {
     return;
   }
 
-  if (isAuthLocked() && screenId !== "accountScreen") {
+  if (isAuthLocked() && !["accountScreen", "supportScreen"].includes(screenId)) {
     screenId = "accountScreen";
     title = "Account";
   }
 
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "adminScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "supportScreen", "adminScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -2772,6 +2843,10 @@ function switchScreen(screenId, title, options = {}) {
 
   if (screenId === "settingsScreen") {
     renderSettings();
+  }
+
+  if (screenId === "supportScreen") {
+    renderSupportPage();
   }
 
   if (screenId === "paymentMethodsScreen") {
@@ -8500,12 +8575,50 @@ function openEditClientDialog(id) {
   document.getElementById("clientDialog").showModal();
 }
 
+
+function selectNumericFieldContent(event) {
+  const input = event.currentTarget;
+  if (!input) return;
+  window.setTimeout(() => {
+    try { input.select(); } catch (_) {}
+  }, 0);
+}
+
+function normalizeDecimalInput(value) {
+  let clean = String(value || "").replace(/[^0-9,.]/g, "");
+  const firstSeparatorIndex = clean.search(/[,.]/);
+  if (firstSeparatorIndex >= 0) {
+    const before = clean.slice(0, firstSeparatorIndex + 1);
+    const after = clean.slice(firstSeparatorIndex + 1).replace(/[,.]/g, "");
+    clean = before + after;
+  }
+  return clean;
+}
+
+function normalizeDurationInput(value) {
+  return String(value || "").replace(/[^0-9]/g, "");
+}
+
+function parseDecimalInput(value) {
+  const normalized = String(value || "").trim().replace(",", ".");
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function normalizeServicePriceInput(value) {
+  return normalizeDecimalInput(value);
+}
+
+function parseServicePrice(value) {
+  return parseDecimalInput(value);
+}
+
 function openNewServiceDialog() {
   document.getElementById("serviceModalTitle").textContent = t("newService");
   document.getElementById("serviceId").value = "";
   document.getElementById("serviceName").value = "";
   document.getElementById("serviceDuration").value = 60;
-  document.getElementById("servicePrice").value = 65;
+  document.getElementById("servicePrice").value = "";
 
   const reactivateWrap = document.getElementById("serviceReactivateWrap");
   const reactivateCheckbox = document.getElementById("serviceReactivateCheckbox");
@@ -8816,7 +8929,7 @@ async function saveServiceFromForm(event) {
     const payload = {
       name: serviceName,
       duration: Number(document.getElementById("serviceDuration").value),
-      price: Number(document.getElementById("servicePrice").value),
+      price: parseServicePrice(document.getElementById("servicePrice").value),
       isActive: nextIsActive
     };
 
@@ -8841,7 +8954,7 @@ async function saveServiceFromForm(event) {
     user_id: user.id,
     name: serviceName,
     duration: Number(document.getElementById("serviceDuration").value),
-    price: Number(document.getElementById("servicePrice").value),
+    price: parseServicePrice(document.getElementById("servicePrice").value),
     is_active: nextIsActive
   };
 
@@ -8936,7 +9049,7 @@ async function saveAppointmentFromForm(event) {
     time: document.getElementById("appointmentTime").value,
     serviceId: isPrivate ? null : Number(selectedServiceId),
     duration: isPrivate ? calculatePrivateDuration(privateStartTime, privateEndTime) : Number(document.getElementById("appointmentDuration").value),
-    price: isPrivate ? 0 : Number(document.getElementById("appointmentPrice").value),
+    price: isPrivate ? 0 : parseDecimalInput(document.getElementById("appointmentPrice").value),
     status: isPrivate ? "gepland" : (id ? document.getElementById("appointmentStatus").value : "gepland"),
     remarks: isPrivate ? "" : String(document.getElementById("appointmentRemarks")?.value || "").trim(),
     isPrivate,
@@ -9575,7 +9688,7 @@ function standardCostExists(data, description) {
 }
 
 function buildVatOptions(selected = 21) {
-  return [6, 12, 21].map(rate => `<option value="${rate}"${Number(selected) === rate ? " selected" : ""}>${rate}%</option>`).join("");
+  return [0, 6, 12, 19, 21].map(rate => `<option value="${rate}"${Number(selected) === rate ? " selected" : ""}>${rate}%</option>`).join("");
 }
 
 function renderCostStandardSuggestions(filter = "", showAllWhenEmpty = true) {
@@ -9800,7 +9913,7 @@ async function saveCostFromForm(event) {
   const id = rawId ? Number(rawId) || rawId : null;
   const description = String(document.getElementById("costDescription")?.value || "").trim();
   const date = document.getElementById("costDate")?.value || todayStr;
-  const amountInclVat = Number(String(document.getElementById("costAmountInclVat")?.value || "0").replace(",", "."));
+  const amountInclVat = parseDecimalInput(document.getElementById("costAmountInclVat")?.value);
   const vatRate = Number(document.getElementById("costVatRate")?.value || 21);
   let standardCostId = document.getElementById("costStandardCostId")?.value || null;
   const saveAsStandardCost = Boolean(document.getElementById("costSaveAsStandardCost")?.checked);
@@ -10660,6 +10773,26 @@ function registerEvents() {
   document.getElementById("clientForm").addEventListener("submit", withActionLock(saveClientFromForm));
 
   document.getElementById("serviceForm").addEventListener("submit", withActionLock(saveServiceFromForm));
+  ["appointmentDuration", "appointmentPrice", "serviceDuration", "servicePrice", "costAmountInclVat"].forEach(id => {
+    const input = document.getElementById(id);
+    input?.addEventListener("focus", selectNumericFieldContent);
+    input?.addEventListener("click", selectNumericFieldContent);
+  });
+  ["appointmentDuration", "serviceDuration"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", event => {
+      const input = event.currentTarget;
+      const clean = normalizeDurationInput(input.value);
+      if (input.value !== clean) input.value = clean;
+    });
+  });
+
+  ["appointmentPrice", "servicePrice", "costAmountInclVat"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", event => {
+      const input = event.currentTarget;
+      const clean = normalizeDecimalInput(input.value);
+      if (input.value !== clean) input.value = clean;
+    });
+  });
   document.getElementById("deleteServiceBtn").addEventListener("click", withActionLock(deleteCurrentService));
 
   document.getElementById("paymentMethodForm").addEventListener("submit", withActionLock(savePaymentMethodFromForm));
@@ -10781,6 +10914,7 @@ function registerEvents() {
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const headerAccountBtn = document.getElementById("headerAccountBtn");
+  const headerSupportBtn = document.getElementById("headerSupportBtn");
 
   const editProfileBtn = document.getElementById("editProfileBtn");
   const changePasswordBtn = document.getElementById("changePasswordBtn");
@@ -10834,6 +10968,15 @@ function registerEvents() {
       switchScreen("accountScreen", t("account"));
     });
   }
+
+  if (headerSupportBtn) {
+    headerSupportBtn.addEventListener("click", () => {
+      switchScreen("supportScreen", t("support"));
+    });
+  }
+
+  document.getElementById("supportForm")?.addEventListener("submit", submitSupportForm);
+  document.getElementById("supportCopyDiagnosticsBtn")?.addEventListener("click", copySupportDiagnostics);
 
 	supabaseClient.auth.onAuthStateChange(() => {
 		scheduleAuthUiRefresh();
