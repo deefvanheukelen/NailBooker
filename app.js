@@ -7973,7 +7973,7 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   if (durationInput) durationInput.value = "";
   if (priceInput) priceInput.value = "";
   hideAppointmentServiceResults();
-  document.getElementById("deleteAppointmentBtn").style.visibility = "hidden";
+  document.getElementById("deleteAppointmentBtn")?.classList.add("hidden");
   document.getElementById("appointmentDialog").showModal();
 }
 
@@ -8020,7 +8020,7 @@ function openEditAppointmentDialog(id) {
   updateAppointmentOpenCustomerButton();
   syncAppointmentDateTimeDisplays();
 
-  document.getElementById("deleteAppointmentBtn").style.visibility = "visible";
+  document.getElementById("deleteAppointmentBtn")?.classList.remove("hidden");
   document.getElementById("appointmentDialog").showModal();
 }
 
@@ -8570,7 +8570,7 @@ function openNewPaymentMethodDialog() {
   document.getElementById("paymentMethodModalTitle").textContent = t("newPaymentMethod");
   document.getElementById("paymentMethodId").value = "";
   document.getElementById("paymentMethodName").value = "";
-  document.getElementById("deletePaymentMethodBtn").style.visibility = "hidden";
+  document.getElementById("deletePaymentMethodBtn")?.classList.add("hidden");
   document.getElementById("paymentMethodDialog").showModal();
 }
 
@@ -8582,7 +8582,7 @@ function openEditPaymentMethodDialog(id) {
   document.getElementById("paymentMethodModalTitle").textContent = t("editPaymentMethod");
   document.getElementById("paymentMethodId").value = method.id;
   document.getElementById("paymentMethodName").value = method.name;
-  document.getElementById("deletePaymentMethodBtn").style.visibility = "visible";
+  document.getElementById("deletePaymentMethodBtn")?.classList.remove("hidden");
   document.getElementById("paymentMethodDialog").showModal();
 }
 
@@ -8664,7 +8664,7 @@ function openNewServiceDialog() {
   if (reactivateWrap) reactivateWrap.classList.add("hidden");
   if (reactivateCheckbox) reactivateCheckbox.checked = false;
 
-  document.getElementById("deleteServiceBtn").style.visibility = "hidden";
+  document.getElementById("deleteServiceBtn")?.classList.add("hidden");
   document.getElementById("serviceDialog").showModal();
 }
 
@@ -8686,7 +8686,7 @@ function openEditServiceDialog(id) {
   if (reactivateWrap) reactivateWrap.classList.toggle("hidden", !isInactive);
   if (reactivateCheckbox) reactivateCheckbox.checked = false;
 
-  document.getElementById("deleteServiceBtn").style.visibility = isInactive ? "hidden" : "visible";
+  document.getElementById("deleteServiceBtn")?.classList.toggle("hidden", isInactive);
   document.getElementById("serviceDialog").showModal();
 }
 

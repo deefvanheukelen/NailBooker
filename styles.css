@@ -11394,7 +11394,7 @@ dialog.modal > div.modal-card,
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 700px) {
@@ -11405,6 +11405,31 @@ dialog.modal > div.modal-card,
   }
 }
 
+
+
+/* =========================================================
+   MODAL ACTIONS ONDERAAN
+   Actieknoppen blijven onderaan zichtbaar in fullscreen popups.
+   Agenda-popovers gebruiken geen .modal-actions en blijven ongemoeid.
+========================================================= */
+dialog.modal .modal-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  margin: 0 !important;
+  padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 700px) {
+  dialog.modal .modal-actions {
+    padding: 12px 28px calc(12px + env(safe-area-inset-bottom));
+  }
+}
 
 /* =========================================================
    KLANTDETAIL ALS FULLSCREEN POPUP
@@ -11450,4 +11475,14 @@ dialog.modal > div.modal-card,
   .client-detail-dialog .client-action-bar {
     bottom: calc(env(safe-area-inset-bottom) + 28px);
   }
+}
+
+/* Fix: verborgen actieknoppen moeten echt verborgen blijven,
+   ook nadat ze de app-action-nav-btn stijl hebben gekregen. */
+.modal-actions .btn.app-action-nav-btn.hidden,
+.modal-actions > .btn.app-action-nav-btn.hidden,
+.right-actions .btn.app-action-nav-btn.hidden,
+.btn.app-action-nav-btn.hidden,
+.app-action-nav-btn.hidden {
+  display: none !important;
 }
