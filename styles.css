@@ -11486,3 +11486,8 @@ dialog.modal .modal-actions {
 .app-action-nav-btn.hidden {
   display: none !important;
 }
+
+/* Nieuwe/bewerk klant: opmerkingenveld ruimer tonen */
+#clientNote.client-note-textarea {
+  min-height: 150px;
+}

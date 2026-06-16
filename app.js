@@ -6826,7 +6826,7 @@ async function showAppointmentNotification(appointment) {
     body,
     tag: `appointment-${appointment.id}`,
     renotify: false,
-    badge: 'icons/icon-192.png',
+    badge: 'icons/notification-badge.png',
     icon: 'icons/icon-192.png',
     data: { appointmentId: appointment.id, screen: 'agendaScreen', date: appointment.date }
   };
@@ -12046,15 +12046,23 @@ async function startApp() {
     return wrap;
   }
 
+  function getShortWeekdayLabel(date) {
+    const keys = ["sundayShort", "mondayShort", "tuesdayShort", "wednesdayShort", "thursdayShort", "fridayShort", "saturdayShort"];
+    const key = keys[date.getDay()] || "";
+    return key ? t(key) : "";
+  }
+
   function setMonthHeaderForDayMode() {
     const title = document.getElementById("monthPickerBtn");
     if (!title) return;
     const d = getSelectedDateObject();
-    title.textContent = new Intl.DateTimeFormat(getCurrentLanguage(), {
+    const shortDay = getShortWeekdayLabel(d);
+    const formattedDate = new Intl.DateTimeFormat(getCurrentLanguage(), {
       day: "numeric",
       month: "long",
       year: "numeric"
     }).format(d);
+    title.textContent = `${shortDay ? `${shortDay} ` : ""}${formattedDate}`;
   }
 
   function minutesForDayView(appointment) {
