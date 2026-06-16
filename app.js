@@ -7320,7 +7320,16 @@ function updateClientActionBar(client = null) {
 
   const hasPhone = Boolean(phoneValue);
   const hasEmail = Boolean(emailValue);
-  const shouldShowBar = state.currentScreen === 'clientDetailScreen' && (hasPhone || hasEmail);
+  const clientDetailDialog = document.getElementById('clientDetailDialog');
+  const isClientDetailVisible = state.currentScreen === 'clientDetailScreen' || Boolean(clientDetailDialog?.open);
+  const shouldShowBar = isClientDetailVisible && (hasPhone || hasEmail);
+
+  // Als klantdetail als <dialog>.showModal() opent, zitten elementen buiten het dialog
+  // achter de browser-backdrop/top-layer. Verplaats de contactbalk daarom tijdelijk
+  // IN het dialogvenster, zodat bellen/sms/mail zichtbaar en klikbaar blijven.
+  if (clientDetailDialog?.open && bar.parentElement !== clientDetailDialog) {
+    clientDetailDialog.appendChild(bar);
+  }
 
   callBtn.classList.toggle('hidden', !hasPhone);
   smsBtn.classList.toggle('hidden', !hasPhone);
@@ -7361,7 +7370,7 @@ function openClientDetail(clientId) {
 
   const data = getData();
   const client = customerById(data, clientId);
-  const content = document.getElementById("clientDetailContent");
+  const content = document.getElementById("clientDetailModalContent") || document.getElementById("clientDetailContent");
 
   if (!client || !content) return;
 
@@ -7505,7 +7514,10 @@ function openClientDetail(clientId) {
     });
   });
 
-  switchScreen("clientDetailScreen", "Klant");
+  const dialog = document.getElementById("clientDetailDialog");
+  if (dialog && typeof dialog.showModal === "function" && !dialog.open) {
+    dialog.showModal();
+  }
   updateClientActionBar(client);
 }
 
@@ -8020,6 +8032,29 @@ function openAppointmentCustomerDetailFromDialog() {
   openClientDetail(customerId);
 }
 
+
+function getFloatingPopoverElements() {
+  return [
+    document.getElementById("appointmentActionPopover"),
+    document.getElementById("paymentPopover"),
+    document.getElementById("paymentQrPopover")
+  ].filter(Boolean);
+}
+
+function moveFloatingPopoversToClientDetailDialog() {
+  const dialog = document.getElementById("clientDetailDialog");
+  if (!dialog || !dialog.open) return;
+  getFloatingPopoverElements().forEach(el => {
+    if (el.parentElement !== dialog) dialog.appendChild(el);
+  });
+}
+
+function restoreFloatingPopoversToBody() {
+  getFloatingPopoverElements().forEach(el => {
+    if (el.parentElement !== document.body) document.body.appendChild(el);
+  });
+}
+
 function positionAppointmentActionPopover() {
   const popover = document.getElementById("appointmentActionPopover");
   if (!popover || popover.classList.contains("hidden") || !appointmentActionPopoverState.anchorRect) return;
@@ -8147,6 +8182,8 @@ function openAppointmentActionPopover(id, anchorEl = null) {
     openEditAppointmentDialog(id);
     return;
   }
+
+  moveFloatingPopoversToClientDetailDialog();
 
   const detailsBtn = document.getElementById("appointmentActionDetailsBtn");
   const deleteBtn = document.getElementById("appointmentActionDeleteBtn");
@@ -8473,6 +8510,8 @@ function openPaymentDialog(id, anchorEl = null) {
 
   const popover = document.getElementById("paymentPopover");
   if (!popover) return;
+
+  moveFloatingPopoversToClientDetailDialog();
 
   document.getElementById("paymentAppointmentId").value = id;
   document.getElementById("paymentAmount").textContent = euro(app.price, app.currency);
@@ -10834,6 +10873,16 @@ function registerEvents() {
   document.querySelectorAll("[data-close]").forEach(btn => {
     btn.addEventListener("click", () => closeDialog(btn.dataset.close));
   });
+
+  const clientDetailDialog = document.getElementById("clientDetailDialog");
+  if (clientDetailDialog) {
+    clientDetailDialog.addEventListener("close", () => {
+      updateClientActionBar(null);
+      closePaymentPopover();
+      closeAppointmentActionPopover();
+      restoreFloatingPopoversToBody();
+    });
+  }
 
   document.getElementById("revenueDate").value = todayStr;
 

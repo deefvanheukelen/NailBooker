@@ -11404,3 +11404,50 @@ dialog.modal > div.modal-card,
     padding: 28px;
   }
 }
+
+
+/* =========================================================
+   KLANTDETAIL ALS FULLSCREEN POPUP
+   Alleen de detailfiche van één klant opent als popup.
+   Het overzicht Klanten blijft een gewone pagina.
+========================================================= */
+.client-detail-dialog .client-detail-modal-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom)) !important;
+  background: #fbf8fa;
+}
+
+.client-detail-dialog .client-detail-modal-head {
+  margin-bottom: 10px;
+  flex: 0 0 auto;
+}
+
+.client-detail-modal-content {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 104px;
+}
+
+.client-detail-dialog .client-detail-page {
+  padding-top: 0;
+}
+
+@media (min-width: 700px) {
+  .client-detail-dialog .client-detail-modal-card {
+    padding: 28px 28px calc(28px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Klantdetail popup: contactknoppen zichtbaar binnen het fullscreen dialog */
+.client-detail-dialog .client-action-bar {
+  z-index: 2;
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
+}
+
+@media (min-width: 700px) {
+  .client-detail-dialog .client-action-bar {
+    bottom: calc(env(safe-area-inset-bottom) + 28px);
+  }
+}
