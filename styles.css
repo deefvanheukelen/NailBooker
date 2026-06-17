@@ -11499,3 +11499,721 @@ dialog.modal .modal-actions {
 #clientNote.client-note-textarea {
   min-height: 150px;
 }
+
+/* =========================================================
+   HEADER TAALKEUZE
+========================================================= */
+.header-language-select {
+  height: 28px;
+  min-width: 46px;
+  border: 1px solid rgba(184, 109, 135, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 18px 0 8px;
+  box-shadow: 0 8px 18px rgba(54, 22, 36, 0.07);
+  outline: none;
+  cursor: pointer;
+}
+
+.header-language-select:focus {
+  border-color: rgba(184, 109, 135, 0.62);
+  box-shadow: 0 0 0 3px rgba(184, 109, 135, 0.14);
+}
+
+/* =========================================================
+   APP-HEADER IN FULLSCREEN POPUPS
+   Geen extra sticky titelbalk; de echte modal-inhoud start onder de app-header.
+========================================================= */
+dialog.modal[open].has-app-topbar {
+  display: flex !important;
+  flex-direction: column;
+  background: #fbf8fa;
+}
+
+.modal-app-topbar {
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: calc(12px + env(safe-area-inset-top));
+}
+
+.modal-app-topbar .modal-app-close-btn {
+  visibility: visible;
+}
+
+.modal-app-topbar .modal-app-title {
+  font-size: 19px;
+}
+
+dialog.modal.has-app-topbar > .modal-card,
+dialog.modal.has-app-topbar > form.modal-card,
+dialog.modal.has-app-topbar > div.modal-card,
+dialog.modal.has-app-topbar #appointmentForm.modal-card,
+dialog.modal.has-app-topbar #registerForm.modal-card {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+@media (max-width: 480px) {
+  .header-language-select {
+    height: 26px;
+    min-width: 42px;
+    font-size: 10px;
+    padding-left: 7px;
+    padding-right: 16px;
+  }
+}
+
+
+/* =========================================================
+   HEADER VERFIJNING
+   Terugpijl weg, logo links, compacte taalselectie.
+========================================================= */
+#backBtn,
+.modal-app-close-btn {
+  display: none !important;
+}
+
+.topbar-left {
+  gap: 0;
+}
+
+.topbar-title-wrap {
+  gap: 8px;
+}
+
+.topbar-logo {
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+.modal-app-topbar .modal-app-title {
+  font-size: 20px;
+}
+
+.header-language-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
+  height: 24px;
+  padding: 0 4px !important;
+  text-align: center;
+  text-align-last: center;
+  font-size: 10px;
+  background-image: none !important;
+}
+
+.header-language-select::-ms-expand {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .header-language-select {
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    height: 23px;
+    padding: 0 3px !important;
+    font-size: 9.5px;
+  }
+}
+
+/* =========================================================
+   DEFINITIEVE HEADERGELIJKHEID
+   Popupvensters gebruiken visueel exact dezelfde topbar als gewone vensters.
+========================================================= */
+.modal-app-topbar.topbar,
+dialog.modal[open] > .modal-app-topbar.topbar {
+  padding: 12px 16px 10px !important;
+  margin: 0 !important;
+  min-height: 68px !important;
+  align-items: center !important;
+}
+
+.modal-app-topbar .topbar-left,
+.modal-app-topbar .topbar-title-wrap,
+.modal-app-topbar .topbar-actions {
+  margin: 0 !important;
+}
+
+.modal-app-topbar .topbar-title-wrap h1,
+.modal-app-topbar .modal-app-title {
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  color: var(--primary-dark) !important;
+}
+
+.header-language-select,
+.modal-app-topbar .header-language-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 3px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-align-last: center !important;
+  background-image: none !important;
+}
+
+.header-language-select::-ms-expand {
+  display: none !important;
+}
+
+.header-language-select + .app-select-button,
+.header-language-select ~ .app-select-button,
+.app-select-wrap:has(.header-language-select) {
+  display: contents !important;
+}
+
+.app-select-wrap:has(.header-language-select) .app-select-button,
+.app-select-wrap:has(.header-language-select) .app-select-options {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  .modal-app-topbar.topbar,
+  dialog.modal[open] > .modal-app-topbar.topbar {
+    padding: 12px 16px 10px !important;
+    min-height: 68px !important;
+  }
+
+  .header-language-select,
+  .modal-app-topbar .header-language-select {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 23px !important;
+    min-height: 23px !important;
+    font-size: 9px !important;
+    padding: 0 2px !important;
+  }
+}
+
+
+/* =========================================================
+   DEFINITIEF: ÉÉN GEDEELDE HEADER VOOR SCHERMEN EN POPUPS
+   De echte #appTopbar wordt via JS verplaatst naar het open dialog.
+   Er bestaat dus geen aparte popup-header meer.
+========================================================= */
+#appTopbar.topbar {
+  padding: 12px 16px 10px !important;
+  min-height: 0 !important;
+  height: auto !important;
+  align-items: center !important;
+}
+
+#appTopbar .topbar-left,
+#appTopbar .topbar-title-wrap,
+#appTopbar .topbar-actions {
+  margin: 0 !important;
+}
+
+#appTopbar .topbar-title-wrap h1,
+#appTopbar #screenTitle {
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  color: var(--primary-dark) !important;
+}
+
+#appTopbar .header-language-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 2px !important;
+  border-radius: 3px !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-align-last: center !important;
+  background-image: none !important;
+}
+
+#appTopbar .header-language-select::-ms-expand {
+  display: none !important;
+}
+
+dialog.modal[open].has-app-topbar {
+  display: flex !important;
+  flex-direction: column !important;
+  background: #fbf8fa;
+}
+
+dialog.modal.has-app-topbar > #appTopbar.topbar {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+dialog.modal.has-app-topbar > .modal-card,
+dialog.modal.has-app-topbar > form.modal-card,
+dialog.modal.has-app-topbar > div.modal-card,
+dialog.modal.has-app-topbar #appointmentForm.modal-card,
+dialog.modal.has-app-topbar #registerForm.modal-card {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+@media (max-width: 480px) {
+  #appTopbar .header-language-select {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 21px !important;
+    min-height: 21px !important;
+    font-size: 8.5px !important;
+  }
+}
+
+
+/* =========================================================
+   DEFINITIEVE KLEINE HEADER-TITEL + KOSTEN DATUMPICKER
+========================================================= */
+#appTopbar .topbar-title-wrap h1,
+#appTopbar #screenTitle {
+  font-size: 18px !important;
+}
+
+#costForm .appointment-picker-display {
+  margin-bottom: 0;
+}
+
+/* =========================================================
+   HEADER TAALKNOP LINKS
+========================================================= */
+#appTopbar .topbar-left {
+  gap: 8px !important;
+}
+
+.header-language-menu {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  z-index: 60;
+}
+
+.header-language-btn,
+.header-language-option {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid rgba(184, 109, 135, 0.22);
+  border-radius: 999px;
+  background: #bd6d89;
+  color: #ffffff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 8px 18px rgba(54, 22, 36, 0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.header-language-btn:disabled,
+.header-language-menu.is-saving .header-language-btn,
+.header-language-menu.is-saving .header-language-option {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.header-language-overlay {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  display: grid;
+  gap: 6px;
+  z-index: 80;
+}
+
+.header-language-option {
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--primary-dark);
+}
+
+.header-language-option:hover,
+.header-language-option:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.header-language-status {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: rgba(45, 35, 42, 0.92);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  box-shadow: 0 10px 22px rgba(54, 22, 36, 0.16);
+  z-index: 90;
+}
+
+.header-language-select {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  #appTopbar .topbar-left {
+    gap: 7px !important;
+  }
+
+  .header-language-menu,
+  .header-language-btn,
+  .header-language-option {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 14px;
+  }
+
+  .header-language-overlay,
+  .header-language-status {
+    top: 38px;
+  }
+
+  .header-language-status {
+    left: 38px;
+  }
+}
+
+/* Iets kleinere titel in dezelfde gedeelde header. */
+#appTopbar .topbar-title-wrap h1,
+#appTopbar #screenTitle {
+  font-size: 17px !important;
+}
+
+/* Kosten: verberg native datuminput volledig; selectie loopt via app-wheelpicker. */
+#costsNativeDatePicker,
+.costs-native-date-picker {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  padding: 0 !important;
+  border: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+
+/* =========================================================
+   HEADER TAALMENU - ronde knop rechts
+========================================================= */
+#appTopbar .topbar-actions {
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+
+#appTopbar .header-language-select {
+  display: none !important;
+}
+
+.header-language-menu {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  min-width: 32px;
+  margin-top: 4px;
+  z-index: 100;
+}
+
+.header-language-btn,
+.header-language-option-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(184, 109, 135, 0.20);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--primary-dark);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 18px rgba(54, 22, 36, 0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.header-language-btn {
+  background: var(--primary-dark);
+  color: #ffffff;
+  border-color: var(--primary-dark);
+}
+
+.header-language-options {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  z-index: 200;
+}
+
+.header-language-options.hidden {
+  display: none !important;
+}
+
+.header-language-option-btn:hover,
+.header-language-option-btn:active {
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.header-language-btn:disabled,
+.header-language-option-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .header-language-menu,
+  .header-language-btn,
+  .header-language-option-btn {
+    width: 32px;
+    min-width: 32px;
+  }
+}
+
+
+/* =========================================================
+   DEFINITIEF: RONDE TAALKNOP RECHTS IN HEADER
+========================================================= */
+#appTopbar .topbar-left {
+  gap: 0 !important;
+}
+
+#appTopbar .topbar-actions {
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+}
+
+#appTopbar .header-language-menu {
+  order: 99;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  margin: 4px 0 0 0 !important;
+  z-index: 300 !important;
+}
+
+#appTopbar .header-language-btn,
+#appTopbar .header-language-option {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(54, 22, 36, 0.08) !important;
+  transform: none !important;
+}
+
+#appTopbar .header-language-btn {
+  background: #bd6d89 !important;
+  border: 1px solid #bd6d89 !important;
+  color: #ffffff !important;
+}
+
+#appTopbar .header-language-overlay {
+  position: absolute !important;
+  top: 38px !important;
+  right: 0 !important;
+  left: auto !important;
+  display: grid !important;
+  gap: 6px !important;
+  justify-items: center !important;
+  z-index: 400 !important;
+}
+
+#appTopbar .header-language-overlay.hidden {
+  display: none !important;
+}
+
+#appTopbar .header-language-option {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(184, 109, 135, 0.20) !important;
+  color: var(--primary-dark) !important;
+}
+
+#appTopbar .header-language-status {
+  position: absolute !important;
+  top: 38px !important;
+  right: 0 !important;
+  left: auto !important;
+  white-space: nowrap !important;
+  z-index: 410 !important;
+}
+
+
+/* =========================================================
+   DEFINITIEF: compacte taalknop tussen support en account
+========================================================= */
+#appTopbar .topbar-actions {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+}
+
+#appTopbar #headerSupportBtn {
+  order: 1 !important;
+}
+
+#appTopbar #headerLanguageMenu {
+  order: 2 !important;
+}
+
+#appTopbar #headerAccountBtn {
+  order: 3 !important;
+}
+
+#appTopbar .header-language-menu {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  margin: 4px 0 0 0 !important;
+  z-index: 300 !important;
+}
+
+#appTopbar .header-language-btn,
+#appTopbar .header-language-option {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 6px 14px rgba(54, 22, 36, 0.08) !important;
+  transform: none !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+#appTopbar .header-language-btn {
+  background: #bd6d89 !important;
+  border: 1px solid #bd6d89 !important;
+  color: #ffffff !important;
+}
+
+#appTopbar .header-language-overlay {
+  position: absolute !important;
+  top: 34px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  display: grid !important;
+  gap: 6px !important;
+  justify-items: center !important;
+  z-index: 400 !important;
+}
+
+#appTopbar .header-language-overlay.hidden {
+  display: none !important;
+}
+
+#appTopbar .header-language-option {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(184, 109, 135, 0.20) !important;
+  color: var(--primary-dark) !important;
+}
+
+#appTopbar .header-language-btn:disabled,
+#appTopbar .header-language-menu.is-saving .header-language-btn,
+#appTopbar .header-language-menu.is-saving .header-language-option {
+  opacity: 0.7 !important;
+  pointer-events: none !important;
+  cursor: wait !important;
+}
+
+#appTopbar .header-language-status {
+  position: absolute !important;
+  top: 34px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  white-space: nowrap !important;
+  z-index: 410 !important;
+}

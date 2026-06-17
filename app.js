@@ -137,6 +137,247 @@ function buildLanguageOptions(selected = DEFAULT_LANGUAGE) {
   return SUPPORTED_LANGUAGES.map(item => `<option value="${item.code}"${item.code === safe ? " selected" : ""}>${item.label}</option>`).join("");
 }
 
+function getShortLanguageLabel(code) {
+  const map = { "nl-BE": "NL", "en-GB": "EN", "fr-FR": "FR" };
+  return map[normalizeLanguage(code)] || "NL";
+}
+
+function syncHeaderLanguageSelect() {
+  document.querySelectorAll(".header-language-select").forEach(select => {
+    select.value = getCurrentLanguage();
+  });
+  syncHeaderLanguageButton();
+}
+
+function syncHeaderLanguageButton() {
+  const current = getCurrentLanguage();
+  const currentLabel = document.getElementById("headerLanguageCurrent");
+  const overlay = document.getElementById("headerLanguageOverlay");
+  if (currentLabel) currentLabel.textContent = getShortLanguageLabel(current);
+  if (!overlay) return;
+
+  overlay.innerHTML = SUPPORTED_LANGUAGES
+    .filter(item => item.code !== current)
+    .map(item => `<button class="header-language-option" type="button" role="menuitem" data-header-language="${item.code}">${getShortLanguageLabel(item.code)}</button>`)
+    .join("");
+}
+
+function closeHeaderLanguageOverlay() {
+  const menu = document.getElementById("headerLanguageMenu");
+  const button = document.getElementById("headerLanguageBtn");
+  const overlay = document.getElementById("headerLanguageOverlay");
+  overlay?.classList.add("hidden");
+  menu?.classList.remove("is-open");
+  button?.setAttribute("aria-expanded", "false");
+}
+
+function toggleHeaderLanguageOverlay() {
+  const menu = document.getElementById("headerLanguageMenu");
+  const button = document.getElementById("headerLanguageBtn");
+  const overlay = document.getElementById("headerLanguageOverlay");
+  if (!menu || !button || !overlay || menu.classList.contains("is-saving")) return;
+  syncHeaderLanguageButton();
+  const willOpen = overlay.classList.contains("hidden");
+  overlay.classList.toggle("hidden", !willOpen);
+  menu.classList.toggle("is-open", willOpen);
+  button.setAttribute("aria-expanded", String(willOpen));
+}
+
+function setHeaderLanguageBusy(isBusy) {
+  const menu = document.getElementById("headerLanguageMenu");
+  const button = document.getElementById("headerLanguageBtn");
+  const status = document.getElementById("headerLanguageStatus");
+  menu?.classList.toggle("is-saving", Boolean(isBusy));
+  if (button) button.disabled = Boolean(isBusy);
+  status?.classList.toggle("hidden", !isBusy);
+  if (isBusy) closeHeaderLanguageOverlay();
+}
+
+async function saveHeaderLanguageFromMenu(language) {
+  const nextLanguage = normalizeLanguage(language);
+  if (nextLanguage === getCurrentLanguage()) return;
+
+  setHeaderLanguageBusy(true);
+  try {
+    await runWithGlobalActionBusy(async () => {
+      await saveHeaderLanguagePreference(nextLanguage);
+    });
+  } finally {
+    setHeaderLanguageBusy(false);
+  }
+}
+
+function getDialogTitleText(dialog) {
+  const titleEl = dialog?.querySelector?.(".modal-head h3");
+  return (titleEl?.textContent || document.getElementById("screenTitle")?.textContent || "NailBooker").trim();
+}
+
+const sharedModalHeaderState = {
+  activeDialog: null,
+  originalParent: null,
+  originalNextSibling: null,
+  previousTitle: "",
+  returnDialog: null
+};
+
+function getSharedAppHeader() {
+  const header = document.getElementById("appTopbar") || document.querySelector(".app-shell > .topbar");
+  if (header && !header.id) header.id = "appTopbar";
+  return header;
+}
+
+function moveSharedHeaderToDialog(dialog) {
+  const header = getSharedAppHeader();
+  const screenTitle = document.getElementById("screenTitle");
+  if (!dialog || !header) return;
+
+  if (sharedModalHeaderState.activeDialog && sharedModalHeaderState.activeDialog !== dialog) {
+    const previousDialog = sharedModalHeaderState.activeDialog;
+    restoreSharedHeaderFromDialog();
+    sharedModalHeaderState.returnDialog = previousDialog?.open ? previousDialog : null;
+  }
+
+  if (header.parentElement !== dialog) {
+    sharedModalHeaderState.originalParent = header.parentElement;
+    sharedModalHeaderState.originalNextSibling = header.nextSibling;
+    sharedModalHeaderState.previousTitle = screenTitle?.textContent || "Agenda";
+    dialog.insertBefore(header, dialog.firstElementChild);
+  }
+
+  if (screenTitle) screenTitle.textContent = getDialogTitleText(dialog);
+  dialog.classList.add("has-app-topbar");
+  sharedModalHeaderState.activeDialog = dialog;
+}
+
+function restoreSharedHeaderFromDialog() {
+  const header = getSharedAppHeader();
+  const screenTitle = document.getElementById("screenTitle");
+  const parent = sharedModalHeaderState.originalParent;
+
+  if (header && parent && header.parentElement !== parent) {
+    parent.insertBefore(header, sharedModalHeaderState.originalNextSibling || parent.firstChild);
+  }
+
+  if (screenTitle && sharedModalHeaderState.previousTitle) {
+    screenTitle.textContent = sharedModalHeaderState.previousTitle;
+  }
+
+  if (sharedModalHeaderState.activeDialog) {
+    sharedModalHeaderState.activeDialog.classList.remove("has-app-topbar");
+  }
+
+  sharedModalHeaderState.activeDialog = null;
+  sharedModalHeaderState.originalParent = null;
+  sharedModalHeaderState.originalNextSibling = null;
+  sharedModalHeaderState.previousTitle = "";
+}
+
+function syncModalAppHeader(dialog) {
+  if (sharedModalHeaderState.activeDialog === dialog) {
+    const screenTitle = document.getElementById("screenTitle");
+    if (screenTitle) screenTitle.textContent = getDialogTitleText(dialog);
+  }
+}
+
+function ensureModalAppHeaders() {
+  const header = getSharedAppHeader();
+  if (header) header.id = "appTopbar";
+
+  document.querySelectorAll("dialog.modal").forEach(dialog => {
+    dialog.querySelector(":scope > .modal-app-topbar")?.remove();
+
+    if (!dialog.dataset.modalAppHeaderBound) {
+      const originalShowModal = dialog.showModal?.bind(dialog);
+      if (originalShowModal) {
+        dialog.showModal = function patchedShowModal(...args) {
+          moveSharedHeaderToDialog(dialog);
+          return originalShowModal(...args);
+        };
+      }
+
+      dialog.addEventListener("close", () => {
+        if (sharedModalHeaderState.activeDialog === dialog) {
+          const returnDialog = sharedModalHeaderState.returnDialog;
+          restoreSharedHeaderFromDialog();
+          if (returnDialog?.open) {
+            sharedModalHeaderState.returnDialog = null;
+            moveSharedHeaderToDialog(returnDialog);
+          }
+        }
+      });
+
+      dialog.dataset.modalAppHeaderBound = "1";
+    }
+  });
+  syncHeaderLanguageSelect();
+}
+
+async function saveHeaderLanguagePreference(language) {
+  const nextLanguage = normalizeLanguage(language || DEFAULT_LANGUAGE);
+  const previousLanguage = getCurrentLanguage();
+  if (nextLanguage === previousLanguage) {
+    syncHeaderLanguageSelect();
+    closeHeaderLanguageOverlay();
+    return;
+  }
+
+  setHeaderLanguageBusy(true);
+
+  currentProfilePreferences.language = nextLanguage;
+  const data = getData();
+  data.settings = { ...getSettings(), language: nextLanguage, currency: getCurrentCurrency() };
+  saveData(data);
+  syncHeaderLanguageSelect();
+  const settingsLanguage = document.getElementById("settingsLanguage");
+  if (settingsLanguage) settingsLanguage.value = nextLanguage;
+  rerenderAll();
+
+  const user = await getCurrentUser();
+  if (!user) {
+    setHeaderLanguageBusy(false);
+    return;
+  }
+
+  const updatedAt = new Date().toISOString();
+  const profileResult = await supabaseClient
+    .from("profiles")
+    .update({ language: nextLanguage, updated_at: updatedAt })
+    .eq("id", user.id);
+
+  const currentSettings = getSettings();
+  const settingsResult = await supabaseClient
+    .from("user_settings")
+    .upsert({
+      user_id: user.id,
+      default_break_minutes: Number(currentSettings.defaultBreakMinutes ?? 10),
+      notifications_enabled: Boolean(currentSettings.notificationsEnabled ?? false),
+      reminder_minutes: Number(currentSettings.reminderMinutes ?? 30),
+      overlap_warnings_enabled: currentSettings.overlapWarningsEnabled !== false,
+      language: nextLanguage,
+      currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
+      payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
+      payment_iban: currentSettings.paymentIban || null,
+      payment_bic: currentSettings.paymentBic || null,
+      payment_reference_prefix: currentSettings.paymentReferencePrefix || null,
+      calendar_feed_token: currentSettings.calendarFeedToken || null,
+      updated_at: updatedAt
+    }, { onConflict: "user_id" });
+
+  if (profileResult.error || settingsResult.error) {
+    currentProfilePreferences.language = previousLanguage;
+    data.settings = { ...getSettings(), language: previousLanguage, currency: getCurrentCurrency() };
+    saveData(data);
+    syncHeaderLanguageSelect();
+    if (settingsLanguage) settingsLanguage.value = previousLanguage;
+    rerenderAll();
+    setHeaderLanguageBusy(false);
+    await appAlert("Taal opslaan mislukt: " + (profileResult.error?.message || settingsResult.error?.message), { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  setHeaderLanguageBusy(false);
+}
+
 function buildCurrencyOptions(selected = DEFAULT_CURRENCY) {
   const safe = normalizeCurrency(selected);
   return SUPPORTED_CURRENCIES.map(item => `<option value="${item.code}"${item.code === safe ? " selected" : ""}>${item.label} (${item.symbol})</option>`).join("");
@@ -1641,11 +1882,14 @@ Reden: ${profile.blocked_reason}` : "";
   }
 
   updateStaticI18n();
+  syncHeaderLanguageSelect();
 
   setAuthLocked(!user);
 
   const headerUserName = document.getElementById("headerUserName");
   const headerAccountIcon = document.querySelector("#headerAccountBtn .header-account-icon");
+  const headerUserLabel = user ? extractFirstNameFromUser(user, profile) : "log in";
+  const headerIconHtml = buildHeaderAccountIcon(profile);
 
   const guestView = document.getElementById("accountGuestView");
   const loggedInView = document.getElementById("accountLoggedInView");
@@ -1660,12 +1904,20 @@ Reden: ${profile.blocked_reason}` : "";
   const accountProfileCurrency = document.getElementById("accountProfileCurrency");
 
   if (headerUserName) {
-    headerUserName.textContent = user ? extractFirstNameFromUser(user, profile) : "log in";
+    headerUserName.textContent = headerUserLabel;
   }
 
+  document.querySelectorAll(".modal-app-account-name").forEach(nameEl => {
+    nameEl.textContent = headerUserLabel;
+  });
+
   if (headerAccountIcon) {
-    headerAccountIcon.innerHTML = buildHeaderAccountIcon(profile);
+    headerAccountIcon.innerHTML = headerIconHtml;
   }
+
+  document.querySelectorAll(".modal-app-account-icon").forEach(iconEl => {
+    iconEl.innerHTML = headerIconHtml;
+  });
 
   if (!user) {
     if (guestView) guestView.classList.remove("hidden");
@@ -2734,7 +2986,7 @@ function updateTopbar(screenId, title) {
   const fab = document.getElementById("floatingAddBtn");
   const standardCostsBtn = document.getElementById("standardCostsBtn");
 
-  backBtn.classList.toggle("hidden-btn", screenId !== "clientDetailScreen");
+  backBtn?.classList.toggle("hidden-btn", true);
   const showStandardCostsFab = screenId === "costsScreen" && getStandardCosts(getData()).length > 0;
 
   if (standardCostsBtn) {
@@ -2784,6 +3036,7 @@ function updateTopbar(screenId, title) {
 }
 
 function switchScreen(screenId, title, options = {}) {
+  closeHeaderLanguageOverlay();
   const previousScreen = state.currentScreen;
 
   if (previousScreen === "settingsScreen" && screenId !== "settingsScreen" && !confirmLeaveSettingsIfDirty()) {
@@ -4339,6 +4592,12 @@ function syncAppointmentDateTimeDisplays() {
   if (privateEndTimeBtn && privateEndTimeInput) privateEndTimeBtn.textContent = formatAppointmentTimeLabel(privateEndTimeInput.value);
 }
 
+function syncCostDateDisplay() {
+  const dateInput = document.getElementById("costDate");
+  const dateBtn = document.getElementById("costDateDisplayBtn");
+  if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value || todayStr);
+}
+
 function syncPrivateEndTimeWithStart() {
   const isPrivate = Boolean(document.getElementById("appointmentIsPrivate")?.checked);
   if (!isPrivate) return;
@@ -4617,6 +4876,7 @@ function applyAppointmentWheelPickerSelection() {
   }
 
   syncAppointmentDateTimeDisplays();
+  syncCostDateDisplay();
   syncFollowUpDisplays();
   updatePrivateRepeatWeeklyLabel();
 }
@@ -9885,6 +10145,7 @@ function openNewCostDialog() {
   const standardCheckbox = document.getElementById("costSaveAsStandardCost");
   if (standardCheckbox) standardCheckbox.checked = false;
   document.getElementById("costDate").value = todayStr;
+  syncCostDateDisplay();
   document.getElementById("costVatRate").innerHTML = buildVatOptions(21);
   document.getElementById("costModalTitle").textContent = t("newCost");
   document.getElementById("deleteCostBtn")?.classList.add("hidden");
@@ -9903,6 +10164,7 @@ function openEditCostDialog(id) {
   if (standardCheckbox) standardCheckbox.checked = Boolean(cost.standardCostId);
   document.getElementById("costDescription").value = cost.description || "";
   document.getElementById("costDate").value = cost.date || todayStr;
+  syncCostDateDisplay();
   document.getElementById("costAmountInclVat").value = Number(cost.amountInclVat || 0).toFixed(2);
   document.getElementById("costVatRate").innerHTML = buildVatOptions(cost.vatRate || 21);
   document.getElementById("costModalTitle").textContent = t("editCost");
@@ -10618,6 +10880,7 @@ function registerEvents() {
   document.getElementById("jumpToTodayBtn")?.addEventListener("click", jumpToToday);
 
   document.getElementById("costForm")?.addEventListener("submit", withActionLock(saveCostFromForm));
+  document.getElementById("costDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "costDate"));
   document.getElementById("deleteCostBtn")?.addEventListener("click", withActionLock(deleteCurrentCost));
   document.getElementById("deleteStandardCostBtn")?.addEventListener("click", withActionLock(() => deleteStandardCost(document.getElementById("standardCostEditId")?.value)));
   document.getElementById("standardCostsBtn")?.addEventListener("click", openStandardCostsPopover);
@@ -10705,7 +10968,7 @@ function registerEvents() {
     });
   });
 
-  document.getElementById("backBtn").addEventListener("click", () => {
+  document.getElementById("backBtn")?.addEventListener("click", () => {
     const map = {
       agendaScreen: "Agenda",
       clientsScreen: "Klanten",
@@ -10802,6 +11065,10 @@ function registerEvents() {
       event.preventDefault();
       applyAppointmentWheelPickerSelection();
       closeDialog("appointmentWheelPickerDialog");
+      window.setTimeout(() => {
+        const appointmentDialog = document.getElementById("appointmentDialog");
+        if (appointmentDialog?.open) moveSharedHeaderToDialog(appointmentDialog);
+      }, 0);
     });
   }
 
@@ -10924,6 +11191,10 @@ function registerEvents() {
       event.preventDefault();
       applyRevenueWheelPickerSelection();
       closeDialog("revenueWheelPickerDialog");
+      window.setTimeout(() => {
+        const costDialog = document.getElementById("costDialog");
+        if (costDialog?.open) moveSharedHeaderToDialog(costDialog);
+      }, 0);
     });
   }
 
@@ -10964,6 +11235,8 @@ function registerEvents() {
   const logoutBtn = document.getElementById("logoutBtn");
   const headerAccountBtn = document.getElementById("headerAccountBtn");
   const headerSupportBtn = document.getElementById("headerSupportBtn");
+  const headerLanguageBtn = document.getElementById("headerLanguageBtn");
+  const headerLanguageOverlay = document.getElementById("headerLanguageOverlay");
 
   const editProfileBtn = document.getElementById("editProfileBtn");
   const changePasswordBtn = document.getElementById("changePasswordBtn");
@@ -11011,6 +11284,35 @@ function registerEvents() {
 
   setupPasswordToggleButtons();
   setupAppSelectDropdowns();
+  ensureModalAppHeaders();
+  syncHeaderLanguageSelect();
+
+  if (headerLanguageBtn) {
+    headerLanguageBtn.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleHeaderLanguageOverlay();
+    });
+  }
+
+  if (headerLanguageOverlay) {
+    headerLanguageOverlay.addEventListener("click", event => {
+      const option = event.target.closest("[data-header-language]");
+      if (!option) return;
+      event.preventDefault();
+      event.stopPropagation();
+      saveHeaderLanguagePreference(option.dataset.headerLanguage);
+    });
+  }
+
+  const closeLanguageMenuOnOutsideInteraction = (event) => {
+    if (!event.target?.closest?.("#headerLanguageMenu")) closeHeaderLanguageOverlay();
+  };
+
+  document.addEventListener("pointerdown", closeLanguageMenuOnOutsideInteraction, { capture: true });
+  document.addEventListener("touchstart", closeLanguageMenuOnOutsideInteraction, { capture: true, passive: true });
+  document.addEventListener("click", closeLanguageMenuOnOutsideInteraction, { capture: true });
+
 
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {
@@ -11603,7 +11905,13 @@ function setupAppSelectDropdowns() {
 
   document.querySelectorAll('select').forEach(select => {
     select.removeAttribute('size');
-    if (isAppointmentPickerFallbackSelect(select)) {
+    if (select.classList.contains("header-language-select")) {
+      const wrap = select.closest(".app-select-wrap");
+      if (wrap) {
+        wrap.parentNode.insertBefore(select, wrap);
+        wrap.remove();
+      }
+    } else if (isAppointmentPickerFallbackSelect(select)) {
       unwrapHiddenAppointmentPickerSelect(select);
     } else {
       enhanceAppSelect(select);
