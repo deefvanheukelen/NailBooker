@@ -337,9 +337,17 @@ button {
 .service-card,
 .account-card {
   background: var(--card);
-  border: 1px solid var(--line);
+  border-bottom: 2px solid var(--line);
   /* border-radius: var(--radius-lg); */
   /* box-shadow: var(--shadow-card); */
+  margin-bottom: 0px;
+}
+
+.appointment-card,
+.detail-card,
+.account-card {
+  background: var(--card);
+  border: 0px solid var(--line);
   margin-bottom: 6px;
 }
 
