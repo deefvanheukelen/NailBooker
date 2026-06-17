@@ -8392,8 +8392,8 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
   gap: 6px;
   padding: 14px 12px;
   background: #ffffff;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  border: 0px solid var(--line);
+  /* box-shadow: var(--shadow-card); */
 }
 
 .costs-summary-item strong {
@@ -8415,8 +8415,8 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 
 .cost-card {
   background: var(--card);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  border-bottom: 2px solid var(--line);
+  /* box-shadow: var(--shadow-card); */
   margin-bottom: 6px;
 }
 
@@ -8971,8 +8971,8 @@ body.costs-fab-pair #floatingAddBtn {
   padding: 16px;
   margin-bottom: 10px;
   background: #ffffff;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  border: 0px solid var(--line);
+  /* box-shadow: var(--shadow-card); */
 }
 
 .costs-summary-head {
