@@ -12217,3 +12217,161 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   white-space: nowrap !important;
   z-index: 410 !important;
 }
+
+/* =========================================================
+   ABONNEMENT / PROEFPERIODE BADGE
+========================================================= */
+#appTopbar .topbar-actions {
+  position: relative !important;
+}
+
+#headerTrialBadge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 520;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 1px solid rgba(195, 158, 48, 0.45);
+  border-radius: 999px;
+  background: #f6d957;
+  color: #7a5d00;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(84, 48, 65, 0.12);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#headerTrialBadge.hidden {
+  display: none !important;
+}
+
+
+#headerTrialBadge.is-pro {
+  width: auto;
+  min-width: 24px;
+  height: 14px;
+  min-height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  border-color: rgba(195, 158, 48, 0.36);
+  background: #f6d957;
+  color: #7a5d00;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+#headerTrialBadge:hover,
+#headerTrialBadge:active {
+  transform: none;
+  background: #f4cf35;
+}
+
+.subscription-page {
+  min-height: 0;
+  height: 100%;
+  background: #fbf7f9;
+}
+
+.subscription-scroll {
+  height: 100%;
+  overflow: auto;
+  padding: 14px 16px 108px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.subscription-hero,
+.subscription-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.subscription-hero h2,
+.subscription-card h3 {
+  margin: 0 0 8px;
+  color: var(--primary-dark);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+.subscription-hero p,
+.subscription-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.subscription-current-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.subscription-plan-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.subscription-price {
+  flex: 0 0 auto;
+  color: var(--primary-dark);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: right;
+}
+
+.subscription-price span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.subscription-feature-list {
+  margin: 14px 0 16px;
+  padding-left: 20px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+
+/* Definitieve verfijning PRO-label: kleiner zodat account-icoon zichtbaar blijft */
+#headerTrialBadge.is-pro {
+  min-width: 24px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  padding: 0 3px !important;
+  font-size: 7px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.subscription-cancel-btn {
+  margin-top: 12px;
+  color: var(--danger);
+  border-color: #f5c2d2;
+  background: var(--danger-soft);
+}
+
+.subscription-cancel-btn.hidden {
+  display: none !important;
+}

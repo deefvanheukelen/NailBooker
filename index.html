@@ -93,6 +93,8 @@
           <span id="headerUserName" class="header-account-name">log in</span>
         </button>
 
+        <button id="headerTrialBadge" class="header-trial-badge hidden" type="button" aria-label="Abonnement bekijken" title="Abonnement bekijken">30</button>
+
         <div id="headerLanguageMenu" class="header-language-menu">
           <button id="headerLanguageBtn" class="header-language-btn" type="button" aria-label="Taal kiezen" aria-expanded="false">
             <span id="headerLanguageCurrent">NL</span>
@@ -742,6 +744,42 @@
               <div class="admin-empty-state">Open deze pagina met een admin-account om gebruikers te laden.</div>
             </div>
           </section>
+        </section>
+      </section>
+
+      <!-- ===================== ABONNEMENT ===================== -->
+      <section id="subscriptionScreen" class="screen">
+        <section class="subscription-page">
+          <div class="subscription-scroll">
+            <section class="subscription-hero">
+              <p class="support-kicker">Abonnement</p>
+              <h2 id="subscriptionHeroTitle">Upgrade naar NailBooker Pro</h2>
+              <p id="subscriptionHeroText">Je proefperiode is 30 dagen geldig. Met Pro behoud je volledige toegang tot alle functies.</p>
+            </section>
+
+            <section class="subscription-card subscription-current-card">
+              <h3>Huidig abonnement</h3>
+              <p id="subscriptionStatusText">Free proefperiode</p>
+              <strong id="subscriptionDaysText">Nog 30 dagen geldig</strong>
+              <button id="subscriptionCancelBtn" class="btn btn-secondary full-btn subscription-cancel-btn hidden" type="button">Abonnement opzeggen</button>
+            </section>
+
+            <section class="subscription-card subscription-pro-card">
+              <div class="subscription-plan-head">
+                <div>
+                  <h3>Pro</h3>
+                  <p>Voor zelfstandige nagelstylistes die NailBooker dagelijks gebruiken.</p>
+                </div>
+                <div class="subscription-price">€ 8,95<span>/maand</span></div>
+              </div>
+              <ul class="subscription-feature-list">
+                <li>Volledige agenda en klantenbeheer</li>
+                <li>Omzet, kosten en statistieken</li>
+                <li>Herinneringen en app-updates</li>
+              </ul>
+              <button id="subscriptionUpgradeBtn" class="btn btn-primary action-btn full-btn" type="button" disabled>Upgrade binnenkort beschikbaar</button>
+            </section>
+          </div>
         </section>
       </section>
 

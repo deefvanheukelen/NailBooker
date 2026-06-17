@@ -103,6 +103,13 @@ const i18nCosts = {
 };
 Object.keys(i18nCosts).forEach(lang => Object.assign(i18n[lang], i18nCosts[lang]));
 
+const i18nSubscription = {
+  "nl-BE": { subscription: "Abonnement" },
+  "en-GB": { subscription: "Subscription" },
+  "fr-FR": { subscription: "Abonnement" }
+};
+Object.keys(i18nSubscription).forEach(lang => Object.assign(i18n[lang], i18nSubscription[lang]));
+
 
 let currentProfilePreferences = { language: DEFAULT_LANGUAGE, currency: DEFAULT_CURRENCY };
 
@@ -1737,13 +1744,136 @@ async function getCurrentProfile() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return null;
 
-    const { data: profile } = await supabaseClient
+    const baseSelect = "first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin";
+    const subscriptionSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at`;
+
+    let result = await supabaseClient
         .from("profiles")
-        .select("first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin")
+        .select(subscriptionSelect)
         .eq("id", user.id)
         .maybeSingle();
 
-    return profile ?? null;
+    if (result.error) {
+      console.warn("Profiel opgehaald zonder abonnementvelden. Voer de abonnement-SQL uit om proefdagen te tonen:", result.error.message);
+      result = await supabaseClient
+        .from("profiles")
+        .select(baseSelect)
+        .eq("id", user.id)
+        .maybeSingle();
+    }
+
+    return result.data ?? null;
+}
+
+function getTrialStartDate(profile = null, user = null) {
+  const value = profile?.trial_started_at || profile?.created_at || user?.created_at || null;
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+function isProSubscription(profile = null) {
+  const plan = String(profile?.subscription_plan || "free").toLowerCase();
+  const status = String(profile?.subscription_status || "trial").toLowerCase();
+  return plan === "pro" && status === "active";
+}
+
+function getTrialDaysRemaining(profile = null, user = null) {
+  if (isProSubscription(profile)) return null;
+
+  const explicitEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
+  const end = explicitEnd && !Number.isNaN(explicitEnd.getTime())
+    ? explicitEnd
+    : (() => {
+        const start = getTrialStartDate(profile, user);
+        if (!start) return null;
+        const trialEnd = new Date(start);
+        trialEnd.setDate(trialEnd.getDate() + 30);
+        return trialEnd;
+      })();
+
+  if (!end) return null;
+  return Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+}
+
+function updateHeaderTrialBadge(profile = null, user = null) {
+  const badge = document.getElementById("headerTrialBadge");
+  if (!badge) return;
+
+  badge.classList.remove("is-pro");
+
+  if (!user) {
+    badge.classList.add("hidden");
+    renderSubscriptionPage(profile, user);
+    return;
+  }
+
+  if (isProSubscription(profile)) {
+    badge.textContent = "PRO";
+    badge.classList.remove("hidden");
+    badge.classList.add("is-pro");
+    badge.setAttribute("aria-label", "Pro abonnement actief. Abonnement bekijken.");
+    badge.title = "Pro abonnement actief";
+    renderSubscriptionPage(profile, user);
+    return;
+  }
+
+  const days = getTrialDaysRemaining(profile, user);
+  badge.classList.toggle("hidden", days === null);
+  if (days !== null) {
+    badge.textContent = String(days);
+    badge.setAttribute("aria-label", `${days} dagen proefperiode resterend. Abonnement bekijken.`);
+    badge.title = `${days} dagen proefperiode resterend`;
+  }
+  renderSubscriptionPage(profile, user);
+}
+
+function renderSubscriptionPage(profile = null, user = null) {
+  const heroTitle = document.getElementById("subscriptionHeroTitle");
+  const heroText = document.getElementById("subscriptionHeroText");
+  const statusText = document.getElementById("subscriptionStatusText");
+  const daysText = document.getElementById("subscriptionDaysText");
+  const cancelBtn = document.getElementById("subscriptionCancelBtn");
+  const upgradeBtn = document.getElementById("subscriptionUpgradeBtn");
+  if (!heroTitle && !heroText && !statusText && !daysText && !cancelBtn && !upgradeBtn) return;
+
+  const days = user ? getTrialDaysRemaining(profile, user) : null;
+
+  if (isProSubscription(profile)) {
+    if (heroTitle) heroTitle.textContent = "Je bent al PRO";
+    if (heroText) heroText.textContent = "Je Pro-abonnement is actief. Je behoudt volledige toegang tot NailBooker.";
+    if (statusText) statusText.textContent = "Pro abonnement";
+    if (daysText) daysText.textContent = "Je abonnement is actief.";
+    if (upgradeBtn) {
+      upgradeBtn.textContent = "PRO actief";
+      upgradeBtn.disabled = true;
+    }
+    if (cancelBtn) cancelBtn.classList.remove("hidden");
+  } else {
+    if (heroTitle) heroTitle.textContent = "Upgrade naar NailBooker Pro";
+    if (heroText) heroText.textContent = "Je proefperiode is 30 dagen geldig. Met Pro behoud je volledige toegang tot alle functies.";
+    if (statusText) statusText.textContent = "Free proefperiode";
+    if (daysText) daysText.textContent = days === null
+      ? "Startdatum proefperiode nog niet ingesteld."
+      : `Nog ${days} ${days === 1 ? "dag" : "dagen"} geldig`;
+    if (upgradeBtn) {
+      upgradeBtn.textContent = "Upgrade binnenkort beschikbaar";
+      upgradeBtn.disabled = true;
+    }
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+  }
+}
+
+async function handleSubscriptionCancelRequest() {
+  const profile = await getCurrentProfile();
+  if (!isProSubscription(profile)) {
+    await appAlert("Je hebt momenteel geen actief Pro-abonnement om op te zeggen.", { title: "Abonnement", variant: "info" });
+    return;
+  }
+
+  await appAlert(
+    "Opzeggen wordt binnenkort automatisch verwerkt. Voorlopig kun je je Pro-abonnement manueel laten stopzetten via support.",
+    { title: "Abonnement opzeggen", variant: "info" }
+  );
 }
 
 function updateAdminNavVisibility(profile = null) {
@@ -1855,6 +1985,11 @@ async function upsertProfile(userId, values) {
     terms_accepted_at: values.terms_accepted_at || null
   };
 
+  if (values.subscription_plan) payload.subscription_plan = values.subscription_plan;
+  if (values.subscription_status) payload.subscription_status = values.subscription_status;
+  if (values.trial_started_at) payload.trial_started_at = values.trial_started_at;
+  if (values.trial_ends_at) payload.trial_ends_at = values.trial_ends_at;
+
   const { error } = await supabaseClient
     .from("profiles")
     .upsert(payload, { onConflict: "id" });
@@ -1883,6 +2018,7 @@ Reden: ${profile.blocked_reason}` : "";
 
   updateStaticI18n();
   syncHeaderLanguageSelect();
+  updateHeaderTrialBadge(profile, user);
 
   setAuthLocked(!user);
 
@@ -2628,6 +2764,9 @@ async function registerAccount(event) {
   }
 
   const emailRedirectTo = `${window.location.origin}${window.location.pathname}`;
+  const trialStartedAt = new Date().toISOString();
+  const trialEndsAtDate = new Date(trialStartedAt);
+  trialEndsAtDate.setDate(trialEndsAtDate.getDate() + 30);
 
   const { data, error } = await supabaseClient.auth.signUp({
     email: values.email,
@@ -2644,7 +2783,11 @@ async function registerAccount(event) {
         timezone: values.timezone,
         language: values.language,
         currency: values.currency,
-        terms_accepted: true
+        terms_accepted: true,
+        subscription_plan: "free",
+        subscription_status: "trial",
+        trial_started_at: trialStartedAt,
+        trial_ends_at: trialEndsAtDate.toISOString()
       }
     }
   });
@@ -2674,7 +2817,11 @@ async function registerAccount(event) {
         language: values.language,
         currency: values.currency,
         terms_accepted: true,
-        terms_accepted_at: new Date().toISOString()
+        terms_accepted_at: trialStartedAt,
+        subscription_plan: "free",
+        subscription_status: "trial",
+        trial_started_at: trialStartedAt,
+        trial_ends_at: trialEndsAtDate.toISOString()
       });
     }
   } catch (profileError) {
@@ -3044,14 +3191,14 @@ function switchScreen(screenId, title, options = {}) {
     return;
   }
 
-  if (isAuthLocked() && !["accountScreen", "supportScreen"].includes(screenId)) {
+  if (isAuthLocked() && !["accountScreen", "supportScreen", "subscriptionScreen"].includes(screenId)) {
     screenId = "accountScreen";
     title = "Account";
   }
 
   state.currentScreen = screenId;
 
-  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "supportScreen", "adminScreen", "accountScreen"].includes(screenId)) {
+  if (["agendaScreen", "revenueScreen", "costsScreen", "todoScreen", "clientsScreen", "servicesScreen", "paymentMethodsScreen", "statisticsScreen", "settingsScreen", "supportScreen", "subscriptionScreen", "adminScreen", "accountScreen"].includes(screenId)) {
     state.previousMainScreen = screenId;
   }
 
@@ -3100,6 +3247,10 @@ function switchScreen(screenId, title, options = {}) {
 
   if (screenId === "supportScreen") {
     renderSupportPage();
+  }
+
+  if (screenId === "subscriptionScreen") {
+    getCurrentProfile().then(profile => getCurrentUser().then(user => renderSubscriptionPage(profile, user)));
   }
 
   if (screenId === "paymentMethodsScreen") {
@@ -11237,6 +11388,7 @@ function registerEvents() {
   const headerSupportBtn = document.getElementById("headerSupportBtn");
   const headerLanguageBtn = document.getElementById("headerLanguageBtn");
   const headerLanguageOverlay = document.getElementById("headerLanguageOverlay");
+  const headerTrialBadge = document.getElementById("headerTrialBadge");
 
   const editProfileBtn = document.getElementById("editProfileBtn");
   const changePasswordBtn = document.getElementById("changePasswordBtn");
@@ -11313,6 +11465,17 @@ function registerEvents() {
   document.addEventListener("touchstart", closeLanguageMenuOnOutsideInteraction, { capture: true, passive: true });
   document.addEventListener("click", closeLanguageMenuOnOutsideInteraction, { capture: true });
 
+
+  if (headerTrialBadge) {
+    headerTrialBadge.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeHeaderLanguageOverlay();
+      switchScreen("subscriptionScreen", t("subscription"));
+    });
+  }
+
+  document.getElementById("subscriptionCancelBtn")?.addEventListener("click", withActionLock(handleSubscriptionCancelRequest));
 
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {
