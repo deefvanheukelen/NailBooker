@@ -1745,7 +1745,7 @@ async function getCurrentProfile() {
     if (!user) return null;
 
     const baseSelect = "first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin";
-    const subscriptionSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at`;
+    const subscriptionSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at, is_lifetime`;
 
     let result = await supabaseClient
         .from("profiles")
@@ -1774,7 +1774,13 @@ function getTrialStartDate(profile = null, user = null) {
 function isProSubscription(profile = null) {
   const plan = String(profile?.subscription_plan || "free").toLowerCase();
   const status = String(profile?.subscription_status || "trial").toLowerCase();
-  return plan === "pro" && status === "active";
+  return plan === "pro" && (status === "active" || Boolean(profile?.is_lifetime));
+}
+
+function isLifetimeProSubscription(profile = null) {
+  const plan = String(profile?.subscription_plan || "free").toLowerCase();
+  const status = String(profile?.subscription_status || "trial").toLowerCase();
+  return plan === "pro" && (Boolean(profile?.is_lifetime) || status === "lifetime");
 }
 
 function getTrialDaysRemaining(profile = null, user = null) {
@@ -1811,8 +1817,9 @@ function updateHeaderTrialBadge(profile = null, user = null) {
     badge.textContent = "PRO";
     badge.classList.remove("hidden");
     badge.classList.add("is-pro");
-    badge.setAttribute("aria-label", "Pro abonnement actief. Abonnement bekijken.");
-    badge.title = "Pro abonnement actief";
+    const label = isLifetimeProSubscription(profile) ? "Lifetime PRO actief" : "Pro abonnement actief";
+    badge.setAttribute("aria-label", `${label}. Abonnement bekijken.`);
+    badge.title = label;
     renderSubscriptionPage(profile, user);
     return;
   }
@@ -1838,6 +1845,19 @@ function renderSubscriptionPage(profile = null, user = null) {
 
   const days = user ? getTrialDaysRemaining(profile, user) : null;
 
+  if (isLifetimeProSubscription(profile)) {
+    if (heroTitle) heroTitle.textContent = "Je hebt Lifetime PRO";
+    if (heroText) heroText.textContent = "Je Lifetime PRO-toegang is actief. Je behoudt onbeperkt toegang tot NailBooker zonder maandelijkse verlenging.";
+    if (statusText) statusText.textContent = "Lifetime PRO";
+    if (daysText) daysText.textContent = "Je abonnement is levenslang actief.";
+    if (upgradeBtn) {
+      upgradeBtn.textContent = "Lifetime PRO actief";
+      upgradeBtn.disabled = true;
+    }
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+    return;
+  }
+
   if (isProSubscription(profile)) {
     if (heroTitle) heroTitle.textContent = "Je bent al PRO";
     if (heroText) heroText.textContent = "Je Pro-abonnement is actief. Je behoudt volledige toegang tot NailBooker.";
@@ -1848,19 +1868,22 @@ function renderSubscriptionPage(profile = null, user = null) {
       upgradeBtn.disabled = true;
     }
     if (cancelBtn) cancelBtn.classList.remove("hidden");
-  } else {
-    if (heroTitle) heroTitle.textContent = "Upgrade naar NailBooker Pro";
-    if (heroText) heroText.textContent = "Je proefperiode is 30 dagen geldig. Met Pro behoud je volledige toegang tot alle functies.";
-    if (statusText) statusText.textContent = "Free proefperiode";
-    if (daysText) daysText.textContent = days === null
+    return;
+  }
+
+  if (heroTitle) heroTitle.textContent = "Upgrade naar NailBooker Pro";
+  if (heroText) heroText.textContent = "Je proefperiode is 30 dagen geldig. Met Pro behoud je volledige toegang tot alle functies.";
+  if (statusText) statusText.textContent = "Free proefperiode";
+  if (daysText) {
+    daysText.textContent = days === null
       ? "Startdatum proefperiode nog niet ingesteld."
       : `Nog ${days} ${days === 1 ? "dag" : "dagen"} geldig`;
-    if (upgradeBtn) {
-      upgradeBtn.textContent = "Upgrade binnenkort beschikbaar";
-      upgradeBtn.disabled = true;
-    }
-    if (cancelBtn) cancelBtn.classList.add("hidden");
   }
+  if (upgradeBtn) {
+    upgradeBtn.textContent = "Upgrade binnenkort beschikbaar";
+    upgradeBtn.disabled = true;
+  }
+  if (cancelBtn) cancelBtn.classList.add("hidden");
 }
 
 async function handleSubscriptionCancelRequest() {
@@ -11477,6 +11500,11 @@ function registerEvents() {
 
   document.getElementById("subscriptionCancelBtn")?.addEventListener("click", withActionLock(handleSubscriptionCancelRequest));
 
+  document.getElementById("openSubscriptionBtn")?.addEventListener("click", () => {
+    closeHeaderLanguageOverlay();
+    switchScreen("subscriptionScreen", t("subscription"));
+  });
+
   if (headerAccountBtn) {
     headerAccountBtn.addEventListener("click", () => {
       switchScreen("accountScreen", t("account"));
@@ -13407,7 +13435,7 @@ function renderAdminStats() {
   const total = users.length;
   const blocked = users.filter(user => user.is_blocked).length;
   const active = total - blocked;
-  const subscriptions = users.filter(user => ["active", "trial"].includes(String(user.subscription_status || "").toLowerCase())).length;
+  const subscriptions = users.filter(user => ["active", "trial", "lifetime"].includes(String(user.subscription_status || "").toLowerCase())).length;
   [["adminTotalUsers", total], ["adminActiveUsers", active], ["adminBlockedUsers", blocked], ["adminActiveSubscriptions", subscriptions]].forEach(([id, value]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = String(value);
@@ -13431,6 +13459,10 @@ function renderAdminUsers() {
     const blockAction = user.is_blocked
       ? `<button class="btn btn-secondary" type="button" data-admin-action="unblock" data-user-id="${escapeAdminHtml(user.id)}">Deblokkeren</button>`
       : `<button class="btn btn-secondary" type="button" data-admin-action="block" data-user-id="${escapeAdminHtml(user.id)}">Blokkeren</button>`;
+    const isLifetimePro = String(plan).toLowerCase() === "pro" && (Boolean(user.is_lifetime) || String(subStatus).toLowerCase() === "lifetime");
+    const lifetimeAction = isLifetimePro
+      ? `<button class="btn btn-secondary" type="button" data-admin-action="setMonthlyPro" data-user-id="${escapeAdminHtml(user.id)}">Maandelijks PRO</button>`
+      : `<button class="btn btn-primary" type="button" data-admin-action="setLifetimePro" data-user-id="${escapeAdminHtml(user.id)}">Lifetime PRO</button>`;
     return `
       <article class="admin-user-card">
         <div class="admin-user-card-main">
@@ -13452,6 +13484,7 @@ function renderAdminUsers() {
           </div>
         </div>
         <div class="admin-actions">
+          ${lifetimeAction}
           ${blockAction}
           <button class="btn btn-danger" type="button" data-admin-action="delete" data-user-id="${escapeAdminHtml(user.id)}">Verwijderen</button>
         </div>
@@ -13485,6 +13518,47 @@ async function deleteAdminUser(userId) {
   await loadAdminUsers(true);
 }
 
+async function setAdminUserSubscription(userId, mode) {
+  await ensureAdminAccess();
+  const nowIso = new Date().toISOString();
+  const payload = mode === "lifetime"
+    ? {
+        subscription_plan: "pro",
+        subscription_status: "active",
+        is_lifetime: true,
+        subscription_current_period_end: null,
+        subscription_price_monthly: 0,
+        subscription_currency: "EUR",
+        subscription_updated_at: nowIso,
+        updated_at: nowIso
+      }
+    : {
+        subscription_plan: "pro",
+        subscription_status: "active",
+        is_lifetime: false,
+        subscription_current_period_end: new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_price_monthly: 8.95,
+        subscription_currency: "EUR",
+        subscription_updated_at: nowIso,
+        updated_at: nowIso
+      };
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId);
+
+  if (error) throw error;
+  adminToast(mode === "lifetime" ? "Lifetime PRO ingesteld." : "Maandelijks PRO ingesteld.");
+  adminState.isLoaded = false;
+  await loadAdminUsers(true);
+
+  const currentUser = await getCurrentUser();
+  if (currentUser && String(currentUser.id) === String(userId)) {
+    await syncAuthUI();
+  }
+}
+
 function setupIntegratedAdminEvents() {
   document.getElementById("adminRefreshBtn")?.addEventListener("click", () => loadAdminUsers(true));
   document.getElementById("adminSearch")?.addEventListener("input", applyAdminFilters);
@@ -13494,7 +13568,15 @@ function setupIntegratedAdminEvents() {
     if (!button) return;
     const action = button.dataset.adminAction;
     const userId = button.dataset.userId;
-    const run = action === "block" ? blockAdminUser : action === "unblock" ? unblockAdminUser : deleteAdminUser;
+    const run = action === "block"
+      ? blockAdminUser
+      : action === "unblock"
+        ? unblockAdminUser
+        : action === "setLifetimePro"
+          ? (id) => setAdminUserSubscription(id, "lifetime")
+          : action === "setMonthlyPro"
+            ? (id) => setAdminUserSubscription(id, "monthly")
+            : deleteAdminUser;
     setAdminButtonBusy(button, true);
     run(userId).catch(error => adminToast(humanAdminError(error))).finally(() => setAdminButtonBusy(button, false));
   });

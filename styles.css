@@ -12258,17 +12258,17 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 #headerTrialBadge.is-pro {
   width: auto;
-  min-width: 24px;
-  height: 14px;
-  min-height: 14px;
-  padding: 0 3px;
+  min-width: 20px;
+  height: 12px;
+  min-height: 12px;
+  padding: 0 2px;
   border-radius: 999px;
   border-color: rgba(195, 158, 48, 0.36);
   background: #f6d957;
   color: #7a5d00;
-  font-size: 7px;
+  font-size: 6px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 #headerTrialBadge:hover,
@@ -12356,11 +12356,11 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 /* Definitieve verfijning PRO-label: kleiner zodat account-icoon zichtbaar blijft */
 #headerTrialBadge.is-pro {
-  min-width: 24px !important;
-  height: 14px !important;
-  min-height: 14px !important;
-  padding: 0 3px !important;
-  font-size: 7px !important;
+  min-width: 20px !important;
+  height: 12px !important;
+  min-height: 12px !important;
+  padding: 0 2px !important;
+  font-size: 6px !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
 }
