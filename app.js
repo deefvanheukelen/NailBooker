@@ -13405,6 +13405,7 @@ async function loadAdminUsers(force = false) {
     await ensureAdminAccess();
     const result = await callAdminFunction("list");
     adminState.users = Array.isArray(result.users) ? result.users : [];
+    await enrichAdminUsersWithSubscriptionFlags();
     adminState.isLoaded = true;
     applyAdminFilters();
   } catch (error) {
@@ -13442,6 +13443,80 @@ function renderAdminStats() {
   });
 }
 
+
+function isAdminLifetimeProUser(user = {}) {
+  const plan = String(user.subscription_plan || "free").toLowerCase();
+  const status = String(user.subscription_status || "none").toLowerCase();
+  const price = Number(user.subscription_price_monthly);
+  const periodEnd = user.subscription_current_period_end;
+  return plan === "pro" && (
+    Boolean(user.is_lifetime) ||
+    status === "lifetime" ||
+    (status === "active" && Number.isFinite(price) && price === 0 && !periodEnd)
+  );
+}
+
+function applyAdminSubscriptionPatchToState(userId, patch = {}) {
+  adminState.users = adminState.users.map(user =>
+    String(user.id) === String(userId) ? { ...user, ...patch } : user
+  );
+  adminState.filtered = adminState.filtered.map(user =>
+    String(user.id) === String(userId) ? { ...user, ...patch } : user
+  );
+  applyAdminFilters();
+}
+
+async function enrichAdminUsersWithSubscriptionFlags() {
+  if (!adminState.users.length || !supabaseClient?.rpc) return;
+
+  try {
+    const { data, error } = await supabaseClient.rpc("admin_get_subscription_flags");
+    if (error || !Array.isArray(data) || !data.length) return;
+
+    const flagsById = new Map(data.map(item => [String(item.id), item]));
+    adminState.users = adminState.users.map(user => {
+      const flags = flagsById.get(String(user.id));
+      return flags ? { ...user, ...flags } : user;
+    });
+  } catch (error) {
+    // De adminlijst blijft bruikbaar zonder deze optionele verrijking.
+  }
+}
+
+async function runAdminSubscriptionUpdate(userId, mode, payload) {
+  let lastError = null;
+
+  try {
+    await callAdminFunction("setSubscription", { userId, mode });
+    return;
+  } catch (error) {
+    lastError = error;
+  }
+
+  try {
+    const { error } = await supabaseClient.rpc("admin_set_user_subscription", {
+      target_user_id: userId,
+      subscription_mode: mode
+    });
+    if (error) throw error;
+    return;
+  } catch (error) {
+    lastError = error;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id) {
+    throw new Error(lastError?.message || "Abonnement kon niet aangepast worden. Voer de admin subscription SQL uit.");
+  }
+}
+
 function renderAdminUsers() {
   const list = document.getElementById("adminUsersList");
   if (!list) return;
@@ -13459,9 +13534,9 @@ function renderAdminUsers() {
     const blockAction = user.is_blocked
       ? `<button class="btn btn-secondary" type="button" data-admin-action="unblock" data-user-id="${escapeAdminHtml(user.id)}">Deblokkeren</button>`
       : `<button class="btn btn-secondary" type="button" data-admin-action="block" data-user-id="${escapeAdminHtml(user.id)}">Blokkeren</button>`;
-    const isLifetimePro = String(plan).toLowerCase() === "pro" && (Boolean(user.is_lifetime) || String(subStatus).toLowerCase() === "lifetime");
+    const isLifetimePro = isAdminLifetimeProUser(user);
     const lifetimeAction = isLifetimePro
-      ? `<button class="btn btn-secondary" type="button" data-admin-action="setMonthlyPro" data-user-id="${escapeAdminHtml(user.id)}">Maandelijks PRO</button>`
+      ? `<button class="btn btn-secondary" type="button" disabled aria-disabled="true">Lifetime PRO actief</button>`
       : `<button class="btn btn-primary" type="button" data-admin-action="setLifetimePro" data-user-id="${escapeAdminHtml(user.id)}">Lifetime PRO</button>`;
     return `
       <article class="admin-user-card">
@@ -13543,13 +13618,11 @@ async function setAdminUserSubscription(userId, mode) {
         updated_at: nowIso
       };
 
-  const { error } = await supabaseClient
-    .from("profiles")
-    .update(payload)
-    .eq("id", userId);
+  await runAdminSubscriptionUpdate(userId, mode, payload);
 
-  if (error) throw error;
+  applyAdminSubscriptionPatchToState(userId, payload);
   adminToast(mode === "lifetime" ? "Lifetime PRO ingesteld." : "Maandelijks PRO ingesteld.");
+
   adminState.isLoaded = false;
   await loadAdminUsers(true);
 
