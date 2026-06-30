@@ -2587,12 +2587,12 @@ function getRegisterCopy() {
 function buildRegisterTermsConsentHtml() {
   const lang = getCurrentLanguage();
   if (lang === "en-GB") {
-    return 'I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer">terms of use</a> and the <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacy policy</a>.';
+    return 'I agree to the <a href="terms.html">terms of use</a> and the <a href="privacy.html">privacy policy</a>.';
   }
   if (lang === "fr-FR") {
-    return 'J’accepte les <a href="terms.html" target="_blank" rel="noopener noreferrer">conditions d’utilisation</a> et la <a href="privacy.html" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>.';
+    return 'J’accepte les <a href="terms.html">conditions d’utilisation</a> et la <a href="privacy.html">politique de confidentialité</a>.';
   }
-  return 'Ik ga akkoord met de <a href="terms.html" target="_blank" rel="noopener noreferrer">gebruiksvoorwaarden</a> en het <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacybeleid</a>.';
+  return 'Ik ga akkoord met de <a href="terms.html">gebruiksvoorwaarden</a> en het <a href="privacy.html">privacybeleid</a>.';
 }
 
 function getRegistrationRegions(country) {
