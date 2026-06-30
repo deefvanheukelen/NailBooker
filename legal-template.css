@@ -1,0 +1,65 @@
+:root {
+  --bg: #f7f4f6;
+  --card: #ffffff;
+  --line: #eddfe6;
+  --primary: #d991ab;
+  --primary-dark: #b86d87;
+  --primary-soft: #f8e8ee;
+  --text: #4e4650;
+  --muted: #8c838d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.legal-page { min-height: 100vh; padding: 24px 14px 48px; }
+.legal-shell { width: min(920px, 100%); margin: 0 auto; }
+.legal-header, .legal-card { background: var(--card); border: 1px solid var(--line); box-shadow: 0 2px 4px rgba(170, 120, 145, 0.10); }
+.legal-header { padding: 22px; margin-bottom: 14px; }
+.legal-logo { max-width: 220px; width: 70%; height: auto; display: block; margin-bottom: 14px; }
+h1, h2, h3 { font-family: 'Montserrat', Arial, Helvetica, sans-serif; color: var(--primary-dark); line-height: 1.25; }
+h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 40px); font-weight: 700; }
+h2 { margin: 28px 0 8px; font-size: clamp(18px, 3.5vw, 24px); }
+h3 { margin: 20px 0 6px; font-size: 17px; }
+p { margin: 0 0 12px; }
+ul { margin: 0 0 14px; padding-left: 22px; }
+li + li { margin-top: 6px; }
+a { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.legal-card { padding: 22px; }
+.legal-meta { color: var(--muted); font-size: 14px; }
+.legal-note { background: var(--primary-soft); border: 1px solid var(--line); padding: 14px; margin: 16px 0; }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; font-size: 14px; }
+.legal-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  margin: 0 0 18px;
+  background: var(--primary-soft);
+  border: 1px solid var(--line);
+}
+.legal-toc a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-size: 13px;
+}
+.legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 16px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.legal-footer a {
+  color: inherit;
+  font-weight: 600;
+}
+html { scroll-behavior: smooth; }
+@media (max-width: 520px) { .legal-page { padding: 12px 8px 36px; } .legal-header, .legal-card { padding: 16px; } }

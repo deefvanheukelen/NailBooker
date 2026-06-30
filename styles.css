@@ -71,7 +71,7 @@ button {
 .custom-splash {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 2147483500;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -5288,6 +5288,19 @@ body.auth-locked .fab {
   height: 18px;
   accent-color: var(--primary-dark);
   flex: 0 0 auto;
+}
+
+.register-wizard-actions .btn:disabled,
+.register-wizard-actions .btn.is-disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.register-wizard-actions .btn:disabled:hover,
+.register-wizard-actions .btn.is-disabled:hover {
+  transform: none;
 }
 
 
@@ -12374,4 +12387,56 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 .subscription-cancel-btn.hidden {
   display: none !important;
+}
+
+
+/* =========================================================
+   JURIDISCHE LINKS / ACCOUNT
+========================================================= */
+.account-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f2e8ed;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.account-legal-links a,
+.terms-checkbox-row a {
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-legal-links a:hover,
+.account-legal-links a:active,
+.terms-checkbox-row a:hover,
+.terms-checkbox-row a:active {
+  color: #9f5f75;
+}
+
+.terms-checkbox-row span {
+  line-height: 1.35;
+}
+
+
+/* Admin: vernieuw-knop stabiel houden en tekst binnen de knop laten passen */
+#adminRefreshBtn {
+  flex: 0 0 auto;
+  min-width: 104px;
+  max-width: 132px;
+  padding-inline: 10px;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.admin-section-headline > div {
+  min-width: 0;
 }

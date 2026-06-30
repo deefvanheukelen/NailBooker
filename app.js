@@ -23,6 +23,8 @@ const SUPPORTED_CURRENCIES = [
 
 const DEFAULT_LANGUAGE = "nl-BE";
 const DEFAULT_CURRENCY = "EUR";
+const LEGAL_TERMS_VERSION = "1.0";
+const LEGAL_PRIVACY_VERSION = "1.0";
 
 const i18n = {
   "nl-BE": {
@@ -363,8 +365,6 @@ async function saveHeaderLanguagePreference(language) {
       language: nextLanguage,
       currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
       payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
-      payment_iban: currentSettings.paymentIban || null,
-      payment_bic: currentSettings.paymentBic || null,
       payment_reference_prefix: currentSettings.paymentReferencePrefix || null,
       calendar_feed_token: currentSettings.calendarFeedToken || null,
       updated_at: updatedAt
@@ -1386,8 +1386,6 @@ async function ensureCalendarFeedToken({ forceNew = false } = {}) {
     language: normalizeLanguage(currentSettings.language || getCurrentLanguage()),
     currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
     payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
-    payment_iban: currentSettings.paymentIban || null,
-    payment_bic: currentSettings.paymentBic || null,
     payment_reference_prefix: String(currentSettings.paymentReferencePrefix || "").trim() || null,
     calendar_feed_token: token,
     updated_at: new Date().toISOString()
@@ -1744,7 +1742,7 @@ async function getCurrentProfile() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return null;
 
-    const baseSelect = "first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin";
+    const baseSelect = "first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, terms_version, privacy_version, privacy_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin";
     const subscriptionSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at, is_lifetime`;
 
     let result = await supabaseClient
@@ -2005,7 +2003,10 @@ async function upsertProfile(userId, values) {
     language: normalizeLanguage(values.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(values.currency || DEFAULT_CURRENCY),
     terms_accepted: Boolean(values.terms_accepted),
-    terms_accepted_at: values.terms_accepted_at || null
+    terms_accepted_at: values.terms_accepted_at || null,
+    terms_version: values.terms_version || LEGAL_TERMS_VERSION,
+    privacy_version: values.privacy_version || LEGAL_PRIVACY_VERSION,
+    privacy_accepted_at: values.privacy_accepted_at || values.terms_accepted_at || null
   };
 
   if (values.subscription_plan) payload.subscription_plan = values.subscription_plan;
@@ -2512,7 +2513,7 @@ const registerWizardCopy = {
     languageHint: "De app wordt meteen in deze taal gezet.",
     emailHint: "Dit e-mailadres gebruik je om in te loggen en om je account te verifiëren.",
     verifyHint: "Na registratie krijg je een e-mail om je account te voltooien.",
-    terms: "Akkoord met gebruiksvoorwaarden",
+    terms: "Ik ga akkoord met de gebruiksvoorwaarden en het privacybeleid.",
     previous: "Vorige",
     next: "Volgende",
     register: "Registreren",
@@ -2524,7 +2525,7 @@ const registerWizardCopy = {
     requiredEmail: "Vul een geldig e-mailadres in.",
     requiredDetails: "Vul voornaam, naam, salonnaam, land, regio en tijdzone in.",
     requiredPassword: "Vul je wachtwoord en bevestiging in.",
-    termsRequired: "Je moet akkoord gaan met de gebruiksvoorwaarden om te registreren.",
+    termsRequired: "Je moet akkoord gaan met de gebruiksvoorwaarden en het privacybeleid om te registreren.",
     passwordMismatch: "De wachtwoorden komen niet overeen.",
     registrationDone: "Registratie gelukt. Controleer je mailbox en klik op de bevestigingslink om je account te voltooien.",
     duplicateFallback: "Er bestaat mogelijk al een account voor dit e-mailadres. Probeer in te loggen of gebruik een ander e-mailadres."
@@ -2536,7 +2537,7 @@ const registerWizardCopy = {
     languageHint: "The app switches to this language immediately.",
     emailHint: "You use this email address to log in and verify your account.",
     verifyHint: "After registration, you will receive an email to complete your account.",
-    terms: "I agree to the terms of use",
+    terms: "I agree to the terms of use and the privacy policy.",
     previous: "Previous",
     next: "Next",
     register: "Register",
@@ -2548,7 +2549,7 @@ const registerWizardCopy = {
     requiredEmail: "Enter a valid email address.",
     requiredDetails: "Enter first name, last name, salon name, country, region and time zone.",
     requiredPassword: "Enter your password and confirmation.",
-    termsRequired: "You must agree to the terms of use to register.",
+    termsRequired: "You must agree to the terms of use and privacy policy to register.",
     passwordMismatch: "The passwords do not match.",
     registrationDone: "Registration successful. Check your mailbox and click the confirmation link to complete your account.",
     duplicateFallback: "An account may already exist for this email address. Try logging in or use another email address."
@@ -2560,7 +2561,7 @@ const registerWizardCopy = {
     languageHint: "L'application passe immédiatement dans cette langue.",
     emailHint: "Vous utilisez cette adresse e-mail pour vous connecter et vérifier votre compte.",
     verifyHint: "Après l'inscription, vous recevrez un e-mail pour compléter votre compte.",
-    terms: "J'accepte les conditions d'utilisation",
+    terms: "J’accepte les conditions d’utilisation et la politique de confidentialité.",
     previous: "Précédent",
     next: "Suivant",
     register: "S'inscrire",
@@ -2572,7 +2573,7 @@ const registerWizardCopy = {
     requiredEmail: "Saisissez une adresse e-mail valable.",
     requiredDetails: "Saisissez le prénom, le nom, le nom du salon, le pays, la région et le fuseau horaire.",
     requiredPassword: "Saisissez votre mot de passe et sa confirmation.",
-    termsRequired: "Vous devez accepter les conditions d'utilisation pour vous inscrire.",
+    termsRequired: "Vous devez accepter les conditions d’utilisation et la politique de confidentialité pour vous inscrire.",
     passwordMismatch: "Les mots de passe ne correspondent pas.",
     registrationDone: "Inscription réussie. Consultez votre boîte mail et cliquez sur le lien de confirmation pour compléter votre compte.",
     duplicateFallback: "Un compte existe peut-être déjà pour cette adresse e-mail. Essayez de vous connecter ou utilisez une autre adresse."
@@ -2581,6 +2582,17 @@ const registerWizardCopy = {
 
 function getRegisterCopy() {
   return registerWizardCopy[getCurrentLanguage()] || registerWizardCopy[DEFAULT_LANGUAGE];
+}
+
+function buildRegisterTermsConsentHtml() {
+  const lang = getCurrentLanguage();
+  if (lang === "en-GB") {
+    return 'I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer">terms of use</a> and the <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacy policy</a>.';
+  }
+  if (lang === "fr-FR") {
+    return 'J’accepte les <a href="terms.html" target="_blank" rel="noopener noreferrer">conditions d’utilisation</a> et la <a href="privacy.html" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>.';
+  }
+  return 'Ik ga akkoord met de <a href="terms.html" target="_blank" rel="noopener noreferrer">gebruiksvoorwaarden</a> en het <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacybeleid</a>.';
 }
 
 function getRegistrationRegions(country) {
@@ -2635,7 +2647,7 @@ function setRegisterStep(step) {
   document.getElementById("registerLanguageHint") && (document.getElementById("registerLanguageHint").textContent = copy.languageHint);
   document.getElementById("registerEmailHint") && (document.getElementById("registerEmailHint").textContent = copy.emailHint);
   document.getElementById("registerVerifyHint") && (document.getElementById("registerVerifyHint").textContent = copy.verifyHint);
-  document.getElementById("registerTermsLabel") && (document.getElementById("registerTermsLabel").textContent = copy.terms);
+  document.getElementById("registerTermsLabel") && (document.getElementById("registerTermsLabel").innerHTML = buildRegisterTermsConsentHtml());
   document.getElementById("registerBackBtn") && (document.getElementById("registerBackBtn").textContent = copy.previous);
   document.getElementById("registerNextBtn") && (document.getElementById("registerNextBtn").textContent = copy.next);
   document.getElementById("registerBtn") && (document.getElementById("registerBtn").textContent = copy.register);
@@ -2646,6 +2658,7 @@ function setRegisterStep(step) {
   if (backBtn) backBtn.classList.toggle("hidden", registerWizardState.step === 1);
   if (nextBtn) nextBtn.classList.toggle("hidden", registerWizardState.step === 4);
   if (submitBtn) submitBtn.classList.toggle("hidden", registerWizardState.step !== 4);
+  updateRegisterSubmitState();
 
   const labelMap = {
     registerEmail: "email",
@@ -2677,6 +2690,7 @@ function resetRegisterWizard() {
   if (lang) lang.value = getCurrentLanguage();
   syncRegisterRegionOptions();
   setRegisterStep(1);
+  updateRegisterSubmitState();
   window.requestAnimationFrame(refreshRegisterWizardSelects);
 }
 
@@ -2712,6 +2726,22 @@ async function checkRegisterEmailAlreadyExists(email) {
     console.warn("E-mailcontrole overgeslagen:", error?.message || error);
     return false;
   }
+}
+
+function updateRegisterSubmitState() {
+  const btn = document.getElementById("registerBtn");
+  if (!btn) return;
+
+  const values = getRegisterValues();
+  const canSubmit = Boolean(
+    values.password &&
+    values.passwordConfirm &&
+    values.password === values.passwordConfirm &&
+    values.termsAccepted
+  );
+
+  btn.disabled = registerWizardState.step === 4 && !canSubmit;
+  btn.classList.toggle("is-disabled", btn.disabled);
 }
 
 async function validateRegisterStep(step = registerWizardState.step) {
@@ -2807,6 +2837,10 @@ async function registerAccount(event) {
         language: values.language,
         currency: values.currency,
         terms_accepted: true,
+        terms_accepted_at: trialStartedAt,
+        terms_version: LEGAL_TERMS_VERSION,
+        privacy_version: LEGAL_PRIVACY_VERSION,
+        privacy_accepted_at: trialStartedAt,
         subscription_plan: "free",
         subscription_status: "trial",
         trial_started_at: trialStartedAt,
@@ -2841,6 +2875,9 @@ async function registerAccount(event) {
         currency: values.currency,
         terms_accepted: true,
         terms_accepted_at: trialStartedAt,
+        terms_version: LEGAL_TERMS_VERSION,
+        privacy_version: LEGAL_PRIVACY_VERSION,
+        privacy_accepted_at: trialStartedAt,
         subscription_plan: "free",
         subscription_status: "trial",
         trial_started_at: trialStartedAt,
@@ -7379,7 +7416,6 @@ function getSettingsFormSnapshot() {
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
     "settingsPaymentIban",
-    "settingsPaymentBic",
     "settingsPaymentReferencePrefix"
   ];
 
@@ -7426,8 +7462,7 @@ function confirmLeaveSettingsIfDirty() {
 function hardenPaymentAutocompleteFields() {
   const fields = [
     ["settingsPaymentBeneficiaryName", "settings_qr_beneficiary_ref", "off"],
-    ["settingsPaymentIban", "settings_qr_reference_code", "new-password"],
-    ["settingsPaymentBic", "settings_qr_bank_ref", "new-password"]
+    ["settingsPaymentIban", "settings_qr_reference_code", "new-password"]
   ];
 
   fields.forEach(([id, safeName, autocomplete]) => {
@@ -7590,13 +7625,43 @@ async function setTipsOnOpenPreference(enabled) {
   saveData(data);
 }
 
+
+async function loadSecurePaymentIban() {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("secure-payment-iban", {
+      method: "GET"
+    });
+
+    if (error) {
+      console.warn("Beveiligd IBAN laden mislukt:", error.message || error);
+      return "";
+    }
+
+    return normalizeIban(data?.paymentIban || "");
+  } catch (error) {
+    console.warn("Beveiligd IBAN laden mislukt:", error?.message || error);
+    return "";
+  }
+}
+
+async function saveSecurePaymentIban(paymentIban) {
+  const { error } = await supabaseClient.functions.invoke("secure-payment-iban", {
+    method: "POST",
+    body: { paymentIban: normalizeIban(paymentIban || "") }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Beveiligd opslaan van het bankrekeningnummer is mislukt.");
+  }
+}
+
 async function loadSettingsFromSupabase() {
   const user = await getCurrentUser();
   if (!user) return getDefaultSettings();
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_iban, payment_bic, payment_reference_prefix, calendar_feed_token")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, calendar_feed_token")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -7615,8 +7680,8 @@ async function loadSettingsFromSupabase() {
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
     paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
-    paymentIban: normalizeIban(data?.payment_iban || ""),
-    paymentBic: String(data?.payment_bic || "").trim().toUpperCase(),
+    paymentIban: await loadSecurePaymentIban(),
+    paymentBic: "",
     paymentReferencePrefix: normalizePaymentReferencePrefix(data?.payment_reference_prefix),
     calendarFeedToken: String(data?.calendar_feed_token || "")
   };
@@ -7636,7 +7701,7 @@ async function saveSettingsFromForm(event) {
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
     paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
-    paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
+    paymentBic: "",
     paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
@@ -7684,8 +7749,6 @@ async function saveSettingsFromForm(event) {
     language: settings.language,
     currency: settings.currency,
     payment_beneficiary_name: settings.paymentBeneficiaryName || null,
-    payment_iban: settings.paymentIban || null,
-    payment_bic: settings.paymentBic || null,
     payment_reference_prefix: settings.paymentReferencePrefix || null,
     calendar_feed_token: settings.calendarFeedToken || null,
     updated_at: new Date().toISOString()
@@ -7707,6 +7770,14 @@ async function saveSettingsFromForm(event) {
   if (error) {
     renderSettings();
     await appAlert("Opslaan instellingen mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
+    return;
+  }
+
+  try {
+    await saveSecurePaymentIban(settings.paymentIban);
+  } catch (secureError) {
+    renderSettings();
+    await appAlert("Bankrekeningnummer beveiligd opslaan mislukt: " + (secureError.message || secureError), { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
@@ -11424,6 +11495,10 @@ function registerEvents() {
   document.getElementById("registerLanguage")?.addEventListener("change", handleRegisterLanguageChange);
   document.getElementById("registerCountry")?.addEventListener("change", syncRegisterRegionOptions);
   document.getElementById("registerRegion")?.addEventListener("change", syncRegisterRegionOptions);
+  ["registerPassword", "registerPasswordConfirm", "registerTermsAccepted"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", updateRegisterSubmitState);
+    document.getElementById(id)?.addEventListener("change", updateRegisterSubmitState);
+  });
   document.getElementById("editCountry")?.addEventListener("change", syncEditProfileRegionOptions);
   document.getElementById("editRegion")?.addEventListener("change", syncEditProfileRegionOptions);
 
@@ -12385,22 +12460,30 @@ async function initAppData() {
 }
 
 async function startApp() {
-	await registerServiceWorker();
-	installSupabaseWriteBusyPatch();
-	await initAppData();
-	registerEvents();
-	await syncAuthUI();
-	rerenderAll();
-	await syncNotificationState();
+  beginGlobalActionLock();
+  try {
+    setGlobalActionBusyVisible(true);
+    await waitForBusyOverlayPaint();
 
-  const user = await getCurrentUser();
+	  await registerServiceWorker();
+	  installSupabaseWriteBusyPatch();
+	  await initAppData();
+	  registerEvents();
+	  await syncAuthUI();
+	  rerenderAll();
+	  await syncNotificationState();
 
-  setupAppBrowserBackNavigation();
+    const user = await getCurrentUser();
 
-  if (user) {
-    switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
-  } else {
-    switchScreen("accountScreen", t("account"), { replaceHistory: true });
+    setupAppBrowserBackNavigation();
+
+    if (user) {
+      switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
+    } else {
+      switchScreen("accountScreen", t("account"), { replaceHistory: true });
+    }
+  } finally {
+    endGlobalActionLock();
   }
 }
 
@@ -13336,16 +13419,10 @@ function formatAdminDateTime(value) {
   return new Intl.DateTimeFormat("nl-BE", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
-function setAdminButtonBusy(button, busy, textWhenBusy = "Even geduld...") {
+function setAdminButtonBusy(button, busy) {
   if (!button) return;
-  if (busy) {
-    button.dataset.originalText = button.textContent;
-    button.textContent = textWhenBusy;
-    button.disabled = true;
-  } else {
-    button.textContent = button.dataset.originalText || button.textContent;
-    button.disabled = false;
-  }
+  button.disabled = Boolean(busy);
+  button.setAttribute("aria-busy", busy ? "true" : "false");
 }
 
 function setAdminEmptyState(message) {
@@ -13398,23 +13475,25 @@ async function loadAdminUsers(force = false) {
   }
 
   const refreshBtn = document.getElementById("adminRefreshBtn");
-  try {
-    adminState.isLoading = true;
-    setAdminButtonBusy(refreshBtn, true, "Laden...");
-    setAdminEmptyState("Gebruikers laden...");
-    await ensureAdminAccess();
-    const result = await callAdminFunction("list");
-    adminState.users = Array.isArray(result.users) ? result.users : [];
-    await enrichAdminUsersWithSubscriptionFlags();
-    adminState.isLoaded = true;
-    applyAdminFilters();
-  } catch (error) {
-    setAdminEmptyState(humanAdminError(error));
-    adminToast(humanAdminError(error));
-  } finally {
-    adminState.isLoading = false;
-    setAdminButtonBusy(refreshBtn, false);
-  }
+  await runWithGlobalActionBusy(async () => {
+    try {
+      adminState.isLoading = true;
+      setAdminButtonBusy(refreshBtn, true);
+      setAdminEmptyState("Gebruikers laden...");
+      await ensureAdminAccess();
+      const result = await callAdminFunction("list");
+      adminState.users = Array.isArray(result.users) ? result.users : [];
+      await enrichAdminUsersWithSubscriptionFlags();
+      adminState.isLoaded = true;
+      applyAdminFilters();
+    } catch (error) {
+      setAdminEmptyState(humanAdminError(error));
+      adminToast(humanAdminError(error));
+    } finally {
+      adminState.isLoading = false;
+      setAdminButtonBusy(refreshBtn, false);
+    }
+  });
 }
 
 function applyAdminFilters() {

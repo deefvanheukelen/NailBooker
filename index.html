@@ -415,12 +415,10 @@
                     <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.1-1.64a.5.5 0 0 0 .12-.64l-1.98-3.43a.5.5 0 0 0-.61-.22l-2.47 1a7.26 7.26 0 0 0-1.7-.98l-.38-2.63A.5.5 0 0 0 14.02 2h-4.04a.5.5 0 0 0-.49.42L9.11 5.1a7.26 7.26 0 0 0-1.7.98l-2.47-1a.5.5 0 0 0-.61.22L2.35 8.74a.5.5 0 0 0 .12.64l2.1 1.64c-.05.32-.07.65-.07.98s.02.66.07.98l-2.1 1.64a.5.5 0 0 0-.12.64l1.98 3.43a.5.5 0 0 0 .61.22l2.47-1c.52.4 1.09.73 1.7.98l.38 2.63a.5.5 0 0 0 .49.42h4.04a.5.5 0 0 0 .49-.42l.38-2.63c.61-.25 1.18-.58 1.7-.98l2.47 1a.5.5 0 0 0 .61-.22l1.98-3.43a.5.5 0 0 0-.12-.64l-2.1-1.64ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg></span>
                     <div>
                       <div class="detail-label" data-i18n="appPreferences">App-voorkeuren</div>
-                      <p>Taal en valuta voor nieuwe gegevens.</p>
+                      <p>Valuta en app-voorkeuren voor nieuwe gegevens.</p>
                     </div>
                   </div>
 
-                  <label class="field-label" for="settingsLanguage" data-i18n="language">Taal</label>
-                  <select id="settingsLanguage" class="field"></select>
 
                   <label class="field-label" for="settingsCurrency" data-i18n="currency">Valuta</label>
                   <select id="settingsCurrency" class="field"></select>
@@ -501,11 +499,9 @@
                   <label class="field-label" for="settingsPaymentIban">IBAN</label>
                   <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
 
-                  <label class="field-label" for="settingsPaymentBic">BIC <span class="optional-label">optioneel</span></label>
-                  <input id="settingsPaymentBic" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Bijv. GEBABEBB" />
 
-                  <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling/prefix</label>
-                  <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" placeholder="" />
+                  <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling</label>
+                  <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" inputmode="text" maxlength="140" pattern="[A-Za-z0-9 /\-?:().,'+]*" title="Gebruik alleen letters, cijfers, spaties en deze tekens: / - ? : ( ) . , ' +" placeholder="" />
 
                   <p class="settings-info-text">Deze gegevens worden gebruikt om een SEPA/bank-QR-code te maken. Klanten scannen de QR met hun bankapp.</p>
                 </section>
@@ -834,6 +830,12 @@
                       Nog geen account? Registreer hier
                     </button>
                   </div>
+
+                  <nav class="account-legal-links" aria-label="Juridische documenten">
+                    <a href="terms.html" target="_blank" rel="noopener noreferrer">Gebruiksvoorwaarden</a>
+                    <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacybeleid</a>
+                    <a href="cookies.html" target="_blank" rel="noopener noreferrer">Cookiebeleid</a>
+                  </nav>
                 </div>
               </div>
             </section>
@@ -895,6 +897,12 @@
 					Uitloggen
 				  </button>
 				</div>
+
+                <nav class="account-legal-links" aria-label="Juridische documenten">
+                  <a href="terms.html" target="_blank" rel="noopener noreferrer">Gebruiksvoorwaarden</a>
+                  <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacybeleid</a>
+                  <a href="cookies.html" target="_blank" rel="noopener noreferrer">Cookiebeleid</a>
+                </nav>
 
 			  </div>
 			</section>
@@ -1680,7 +1688,7 @@
 
         <label class="terms-checkbox-row" for="registerTermsAccepted">
           <input id="registerTermsAccepted" type="checkbox" required />
-          <span id="registerTermsLabel">Akkoord met gebruiksvoorwaarden</span>
+          <span id="registerTermsLabel">Ik ga akkoord met de gebruiksvoorwaarden en het privacybeleid.</span>
         </label>
         <p class="register-step-hint" id="registerVerifyHint">Na registratie krijg je een e-mail om je account te voltooien.</p>
       </section>
@@ -1897,6 +1905,13 @@
     </div>
   </dialog>
 
+  <div id="appBusyOverlay" class="app-busy-overlay hidden" aria-hidden="true">
+    <div class="app-busy-card" role="status" aria-live="polite">
+      <span class="app-busy-spinner" aria-hidden="true"></span>
+      <span class="app-busy-text">Even geduld...</span>
+    </div>
+  </div>
+
   <!-- =========================================================
        SCRIPTS
        Volgorde is belangrijk:
@@ -2057,12 +2072,6 @@
 
   <div id="adminToast" class="admin-toast hidden" role="status" aria-live="polite"></div>
 
-  <div id="appBusyOverlay" class="app-busy-overlay hidden" aria-hidden="true">
-    <div class="app-busy-card" role="status" aria-live="polite">
-      <span class="app-busy-spinner" aria-hidden="true"></span>
-      <span class="app-busy-text">Even geduld...</span>
-    </div>
-  </div>
 
 </body>
 
