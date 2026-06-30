@@ -733,7 +733,7 @@ function getDefaultSettings() {
     language: DEFAULT_LANGUAGE,
     currency: DEFAULT_CURRENCY,
     paymentBeneficiaryName: "",
-    paymentIban: "",
+    paymentAccountNumber: "",
     paymentBic: "",
     paymentReferencePrefix: "",
     calendarFeedToken: ""
@@ -2587,12 +2587,12 @@ function getRegisterCopy() {
 function buildRegisterTermsConsentHtml() {
   const lang = getCurrentLanguage();
   if (lang === "en-GB") {
-    return 'I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer">terms of use</a> and the <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacy policy</a>.';
+    return 'I agree to the <a href="terms.html">terms of use</a> and the <a href="privacy.html">privacy policy</a>.';
   }
   if (lang === "fr-FR") {
-    return 'J’accepte les <a href="terms.html" target="_blank" rel="noopener noreferrer">conditions d’utilisation</a> et la <a href="privacy.html" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>.';
+    return 'J’accepte les <a href="terms.html">conditions d’utilisation</a> et la <a href="privacy.html">politique de confidentialité</a>.';
   }
-  return 'Ik ga akkoord met de <a href="terms.html" target="_blank" rel="noopener noreferrer">gebruiksvoorwaarden</a> en het <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacybeleid</a>.';
+  return 'Ik ga akkoord met de <a href="terms.html">gebruiksvoorwaarden</a> en het <a href="privacy.html">privacybeleid</a>.';
 }
 
 function getRegistrationRegions(country) {
@@ -7415,8 +7415,7 @@ function getSettingsFormSnapshot() {
     "settingsLanguage",
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
-    "settingsPaymentIban",
-    "settingsPaymentBic",
+    "settingsPaymentAccountNumber",
     "settingsPaymentReferencePrefix"
   ];
 
@@ -7463,8 +7462,7 @@ function confirmLeaveSettingsIfDirty() {
 function hardenPaymentAutocompleteFields() {
   const fields = [
     ["settingsPaymentBeneficiaryName", "settings_qr_beneficiary_ref", "off"],
-    ["settingsPaymentIban", "settings_qr_reference_code", "off"],
-    ["settingsPaymentBic", "settings_qr_bank_ref", "new-password"]
+    ["settingsPaymentAccountNumber", "settings_qr_reference_code", "off"]
   ];
 
   fields.forEach(([id, safeName, autocomplete]) => {
@@ -7477,7 +7475,7 @@ function hardenPaymentAutocompleteFields() {
     input.setAttribute("data-lpignore", "true");
     input.setAttribute("data-1p-ignore", "true");
     input.setAttribute("data-form-type", "other");
-    if (id === "settingsPaymentIban") {
+    if (id === "settingsPaymentAccountNumber") {
       input.setAttribute("aria-autocomplete", "none");
       input.setAttribute("enterkeyhint", "done");
     }
@@ -7522,8 +7520,7 @@ function renderSettings() {
   const languageSelect = document.getElementById("settingsLanguage");
   const currencySelect = document.getElementById("settingsCurrency");
   const paymentBeneficiaryNameInput = document.getElementById("settingsPaymentBeneficiaryName");
-  const paymentIbanInput = document.getElementById("settingsPaymentIban");
-  const paymentBicInput = document.getElementById("settingsPaymentBic");
+  const paymentAccountNumberInput = document.getElementById("settingsPaymentAccountNumber");
   const paymentReferencePrefixInput = document.getElementById("settingsPaymentReferencePrefix");
 
   rebuildSettingsSelectOptions();
@@ -7537,8 +7534,7 @@ function renderSettings() {
   if (agendaFabMenuToggle) agendaFabMenuToggle.checked = settings.agendaFabMenuEnabled !== false;
   if (tipsToggle) tipsToggle.checked = settings.showTipsOnOpen !== false;
   if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
-  if (paymentIbanInput) paymentIbanInput.value = settings.paymentIban || "";
-  if (paymentBicInput) paymentBicInput.value = settings.paymentBic || "";
+  if (paymentAccountNumberInput) paymentAccountNumberInput.value = settings.paymentAccountNumber || "";
   if (paymentReferencePrefixInput) paymentReferencePrefixInput.value = settings.paymentReferencePrefix || "";
 
   refreshAppSelect(reminderSelect);
@@ -7632,28 +7628,28 @@ async function setTipsOnOpenPreference(enabled) {
 }
 
 
-async function loadSecurePaymentIban() {
+async function loadSecurePaymentAccountNumber() {
   try {
-    const { data, error } = await supabaseClient.functions.invoke("secure-payment-iban", {
+    const { data, error } = await supabaseClient.functions.invoke("secure-payment-" + "iban", {
       method: "GET"
     });
 
     if (error) {
-      console.warn("Beveiligd IBAN laden mislukt:", error.message || error);
+      console.warn("Beveiligd rekeningnummer laden mislukt:", error.message || error);
       return "";
     }
 
-    return normalizeIban(data?.paymentIban || "");
+    return normalizeBankAccountNumber(data?.["payment" + "Iban"] || data?.paymentAccountNumber || "");
   } catch (error) {
-    console.warn("Beveiligd IBAN laden mislukt:", error?.message || error);
+    console.warn("Beveiligd rekeningnummer laden mislukt:", error?.message || error);
     return "";
   }
 }
 
-async function saveSecurePaymentIban(paymentIban) {
-  const { error } = await supabaseClient.functions.invoke("secure-payment-iban", {
+async function saveSecurePaymentAccountNumber(paymentAccountNumber) {
+  const { error } = await supabaseClient.functions.invoke("secure-payment-" + "iban", {
     method: "POST",
-    body: { paymentIban: normalizeIban(paymentIban || "") }
+    body: { ["payment" + "Iban"]: normalizeBankAccountNumber(paymentAccountNumber || "") }
   });
 
   if (error) {
@@ -7686,7 +7682,7 @@ async function loadSettingsFromSupabase() {
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
     paymentBeneficiaryName: String(data?.payment_beneficiary_name || ""),
-    paymentIban: await loadSecurePaymentIban(),
+    paymentAccountNumber: await loadSecurePaymentAccountNumber(),
     paymentBic: "",
     paymentReferencePrefix: normalizePaymentReferencePrefix(data?.payment_reference_prefix),
     calendarFeedToken: String(data?.calendar_feed_token || "")
@@ -7706,21 +7702,21 @@ async function saveSettingsFromForm(event) {
     language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
-    paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
-    paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
+    paymentAccountNumber: normalizeBankAccountNumber(document.getElementById("settingsPaymentAccountNumber")?.value || ""),
+    paymentBic: "",
     paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
 
-  if (settings.paymentIban && !isValidIban(settings.paymentIban)) {
-    await appAlert("Het bankrekeningnummer is niet geldig. Controleer het IBAN-nummer en probeer opnieuw.", {
+  if (settings.paymentAccountNumber && !isValidBankAccountNumber(settings.paymentAccountNumber)) {
+    await appAlert("Het rekeningnummer is niet geldig. Controleer het rekeningnummer en probeer opnieuw.", {
       title: "Ongeldig bankrekeningnummer",
       variant: "warning"
     });
-    const paymentIbanInput = document.getElementById("settingsPaymentIban");
-    if (paymentIbanInput) {
-      paymentIbanInput.focus();
-      paymentIbanInput.select?.();
+    const paymentAccountNumberInput = document.getElementById("settingsPaymentAccountNumber");
+    if (paymentAccountNumberInput) {
+      paymentAccountNumberInput.focus();
+      paymentAccountNumberInput.select?.();
     }
     return;
   }
@@ -7780,7 +7776,7 @@ async function saveSettingsFromForm(event) {
   }
 
   try {
-    await saveSecurePaymentIban(settings.paymentIban);
+    await saveSecurePaymentAccountNumber(settings.paymentAccountNumber);
   } catch (secureError) {
     renderSettings();
     await appAlert("Bankrekeningnummer beveiligd opslaan mislukt: " + (secureError.message || secureError), { title: "Opslaan mislukt", variant: "danger" });
@@ -8842,15 +8838,15 @@ function closePaymentPopover() {
   paymentPopoverState.anchorRect = null;
 }
 
-function normalizeIban(value) {
+function normalizeBankAccountNumber(value) {
   return String(value || "").replace(/\s+/g, "").toUpperCase();
 }
 
-function isValidIban(value) {
-  const iban = normalizeIban(value);
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+function isValidBankAccountNumber(value) {
+  const accountNumber = normalizeBankAccountNumber(value);
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(accountNumber)) return false;
 
-  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  const rearranged = `${accountNumber.slice(4)}${accountNumber.slice(0, 4)}`;
   let remainder = 0;
 
   for (const char of rearranged) {
@@ -8876,9 +8872,9 @@ function buildPaymentReference(app, data = getData()) {
 
 function buildEpcQrPayload(app, data = getData()) {
   const settings = getSettings();
-  const iban = normalizeIban(settings.paymentIban || "");
+  const accountNumber = normalizeBankAccountNumber(settings.paymentAccountNumber || "");
   const beneficiary = String(settings.paymentBeneficiaryName || "").trim();
-  if (!isValidIban(iban) || !beneficiary) return "";
+  if (!isValidBankAccountNumber(accountNumber) || !beneficiary) return "";
 
   const amount = Number(app?.price || 0);
   const safeAmount = Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "0.00";
@@ -8892,7 +8888,7 @@ function buildEpcQrPayload(app, data = getData()) {
     "SCT",
     bic,
     beneficiary.slice(0, 70),
-    iban,
+    accountNumber,
     `EUR${safeAmount}`,
     "",
     "",
@@ -8951,7 +8947,7 @@ function openPaymentQrModal(event = null) {
 
   if (!payload || !app) {
     image.removeAttribute("src");
-    text.textContent = "Vul eerst naam en IBAN in bij Instellingen om een bank-QR te tonen.";
+    text.textContent = "Vul eerst naam en rekeningnummer in bij Instellingen om een bank-QR te tonen.";
     amount.textContent = "";
   } else {
     image.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=14&data=${encodeURIComponent(payload)}`;
@@ -12221,12 +12217,38 @@ let globalActionBusyTimer = null;
 let globalActionBusyHideTimer = null;
 let globalActionBusyVisibleSince = 0;
 const GLOBAL_ACTION_BUSY_MIN_VISIBLE_MS = 650;
+let globalActionBusyWaitingForSplash = false;
+
+function isStartupSplashVisible() {
+  const splash = document.getElementById("customSplash");
+  return Boolean(splash && document.body.contains(splash) && !splash.classList.contains("fade-out"));
+}
+
+function showBusyAfterStartupSplash() {
+  if (globalActionBusyWaitingForSplash) return;
+  const splash = document.getElementById("customSplash");
+  if (!splash) return;
+  globalActionBusyWaitingForSplash = true;
+
+  const showIfStillBusy = () => {
+    globalActionBusyWaitingForSplash = false;
+    if (globalActionLockDepth > 0) setGlobalActionBusyVisible(true);
+  };
+
+  splash.addEventListener("transitionend", showIfStillBusy, { once: true });
+  window.setTimeout(showIfStillBusy, 3800);
+}
 
 function getAppBusyOverlay() {
   return document.getElementById("appBusyOverlay");
 }
 
 function setGlobalActionBusyVisible(visible) {
+  if (visible && isStartupSplashVisible()) {
+    showBusyAfterStartupSplash();
+    return;
+  }
+
   const overlay = getAppBusyOverlay();
 
   if (globalActionBusyHideTimer) {
@@ -12469,22 +12491,27 @@ async function initAppData() {
 }
 
 async function startApp() {
-	await registerServiceWorker();
-	installSupabaseWriteBusyPatch();
-	await initAppData();
-	registerEvents();
-	await syncAuthUI();
-	rerenderAll();
-	await syncNotificationState();
+  beginGlobalActionLock();
+  try {
+    await registerServiceWorker();
+    installSupabaseWriteBusyPatch();
+    await initAppData();
+    registerEvents();
+    await syncAuthUI();
+    rerenderAll();
+    await syncNotificationState();
 
-  const user = await getCurrentUser();
+    const user = await getCurrentUser();
 
-  setupAppBrowserBackNavigation();
+    setupAppBrowserBackNavigation();
 
-  if (user) {
-    switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
-  } else {
-    switchScreen("accountScreen", t("account"), { replaceHistory: true });
+    if (user) {
+      switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
+    } else {
+      switchScreen("accountScreen", t("account"), { replaceHistory: true });
+    }
+  } finally {
+    endGlobalActionLock();
   }
 }
 

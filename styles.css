@@ -12424,8 +12424,8 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   line-height: 1.35;
 }
 
-/* IBAN veld als textarea zodat Chrome/Google Wallet het niet als bankrekening-autofillveld behandelt. */
-.settings-iban-field {
+/* Rekeningnummer als textarea zodat browser-wallets het niet als bankrekening-autofillveld behandelen. */
+.settings-account-number-field {
   min-height: 48px;
   height: 48px;
   resize: none;
