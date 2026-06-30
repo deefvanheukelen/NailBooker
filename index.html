@@ -399,7 +399,7 @@
       <section id="settingsScreen" class="screen">
         <section class="settings-page">
           <div class="settings-scroll">
-            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog">
+            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog" autocomplete="off" data-form-type="other">
               <div class="settings-hero">
                 <div>
                   <img class="settings-hero-logo" src="img/logo-landscape.png" alt="NailBooker logo" />
@@ -497,7 +497,7 @@
                   <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" />
 
                   <label class="field-label" for="settingsPaymentIban">IBAN</label>
-                  <input id="settingsPaymentIban" class="field" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="BE00 0000 0000 0000" />
+                  <textarea id="settingsPaymentIban" class="field settings-iban-field" rows="1" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" placeholder="BE00 0000 0000 0000"></textarea>
 
 
                   <label class="field-label" for="settingsPaymentReferencePrefix">Mededeling</label>
@@ -535,7 +535,7 @@
 
               <div class="settings-actions settings-actions-sticky">
                 <span id="settingsSaveHint" class="settings-save-hint">Instellingen worden per gebruiker bewaard.</span>
-                <button class="btn btn-primary action-btn" type="submit" data-i18n="saveSettings">Instellingen opslaan</button>
+                <button id="settingsSaveBtn" class="btn btn-primary action-btn" type="button" data-i18n="saveSettings">Instellingen opslaan</button>
               </div>
             </form>
           </div>
@@ -832,9 +832,9 @@
                   </div>
 
                   <nav class="account-legal-links" aria-label="Juridische documenten">
-                    <a href="terms.html">Gebruiksvoorwaarden</a>
-                    <a href="privacy.html">Privacybeleid</a>
-                    <a href="cookies.html">Cookiebeleid</a>
+                    <a href="terms.html" target="_blank" rel="noopener noreferrer">Gebruiksvoorwaarden</a>
+                    <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacybeleid</a>
+                    <a href="cookies.html" target="_blank" rel="noopener noreferrer">Cookiebeleid</a>
                   </nav>
                 </div>
               </div>
@@ -899,9 +899,9 @@
 				</div>
 
                 <nav class="account-legal-links" aria-label="Juridische documenten">
-                  <a href="terms.html">Gebruiksvoorwaarden</a>
-                  <a href="privacy.html">Privacybeleid</a>
-                  <a href="cookies.html">Cookiebeleid</a>
+                  <a href="terms.html" target="_blank" rel="noopener noreferrer">Gebruiksvoorwaarden</a>
+                  <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacybeleid</a>
+                  <a href="cookies.html" target="_blank" rel="noopener noreferrer">Cookiebeleid</a>
                 </nav>
 
 			  </div>

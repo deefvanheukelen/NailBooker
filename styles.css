@@ -71,7 +71,7 @@ button {
 .custom-splash {
   position: fixed;
   inset: 0;
-  z-index: 2147483500;
+  z-index: 9999;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -12422,6 +12422,16 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 .terms-checkbox-row span {
   line-height: 1.35;
+}
+
+/* IBAN veld als textarea zodat Chrome/Google Wallet het niet als bankrekening-autofillveld behandelt. */
+.settings-iban-field {
+  min-height: 48px;
+  height: 48px;
+  resize: none;
+  overflow: hidden;
+  line-height: 22px;
+  white-space: nowrap;
 }
 
 

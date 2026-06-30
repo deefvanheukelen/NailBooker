@@ -2587,12 +2587,12 @@ function getRegisterCopy() {
 function buildRegisterTermsConsentHtml() {
   const lang = getCurrentLanguage();
   if (lang === "en-GB") {
-    return 'I agree to the <a href="terms.html">terms of use</a> and the <a href="privacy.html">privacy policy</a>.';
+    return 'I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer">terms of use</a> and the <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacy policy</a>.';
   }
   if (lang === "fr-FR") {
-    return 'J’accepte les <a href="terms.html">conditions d’utilisation</a> et la <a href="privacy.html">politique de confidentialité</a>.';
+    return 'J’accepte les <a href="terms.html" target="_blank" rel="noopener noreferrer">conditions d’utilisation</a> et la <a href="privacy.html" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>.';
   }
-  return 'Ik ga akkoord met de <a href="terms.html">gebruiksvoorwaarden</a> en het <a href="privacy.html">privacybeleid</a>.';
+  return 'Ik ga akkoord met de <a href="terms.html" target="_blank" rel="noopener noreferrer">gebruiksvoorwaarden</a> en het <a href="privacy.html" target="_blank" rel="noopener noreferrer">privacybeleid</a>.';
 }
 
 function getRegistrationRegions(country) {
@@ -7416,6 +7416,7 @@ function getSettingsFormSnapshot() {
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
     "settingsPaymentIban",
+    "settingsPaymentBic",
     "settingsPaymentReferencePrefix"
   ];
 
@@ -7462,7 +7463,8 @@ function confirmLeaveSettingsIfDirty() {
 function hardenPaymentAutocompleteFields() {
   const fields = [
     ["settingsPaymentBeneficiaryName", "settings_qr_beneficiary_ref", "off"],
-    ["settingsPaymentIban", "settings_qr_reference_code", "new-password"]
+    ["settingsPaymentIban", "settings_qr_reference_code", "off"],
+    ["settingsPaymentBic", "settings_qr_bank_ref", "new-password"]
   ];
 
   fields.forEach(([id, safeName, autocomplete]) => {
@@ -7475,6 +7477,10 @@ function hardenPaymentAutocompleteFields() {
     input.setAttribute("data-lpignore", "true");
     input.setAttribute("data-1p-ignore", "true");
     input.setAttribute("data-form-type", "other");
+    if (id === "settingsPaymentIban") {
+      input.setAttribute("aria-autocomplete", "none");
+      input.setAttribute("enterkeyhint", "done");
+    }
   });
 }
 
@@ -7701,7 +7707,7 @@ async function saveSettingsFromForm(event) {
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
     paymentBeneficiaryName: String(document.getElementById("settingsPaymentBeneficiaryName")?.value || "").trim(),
     paymentIban: normalizeIban(document.getElementById("settingsPaymentIban")?.value || ""),
-    paymentBic: "",
+    paymentBic: String(document.getElementById("settingsPaymentBic")?.value || "").trim().toUpperCase(),
     paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
@@ -11233,7 +11239,10 @@ function registerEvents() {
   document.getElementById("clientSearch").addEventListener("input", renderClients);
   document.getElementById("serviceSearch")?.addEventListener("input", renderServices);
   document.getElementById("appointmentService").addEventListener("change", syncServiceDefaults);
-  document.getElementById("settingsForm")?.addEventListener("submit", withActionLock(saveSettingsFromForm));
+  const settingsForm = document.getElementById("settingsForm");
+  const settingsSaveBtn = document.getElementById("settingsSaveBtn");
+  settingsForm?.addEventListener("submit", withActionLock(saveSettingsFromForm));
+  settingsSaveBtn?.addEventListener("click", withActionLock(saveSettingsFromForm));
   setupSettingsDirtyTracking();
   document.getElementById("copyCalendarFeedUrlBtn")?.addEventListener("click", withActionLock(createOrCopyCalendarFeedUrl));
   document.getElementById("openGoogleCalendarSubscribeBtn")?.addEventListener("click", withActionLock(openGoogleCalendarSubscribePage));
@@ -12460,30 +12469,22 @@ async function initAppData() {
 }
 
 async function startApp() {
-  beginGlobalActionLock();
-  try {
-    setGlobalActionBusyVisible(true);
-    await waitForBusyOverlayPaint();
+	await registerServiceWorker();
+	installSupabaseWriteBusyPatch();
+	await initAppData();
+	registerEvents();
+	await syncAuthUI();
+	rerenderAll();
+	await syncNotificationState();
 
-	  await registerServiceWorker();
-	  installSupabaseWriteBusyPatch();
-	  await initAppData();
-	  registerEvents();
-	  await syncAuthUI();
-	  rerenderAll();
-	  await syncNotificationState();
+  const user = await getCurrentUser();
 
-    const user = await getCurrentUser();
+  setupAppBrowserBackNavigation();
 
-    setupAppBrowserBackNavigation();
-
-    if (user) {
-      switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
-    } else {
-      switchScreen("accountScreen", t("account"), { replaceHistory: true });
-    }
-  } finally {
-    endGlobalActionLock();
+  if (user) {
+    switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
+  } else {
+    switchScreen("accountScreen", t("account"), { replaceHistory: true });
   }
 }
 
