@@ -533,6 +533,17 @@
                 </section>
               </div>
 
+              <section class="settings-section-card settings-section-card-wide settings-deleted-appointments-card">
+                <div class="settings-section-head">
+                  <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-.8 11.1A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-2-1.9L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/></svg></span>
+                  <div>
+                    <div class="detail-label">Verwijderde afspraken</div>
+                    <p>Bekijk en herstel afspraken die uit de agenda, omzet en statistieken verborgen zijn.</p>
+                  </div>
+                </div>
+                <button id="openDeletedAppointmentsBtn" class="btn btn-secondary action-btn" type="button">Verwijderde afspraken openen</button>
+              </section>
+
               <div class="settings-actions settings-actions-sticky">
                 <span id="settingsSaveHint" class="settings-save-hint">Instellingen worden per gebruiker bewaard.</span>
                 <button id="settingsSaveBtn" class="btn btn-primary action-btn" type="button" data-i18n="saveSettings">Instellingen opslaan</button>
@@ -1357,6 +1368,25 @@
       </div>
     </form>
   </dialog>
+
+  <dialog id="deletedAppointmentsDialog" class="modal deleted-appointments-dialog">
+    <div class="modal-card deleted-appointments-modal-card">
+      <div class="modal-head">
+        <h3>Verwijderde afspraken</h3>
+        <button class="icon-btn" type="button" data-close="deletedAppointmentsDialog">✕</button>
+      </div>
+      <div class="deleted-appointments-toolbar">
+        <label class="field-label" for="deletedAppointmentsSearch">Filter</label>
+        <input id="deletedAppointmentsSearch" class="field" type="search" autocomplete="off" placeholder="Alle, klantnaam, dienst, datum, opmerking..." />
+        <p id="deletedAppointmentsCount" class="settings-info-text">-</p>
+      </div>
+      <div id="deletedAppointmentsList" class="deleted-appointments-list scroll-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary action-btn" type="button" data-close="deletedAppointmentsDialog">Sluiten</button>
+      </div>
+    </div>
+  </dialog>
+
 
   <!-- ===================== KLANT ========================== -->
 

@@ -9794,7 +9794,7 @@ async function deleteCurrentAppointment() {
     deleteScope = await chooseRecurringAppointmentScope("delete");
     if (!deleteScope) return;
   } else {
-    const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd.", {
+    const confirmed = await appConfirm("Deze afspraak wordt verplaatst naar Verwijderde afspraken. Je kunt ze later herstellen via Instellingen.", {
       title: "Afspraak verwijderen",
       confirmText: t("delete"),
       cancelText: t("cancel"),
@@ -9832,8 +9832,9 @@ async function deleteCurrentAppointment() {
 
     let query = supabaseClient
       .from("appointments")
-      .delete()
-      .eq("user_id", user.id);
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
+      .eq("user_id", user.id)
+      .is("deleted_at", null);
 
     if (recurring && deleteScope === "series") {
       query = query.eq("recurrence_group_id", getAppointmentRecurrenceGroupId(freshExistingApp));
@@ -9860,6 +9861,129 @@ async function deleteCurrentAppointment() {
   if (errorMessage) {
     await appAlert(errorMessage, { title: "Verwijderen mislukt", variant: "danger" });
   }
+}
+
+async function openDeletedAppointmentsDialog() {
+  const dialog = document.getElementById("deletedAppointmentsDialog");
+  if (!dialog) return;
+  const searchInput = document.getElementById("deletedAppointmentsSearch");
+  if (searchInput) searchInput.value = "";
+  dialog.showModal();
+  await renderDeletedAppointmentsDialog();
+}
+
+function buildDeletedAppointmentSearchText(appointment) {
+  const data = getData();
+  const customer = customerById(data, appointment.customerId);
+  const service = serviceById(data, appointment.serviceId);
+  return [
+    customer ? fullName(customer) : "Onbekende klant",
+    service ? service.name : "Onbekende dienst",
+    appointment.date,
+    appointment.time,
+    appointment.status,
+    appointment.remarks,
+    appointment.privateTitle,
+    appointment.privateDetails
+  ].join(" ").toLowerCase();
+}
+
+async function renderDeletedAppointmentsDialog() {
+  const list = document.getElementById("deletedAppointmentsList");
+  const count = document.getElementById("deletedAppointmentsCount");
+  if (!list) return;
+  list.innerHTML = '<div class="deleted-appointments-empty">Even geduld...</div>';
+
+  const deletedAppointments = await loadDeletedAppointmentsFromSupabase();
+  const query = String(document.getElementById("deletedAppointmentsSearch")?.value || "").trim().toLowerCase();
+  const filtered = query
+    ? deletedAppointments.filter(appointment => buildDeletedAppointmentSearchText(appointment).includes(query))
+    : deletedAppointments;
+
+  if (count) count.textContent = `${filtered.length} van ${deletedAppointments.length} verwijderde afspraak${deletedAppointments.length === 1 ? "" : "en"}`;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="deleted-appointments-empty">Geen verwijderde afspraken gevonden.</div>';
+    return;
+  }
+
+  const data = getData();
+  list.innerHTML = filtered.map(appointment => {
+    const customer = customerById(data, appointment.customerId);
+    const service = serviceById(data, appointment.serviceId);
+    const title = appointment.isPrivate
+      ? (appointment.privateTitle || "Privé")
+      : (customer ? fullName(customer) : "Onbekende klant");
+    const serviceName = appointment.isPrivate ? "Privé-afspraak" : (service ? service.name : "Onbekende dienst");
+    const remarks = appointment.isPrivate ? (appointment.privateDetails || appointment.remarks || "") : (appointment.remarks || "");
+    return `
+      <article class="deleted-appointment-card" data-appointment-id="${htmlEscape(String(appointment.id))}">
+        <div class="deleted-appointment-main">
+          <strong>${htmlEscape(title)}</strong>
+          <span>${htmlEscape(formatLongDate(appointment.date))} · ${htmlEscape(appointment.time || "--:--")} · ${htmlEscape(serviceName)}</span>
+          ${remarks ? `<p>${htmlEscape(remarks)}</p>` : '<p class="deleted-appointment-muted">Geen opmerkingen.</p>'}
+          <small>Verwijderd op ${htmlEscape(appointment.deletedAt ? new Date(appointment.deletedAt).toLocaleString("nl-BE") : "onbekend")}</small>
+        </div>
+        <button class="btn btn-secondary action-btn deleted-appointment-restore-btn" type="button" data-restore-appointment-id="${htmlEscape(String(appointment.id))}">Herstellen</button>
+      </article>`;
+  }).join("");
+
+  list.querySelectorAll("[data-restore-appointment-id]").forEach(button => {
+    button.addEventListener("click", async event => {
+      const restoreId = event.currentTarget.getAttribute("data-restore-appointment-id");
+      await restoreDeletedAppointment(restoreId);
+    });
+  });
+}
+
+async function restoreDeletedAppointment(id) {
+  if (!id) return;
+  const confirmed = await appConfirm("Deze afspraak wordt opnieuw zichtbaar in de agenda, omzet en statistieken.", {
+    title: "Afspraak herstellen",
+    confirmText: "Herstellen",
+    cancelText: t("cancel")
+  });
+  if (!confirmed) return;
+
+  // Sluit eerst het venster met verwijderde afspraken. Dialogs staan in de browser
+  // top-layer en kunnen de globale "Even geduld"-overlay anders afdekken.
+  closeDialog("deletedAppointmentsDialog");
+  await waitForBusyOverlayPaint();
+
+  const errorMessage = await runWithGlobalActionBusy(async () => {
+    setGlobalActionBusyVisible(true);
+    await waitForBusyOverlayPaint();
+    const restoreBusyStartedAt = Date.now();
+
+    const user = await getCurrentUser();
+    if (!user) {
+      await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
+      return "Log eerst in om een afspraak te herstellen.";
+    }
+
+    const { error } = await supabaseClient
+      .from("appointments")
+      .update({ deleted_at: null, deleted_by: null })
+      .eq("id", Number(id))
+      .eq("user_id", user.id);
+
+    if (error) {
+      await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
+      return "Afspraak herstellen mislukt: " + error.message;
+    }
+
+    await loadAllDataFromSupabase();
+    rerenderAll();
+    await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
+    return "";
+  });
+
+  if (errorMessage) {
+    await appAlert(errorMessage, { title: "Herstellen mislukt", variant: "danger" });
+    return;
+  }
+
+  await openDeletedAppointmentsDialog();
 }
 
 async function deleteCurrentService() {
@@ -11325,6 +11449,8 @@ function registerEvents() {
   document.getElementById("appointmentForm").addEventListener("submit", withActionLock(saveAppointmentFromForm));
   document.getElementById("appointmentOpenCustomerBtn")?.addEventListener("click", openAppointmentCustomerDetailFromDialog);
   document.getElementById("deleteAppointmentBtn").addEventListener("click", withActionLock(deleteCurrentAppointment));
+  document.getElementById("openDeletedAppointmentsBtn")?.addEventListener("click", openDeletedAppointmentsDialog);
+  document.getElementById("deletedAppointmentsSearch")?.addEventListener("input", () => renderDeletedAppointmentsDialog());
 
   document.getElementById("clientForm").addEventListener("submit", withActionLock(saveClientFromForm));
 
@@ -11742,6 +11868,7 @@ async function loadAppointmentsFromSupabase() {
     .from("appointments")
     .select("*")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .order("appointment_date", { ascending: true })
     .order("appointment_time", { ascending: true });
 
@@ -11750,9 +11877,13 @@ async function loadAppointmentsFromSupabase() {
     return [];
   }
 
-  return (data || []).map(a => {
-    const rawRemarks = String(a.appointment_remarks || a.remarks || "").trim();
-    return {
+  return (data || []).map(mapSupabaseAppointmentRow);
+}
+
+
+function mapSupabaseAppointmentRow(a) {
+  const rawRemarks = String(a.appointment_remarks || a.remarks || "").trim();
+  return {
     id: a.id,
     customerId: a.customer_id,
     serviceId: a.service_id,
@@ -11771,9 +11902,30 @@ async function loadAppointmentsFromSupabase() {
     privateEndTime: a.private_end_time ? String(a.private_end_time).slice(0, 5) : "",
     privateEndDate: getStoredPrivateEndDate({ ...a, appointment_remarks: rawRemarks }, a.appointment_date),
     recurrenceGroupId: a.recurrence_group_id || null,
-    recurrenceRule: a.recurrence_rule || "none"
+    recurrenceRule: a.recurrence_rule || "none",
+    deletedAt: a.deleted_at || null,
+    deletedBy: a.deleted_by || null
   };
-  });
+}
+
+async function loadDeletedAppointmentsFromSupabase() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabaseClient
+    .from("appointments")
+    .select("*")
+    .eq("user_id", user.id)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) {
+    console.error("Fout bij laden verwijderde afspraken:", error.message);
+    await appAlert("Verwijderde afspraken laden mislukt: " + error.message, { title: "Laden mislukt", variant: "danger" });
+    return [];
+  }
+
+  return (data || []).map(mapSupabaseAppointmentRow);
 }
 
 
