@@ -26,6 +26,39 @@ const DEFAULT_CURRENCY = "EUR";
 const LEGAL_TERMS_VERSION = "1.0";
 const LEGAL_PRIVACY_VERSION = "1.0";
 
+// App-variant: wijzig alleen deze constante om dezelfde codebase voor beide versies te gebruiken.
+// true  = normale versie, betaalwijze "Andere" is zichtbaar
+// false = tweede versie, alles met betaalwijze "Andere" is volledig onzichtbaar
+const SHOW_ANDERE = true;
+
+const HIDDEN_PAYMENT_METHOD_NAMES = ["Andere"];
+
+function shouldHidePaymentMethodVariantData() {
+  return !SHOW_ANDERE;
+}
+
+function normalizeHiddenPaymentMethodName(value) {
+  return String(value || "").trim().toLocaleLowerCase("nl-BE");
+}
+
+function isHiddenPaymentMethodName(value) {
+  if (!shouldHidePaymentMethodVariantData()) return false;
+  const normalized = normalizeHiddenPaymentMethodName(value);
+  return HIDDEN_PAYMENT_METHOD_NAMES.some(name => normalizeHiddenPaymentMethodName(name) === normalized);
+}
+
+function appointmentHasHiddenPaymentMethod(appointment) {
+  if (!shouldHidePaymentMethodVariantData() || !appointment) return false;
+  const names = [
+    appointment.paymentMethodName,
+    appointment.paymentMethodLabel,
+    appointment.payment_method_label,
+    appointment.paymentMethod,
+    appointment.payment_method
+  ];
+  return names.some(isHiddenPaymentMethodName);
+}
+
 const i18n = {
   "nl-BE": {
     agenda: "Agenda", revenue: "Omzet", clients: "Klanten", services: "Diensten", paymentMethods: "Betaalwijze", statistics: "Statistieken", settings: "Instellingen", support: "Support", account: "Account",
@@ -745,26 +778,31 @@ function normalizeData(data) {
   const safe = data && typeof data === "object" ? data : {};
   const paymentMethods = normalizePaymentMethods(safe.paymentMethods);
 
-  const appointments = Array.isArray(safe.appointments) ? safe.appointments.map(appointment => {
-    const paymentMethodName = appointment?.paymentMethodName
-      || appointment?.paymentMethodLabel
-      || appointment?.paymentMethod
-      || null;
+  const appointments = Array.isArray(safe.appointments) ? safe.appointments
+    .map(appointment => {
+      const paymentMethodName = appointment?.paymentMethodName
+        || appointment?.paymentMethodLabel
+        || appointment?.payment_method_label
+        || appointment?.paymentMethod
+        || appointment?.payment_method
+        || null;
 
-    return {
-      ...appointment,
-      paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null,
-      currency: normalizeCurrency(appointment?.currency || safe.settings?.currency || DEFAULT_CURRENCY),
-      remarks: String(appointment?.remarks || appointment?.note || appointment?.appointment_remarks || "").trim(),
-      isPrivate: Boolean(appointment?.isPrivate ?? appointment?.is_private),
-      privateTitle: String(appointment?.privateTitle || appointment?.private_title || "").trim(),
-      privateDetails: String(appointment?.privateDetails || appointment?.private_details || "").trim(),
-      privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || "",
-      privateEndDate: getStoredPrivateEndDate(appointment, appointment?.date || appointment?.appointment_date || todayStr),
-      recurrenceGroupId: appointment?.recurrenceGroupId || appointment?.recurrence_group_id || null,
-      recurrenceRule: appointment?.recurrenceRule || appointment?.recurrence_rule || "none"
-    };
-  }) : [];
+      return {
+        ...appointment,
+        paymentMethodName: paymentMethodName ? String(paymentMethodName).trim() : null,
+        currency: normalizeCurrency(appointment?.currency || safe.settings?.currency || DEFAULT_CURRENCY),
+        remarks: String(appointment?.remarks || appointment?.note || appointment?.appointment_remarks || "").trim(),
+        isPrivate: Boolean(appointment?.isPrivate ?? appointment?.is_private),
+        privateTitle: String(appointment?.privateTitle || appointment?.private_title || "").trim(),
+        privateDetails: String(appointment?.privateDetails || appointment?.private_details || "").trim(),
+        privateEndTime: appointment?.privateEndTime || appointment?.private_end_time || "",
+        privateEndDate: getStoredPrivateEndDate(appointment, appointment?.date || appointment?.appointment_date || todayStr),
+        recurrenceGroupId: appointment?.recurrenceGroupId || appointment?.recurrence_group_id || null,
+        recurrenceRule: appointment?.recurrenceRule || appointment?.recurrence_rule || "none"
+      };
+    })
+    .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment))
+    : [];
 
   const todos = Array.isArray(safe.todos) ? safe.todos.map(todo => ({
     id: todo?.id,
@@ -837,7 +875,7 @@ function normalizePaymentMethods(items) {
       const sortOrder = Number(item?.sortOrder ?? item?.sort_order ?? index + 1);
       const name = String(item?.name || item?.label || "").trim();
       const legacyPaymentName = "pay" + "coniq";
-      if (!name || name.toLowerCase() === legacyPaymentName) return null;
+      if (!name || name.toLowerCase() === legacyPaymentName || isHiddenPaymentMethodName(name)) return null;
       return {
         id: Number.isFinite(id) ? id : index + 1,
         name,
@@ -9924,7 +9962,10 @@ async function renderDeletedAppointmentsDialog() {
           ${remarks ? `<p>${htmlEscape(remarks)}</p>` : '<p class="deleted-appointment-muted">Geen opmerkingen.</p>'}
           <small>Verwijderd op ${htmlEscape(appointment.deletedAt ? new Date(appointment.deletedAt).toLocaleString("nl-BE") : "onbekend")}</small>
         </div>
-        <button class="btn btn-secondary action-btn deleted-appointment-restore-btn" type="button" data-restore-appointment-id="${htmlEscape(String(appointment.id))}">Herstellen</button>
+        <div class="deleted-appointment-actions">
+          <button class="btn btn-secondary action-btn deleted-appointment-restore-btn" type="button" data-restore-appointment-id="${htmlEscape(String(appointment.id))}">Herstellen</button>
+          <button class="btn btn-danger action-btn deleted-appointment-delete-btn" type="button" data-delete-appointment-id="${htmlEscape(String(appointment.id))}">Definitief verwijderen</button>
+        </div>
       </article>`;
   }).join("");
 
@@ -9932,6 +9973,13 @@ async function renderDeletedAppointmentsDialog() {
     button.addEventListener("click", async event => {
       const restoreId = event.currentTarget.getAttribute("data-restore-appointment-id");
       await restoreDeletedAppointment(restoreId);
+    });
+  });
+
+  list.querySelectorAll("[data-delete-appointment-id]").forEach(button => {
+    button.addEventListener("click", async event => {
+      const deleteId = event.currentTarget.getAttribute("data-delete-appointment-id");
+      await permanentlyDeleteAppointment(deleteId);
     });
   });
 }
@@ -9945,45 +9993,54 @@ async function restoreDeletedAppointment(id) {
   });
   if (!confirmed) return;
 
-  // Sluit eerst het venster met verwijderde afspraken. Dialogs staan in de browser
-  // top-layer en kunnen de globale "Even geduld"-overlay anders afdekken.
-  closeDialog("deletedAppointmentsDialog");
-  await waitForBusyOverlayPaint();
+  const user = await getCurrentUser();
+  if (!user) return;
 
-  const errorMessage = await runWithGlobalActionBusy(async () => {
-    setGlobalActionBusyVisible(true);
-    await waitForBusyOverlayPaint();
-    const restoreBusyStartedAt = Date.now();
+  const { error } = await supabaseClient
+    .from("appointments")
+    .update({ deleted_at: null, deleted_by: null })
+    .eq("id", Number(id))
+    .eq("user_id", user.id);
 
-    const user = await getCurrentUser();
-    if (!user) {
-      await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
-      return "Log eerst in om een afspraak te herstellen.";
-    }
-
-    const { error } = await supabaseClient
-      .from("appointments")
-      .update({ deleted_at: null, deleted_by: null })
-      .eq("id", Number(id))
-      .eq("user_id", user.id);
-
-    if (error) {
-      await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
-      return "Afspraak herstellen mislukt: " + error.message;
-    }
-
-    await loadAllDataFromSupabase();
-    rerenderAll();
-    await keepBusyOverlayVisibleSince(restoreBusyStartedAt, 750);
-    return "";
-  });
-
-  if (errorMessage) {
-    await appAlert(errorMessage, { title: "Herstellen mislukt", variant: "danger" });
+  if (error) {
+    await appAlert("Afspraak herstellen mislukt: " + error.message, { title: "Herstellen mislukt", variant: "danger" });
     return;
   }
 
-  await openDeletedAppointmentsDialog();
+  await loadAllDataFromSupabase();
+  rerenderAll();
+  await renderDeletedAppointmentsDialog();
+}
+
+async function permanentlyDeleteAppointment(id) {
+  if (!id) return;
+
+  const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.", {
+    title: "Definitief verwijderen",
+    confirmText: "Definitief verwijderen",
+    cancelText: t("cancel"),
+    variant: "danger"
+  });
+  if (!confirmed) return;
+
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const { error } = await supabaseClient
+    .from("appointments")
+    .delete()
+    .eq("id", Number(id))
+    .eq("user_id", user.id)
+    .not("deleted_at", "is", null);
+
+  if (error) {
+    await appAlert("Afspraak definitief verwijderen mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+    return;
+  }
+
+  await loadAllDataFromSupabase();
+  rerenderAll();
+  await renderDeletedAppointmentsDialog();
 }
 
 async function deleteCurrentService() {
@@ -11877,7 +11934,9 @@ async function loadAppointmentsFromSupabase() {
     return [];
   }
 
-  return (data || []).map(mapSupabaseAppointmentRow);
+  return (data || [])
+    .map(mapSupabaseAppointmentRow)
+    .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment));
 }
 
 
@@ -11925,7 +11984,9 @@ async function loadDeletedAppointmentsFromSupabase() {
     return [];
   }
 
-  return (data || []).map(mapSupabaseAppointmentRow);
+  return (data || [])
+    .map(mapSupabaseAppointmentRow)
+    .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment));
 }
 
 
@@ -13664,6 +13725,7 @@ async function loadAdminUsers(force = false) {
       const result = await callAdminFunction("list");
       adminState.users = Array.isArray(result.users) ? result.users : [];
       await enrichAdminUsersWithSubscriptionFlags();
+      await enrichAdminUsersWithVisibleAppointmentCounts();
       adminState.isLoaded = true;
       applyAdminFilters();
     } catch (error) {
@@ -13742,6 +13804,25 @@ async function enrichAdminUsersWithSubscriptionFlags() {
   }
 }
 
+async function enrichAdminUsersWithVisibleAppointmentCounts() {
+  if (!adminState.users.length || !supabaseClient?.rpc) return;
+
+  try {
+    const { data, error } = await supabaseClient.rpc("admin_get_visible_appointment_counts");
+    if (error || !Array.isArray(data)) return;
+
+    const countsById = new Map(data.map(row => [String(row.user_id), Number(row.appointments_count || 0)]));
+    adminState.users = adminState.users.map(user => ({
+      ...user,
+      visible_appointments_count: countsById.has(String(user.id))
+        ? countsById.get(String(user.id))
+        : 0
+    }));
+  } catch (error) {
+    // Zonder de optionele admin-RPC behouden we de telling uit de admin-users functie.
+  }
+}
+
 async function runAdminSubscriptionUpdate(userId, mode, payload) {
   let lastError = null;
 
@@ -13813,7 +13894,7 @@ function renderAdminUsers() {
             <div class="admin-user-field"><span>Locatie</span><strong>${escapeAdminHtml(location)}</strong></div>
             <div class="admin-user-field"><span>Tijdzone</span><strong>${escapeAdminHtml(user.timezone || "-")}</strong></div>
             <div class="admin-user-field"><span>Abonnement</span><strong>${escapeAdminHtml(plan)} · ${escapeAdminHtml(subStatus)}</strong></div>
-            <div class="admin-user-field"><span>Gebruik</span><strong>${Number(user.appointments_count || 0)} afspraken</strong></div>
+            <div class="admin-user-field"><span>Gebruik</span><strong>${Number(user.visible_appointments_count ?? user.appointments_count ?? 0)} afspraken</strong></div>
             <div class="admin-user-field"><span>Data</span><strong>${Number(user.customers_count || 0)} klanten · ${Number(user.errors_count || 0)} errors</strong></div>
           </div>
         </div>

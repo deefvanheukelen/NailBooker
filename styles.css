@@ -12510,8 +12510,17 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   margin: 4px 0 0;
 }
 
-.deleted-appointment-restore-btn {
+.deleted-appointment-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   flex: 0 0 auto;
+}
+
+.deleted-appointment-restore-btn,
+.deleted-appointment-delete-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .deleted-appointments-empty {
@@ -12525,7 +12534,14 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
     flex-direction: column;
   }
 
-  .deleted-appointment-restore-btn {
+  .deleted-appointment-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .deleted-appointment-restore-btn,
+  .deleted-appointment-delete-btn {
     width: 100%;
   }
 }
