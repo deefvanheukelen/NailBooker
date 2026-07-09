@@ -1581,8 +1581,23 @@ function showAppDialog({
     card.dataset.variant = variant;
     const dialogPresentationClass = String(presentationClass || "").trim();
     if (dialogPresentationClass) dialog.classList.add(dialogPresentationClass);
+    const suppressInitialConfirmFocus = dialogPresentationClass.split(/\s+/).includes("agenda-unpaid-message-dialog");
+    const previousConfirmTabIndex = confirmBtn.getAttribute("tabindex");
+    const previousDialogTabIndex = dialog.getAttribute("tabindex");
+    if (suppressInitialConfirmFocus) {
+      confirmBtn.setAttribute("tabindex", "-1");
+      dialog.setAttribute("tabindex", "-1");
+    }
 
     let settled = false;
+
+    const restoreInitialFocusState = () => {
+      if (!suppressInitialConfirmFocus) return;
+      if (previousConfirmTabIndex === null) confirmBtn.removeAttribute("tabindex");
+      else confirmBtn.setAttribute("tabindex", previousConfirmTabIndex);
+      if (previousDialogTabIndex === null) dialog.removeAttribute("tabindex");
+      else dialog.setAttribute("tabindex", previousDialogTabIndex);
+    };
 
     const cleanup = (result) => {
       if (settled) return;
@@ -1591,6 +1606,7 @@ function showAppDialog({
       dialog.removeEventListener("click", onBackdropClick);
       confirmBtn.removeEventListener("click", onConfirm);
       cancelBtn.removeEventListener("click", onCancelClick);
+      restoreInitialFocusState();
       closeStyledDialog(dialog);
       if (dialogPresentationClass) dialog.classList.remove(dialogPresentationClass);
       if (result === true && showCancel) {
@@ -1623,7 +1639,12 @@ function showAppDialog({
     confirmBtn.addEventListener("click", onConfirm);
     cancelBtn.addEventListener("click", onCancelClick);
     openStyledDialog(dialog);
-    confirmBtn.focus();
+    if (suppressInitialConfirmFocus) {
+      dialog.focus({ preventScroll: true });
+      window.setTimeout(restoreInitialFocusState, 80);
+    } else {
+      confirmBtn.focus();
+    }
   });
 }
 
