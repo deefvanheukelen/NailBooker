@@ -12529,6 +12529,24 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   color: var(--muted, #6b7280);
 }
 
+
+/* Verwijderde afspraken: geen overbodige witte onderband in fullscreen-weergave */
+#deletedAppointmentsDialog.modal > .deleted-appointments-modal-card {
+  padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+}
+
+#deletedAppointmentsDialog.modal .deleted-appointments-list {
+  max-height: calc(100dvh - 230px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+.settings-hero-compact {
+  align-items: flex-start;
+}
+
+.settings-hero-compact p {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   .deleted-appointment-card {
     flex-direction: column;
@@ -12544,4 +12562,328 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   .deleted-appointment-delete-btn {
     width: 100%;
   }
+}
+
+/* Agenda: compacte app-style melding voor openstaande afspraken */
+#appMessageDialog.agenda-unpaid-message-dialog {
+  width: min(420px, calc(100vw - 32px)) !important;
+  max-width: min(420px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px) !important;
+  margin: auto !important;
+  border-radius: var(--radius-lg) !important;
+  overflow: visible !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .app-message-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 24px 20px 20px !important;
+  overflow-y: auto !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-text {
+  text-align: left;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions {
+  justify-content: flex-end;
+}
+
+/* Agenda: openstaande afspraken als compacte app-style popup */
+#appMessageDialog.agenda-unpaid-message-dialog,
+dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
+  width: min(80vw, 298px) !important;
+  max-width: min(80vw, 298px) !important;
+  height: auto !important;
+  max-height: calc(100dvh - 48px) !important;
+  min-height: 0 !important;
+  margin: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog::backdrop {
+  background: rgba(44, 27, 36, 0.34) !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .app-message-card,
+dialog.modal#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-message-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 48px) !important;
+  padding: 0 30px 18px !important;
+  border-radius: 0 !important;
+  box-shadow: 0 22px 46px rgba(84, 48, 65, 0.24) !important;
+  background: #fff !important;
+  overflow-y: auto !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .app-message-card::before {
+  content: "";
+  display: block;
+  height: 52px;
+  margin: 0 -30px 20px;
+  background: linear-gradient(180deg, rgba(246, 230, 238, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-bottom: 1px solid rgba(236, 219, 228, 0.9);
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-badge {
+  position: absolute;
+  top: 12px;
+  left: 22px;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  border-radius: 0;
+  background: url("img/logoNailBooker.png") center / contain no-repeat !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-head {
+  position: absolute;
+  top: 0;
+  left: 66px;
+  right: 18px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-head h3 {
+  margin: 0;
+  text-align: left;
+  color: var(--primary-dark);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-text {
+  margin: 0;
+  color: var(--text);
+  text-align: left;
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions,
+#appMessageDialog.agenda-unpaid-message-dialog .modal-actions.end-only {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-top: 30px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn,
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions .btn,
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions .btn.app-action-nav-btn {
+  flex: 0 0 auto !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn:hover,
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn:active {
+  background: transparent !important;
+  color: var(--primary-dark) !important;
+  transform: none !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-action-nav-ico {
+  width: 18px;
+  height: 18px;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-action-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-action-nav-label {
+  font-size: 10px;
+  line-height: 1;
+}
+
+
+/* Agenda: openstaande afspraken melding als compacte popup, zonder gedeelde app-header */
+#appMessageDialog.agenda-unpaid-message-dialog,
+dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
+  width: min(298px, calc(100vw - 56px)) !important;
+  max-width: min(298px, calc(100vw - 56px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 56px) !important;
+  margin: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > #appTopbar,
+#appMessageDialog.agenda-unpaid-message-dialog > .topbar,
+#appMessageDialog.agenda-unpaid-message-dialog > .modal-app-topbar {
+  display: none !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-message-card {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 56px) !important;
+  padding: 0 30px 18px !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  box-shadow: 0 22px 46px rgba(84, 48, 65, 0.24) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-message-card::before {
+  content: "";
+  display: block;
+  height: 52px;
+  margin: 0 -30px 20px;
+  background: linear-gradient(180deg, rgba(246, 230, 238, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-bottom: 1px solid rgba(236, 219, 228, 0.9);
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-badge {
+  position: absolute !important;
+  top: 10px !important;
+  left: 22px !important;
+  display: block !important;
+  width: 36px !important;
+  height: 36px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: url("img/logoNailBooker.png") center / contain no-repeat !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-head {
+  position: absolute !important;
+  top: 0 !important;
+  left: 66px !important;
+  right: 18px !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-head h3 {
+  margin: 0 !important;
+  text-align: left !important;
+  color: var(--primary-dark) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-text {
+  margin: 0 !important;
+  text-align: left !important;
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+  white-space: pre-line !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions,
+#appMessageDialog.agenda-unpaid-message-dialog .modal-actions.end-only {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: auto !important;
+  margin: 30px 0 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn {
+  flex: 0 0 auto !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Agenda: finale positionering/typografie openstaande afspraken popup */
+#appMessageDialog.agenda-unpaid-message-dialog,
+dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
+  position: fixed !important;
+  inset: 50% auto auto 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(298px, calc(100vw - 56px)) !important;
+  max-width: min(298px, calc(100vw - 56px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 56px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-message-card {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 56px) !important;
+  padding-bottom: 20px !important;
+  overflow-y: auto !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-text {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  white-space: pre-line !important;
+}
+
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions,
+#appMessageDialog.agenda-unpaid-message-dialog .modal-actions.end-only {
+  position: static !important;
+  width: auto !important;
+  margin: 28px 0 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }

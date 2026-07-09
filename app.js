@@ -269,6 +269,7 @@ function getSharedAppHeader() {
 }
 
 function moveSharedHeaderToDialog(dialog) {
+  if (dialog?.classList?.contains("agenda-unpaid-message-dialog")) return;
   const header = getSharedAppHeader();
   const screenTitle = document.getElementById("screenTitle");
   if (!dialog || !header) return;
@@ -937,6 +938,11 @@ function formatShortDate(dateStr) {
   return new Intl.DateTimeFormat(getCurrentLanguage(), { day: "numeric", month: "long" }).format(d);
 }
 
+function formatCompactDayMonth(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return new Intl.DateTimeFormat(getCurrentLanguage(), { day: "2-digit", month: "short" }).format(d).replace(/\.$/, "");
+}
+
 function nextId(items) {
   return items.length ? Math.max(...items.map(i => Number(i.id))) + 1 : 1;
 }
@@ -1539,7 +1545,8 @@ function showAppDialog({
   confirmText = t("ok") || "OK",
   cancelText = t("cancel"),
   showCancel = false,
-  variant = "info"
+  variant = "info",
+  presentationClass = ""
 } = {}) {
   return new Promise(resolve => {
     const dialog = document.getElementById("appMessageDialog");
@@ -1572,6 +1579,8 @@ function showAppDialog({
     cancelBtn.dataset.actionLabel = cancelText;
     cancelBtn.classList.toggle("hidden", !showCancel);
     card.dataset.variant = variant;
+    const dialogPresentationClass = String(presentationClass || "").trim();
+    if (dialogPresentationClass) dialog.classList.add(dialogPresentationClass);
 
     let settled = false;
 
@@ -1583,6 +1592,7 @@ function showAppDialog({
       confirmBtn.removeEventListener("click", onConfirm);
       cancelBtn.removeEventListener("click", onCancelClick);
       closeStyledDialog(dialog);
+      if (dialogPresentationClass) dialog.classList.remove(dialogPresentationClass);
       if (result === true && showCancel) {
         resumeGlobalActionBusyAfterDialog(suspendedBusyDepth);
       }
@@ -1623,7 +1633,8 @@ async function appAlert(message, options = {}) {
     message,
     confirmText: options.confirmText || (t("ok") || "OK"),
     showCancel: false,
-    variant: options.variant || "info"
+    variant: options.variant || "info",
+    presentationClass: options.presentationClass || ""
   });
 }
 
@@ -1636,6 +1647,55 @@ async function appConfirm(message, options = {}) {
     showCancel: true,
     variant: options.variant || "warning"
   });
+}
+
+function getPastUnpaidAppointments(data = getData()) {
+  const appointments = Array.isArray(data?.appointments) ? data.appointments : [];
+  return appointments
+    .filter(appointment => {
+      if (!appointment || isPrivateAppointment(appointment)) return false;
+      if (appointment.deletedAt || appointment.deleted_at) return false;
+      if (appointment.paid) return false;
+      if (String(appointment.status || "").toLowerCase() === "no-show") return false;
+      const date = String(appointment.date || appointment.appointment_date || "").slice(0, 10);
+      return isDateInputValue(date) && date < todayStr;
+    })
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.time || "").localeCompare(String(b.time || "")));
+}
+
+let pastUnpaidAgendaAlertOpen = false;
+let pastUnpaidAgendaAlertShown = false;
+
+function showPastUnpaidAgendaAlertIfNeeded() {
+  if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") return;
+
+  const data = getData();
+  const unpaidAppointments = getPastUnpaidAppointments(data);
+  if (!unpaidAppointments.length) return;
+
+  const count = unpaidAppointments.length;
+  const first = unpaidAppointments[0];
+  const customer = first ? customerById(data, first.customerId) : null;
+  const customerName = customer ? fullName(customer) : "Onbekende klant";
+  const firstLine = first
+    ? `Oudste openstaande afspraak:\n${formatCompactDayMonth(first.date)}${first.time ? ` om ${first.time}` : ""} (${customerName})`
+    : "";
+  const message = `Er zijn ${count} niet afgeronde afspraken in het verleden.\n\n${firstLine}`;
+
+  pastUnpaidAgendaAlertOpen = true;
+  pastUnpaidAgendaAlertShown = true;
+  appAlert(message, {
+    title: "Melding",
+    variant: "warning",
+    confirmText: "OK",
+    presentationClass: "agenda-unpaid-message-dialog"
+  }).finally(() => {
+    pastUnpaidAgendaAlertOpen = false;
+  });
+}
+
+function schedulePastUnpaidAgendaAlert() {
+  window.setTimeout(showPastUnpaidAgendaAlertIfNeeded, 180);
 }
 
 
@@ -3362,6 +3422,7 @@ function switchScreen(screenId, title, options = {}) {
 
   if (screenId === "agendaScreen") {
     scheduleWelcomeGuideCheck();
+    schedulePastUnpaidAgendaAlert();
   }
 
   syncAppBrowserHistory(screenId, title, {
@@ -4661,7 +4722,7 @@ function revenueFilteredAppointments() {
   const data = getData();
   const type = document.getElementById("revenuePeriodType").value;
   const anchor = document.getElementById("revenueDate").value || todayStr;
-  let filtered = data.appointments.filter(a => String(a.status || "").toLowerCase() !== "no-show");
+  let filtered = data.appointments.filter(a => !isPrivateAppointment(a) && String(a.status || "").toLowerCase() !== "no-show");
 
   if (type === "day") {
     filtered = filtered.filter(a => a.date === anchor);
@@ -4691,7 +4752,9 @@ function clampRevenueDay(year, monthIndex, day) {
 
 function getRevenueDataYears() {
   const data = getData();
-  const sourceItems = getRevenuePickerTarget() === "costs" ? getCosts(data) : data.appointments;
+  const sourceItems = getRevenuePickerTarget() === "costs"
+    ? getCosts(data)
+    : data.appointments.filter(appointment => !isPrivateAppointment(appointment));
   const years = sourceItems
     .map(item => Number(String(item.date || "").slice(0, 4)))
     .filter(Boolean);
