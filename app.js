@@ -1581,23 +1581,8 @@ function showAppDialog({
     card.dataset.variant = variant;
     const dialogPresentationClass = String(presentationClass || "").trim();
     if (dialogPresentationClass) dialog.classList.add(dialogPresentationClass);
-    const suppressInitialConfirmFocus = dialogPresentationClass.split(/\s+/).includes("agenda-unpaid-message-dialog");
-    const previousConfirmTabIndex = confirmBtn.getAttribute("tabindex");
-    const previousDialogTabIndex = dialog.getAttribute("tabindex");
-    if (suppressInitialConfirmFocus) {
-      confirmBtn.setAttribute("tabindex", "-1");
-      dialog.setAttribute("tabindex", "-1");
-    }
 
     let settled = false;
-
-    const restoreInitialFocusState = () => {
-      if (!suppressInitialConfirmFocus) return;
-      if (previousConfirmTabIndex === null) confirmBtn.removeAttribute("tabindex");
-      else confirmBtn.setAttribute("tabindex", previousConfirmTabIndex);
-      if (previousDialogTabIndex === null) dialog.removeAttribute("tabindex");
-      else dialog.setAttribute("tabindex", previousDialogTabIndex);
-    };
 
     const cleanup = (result) => {
       if (settled) return;
@@ -1606,7 +1591,6 @@ function showAppDialog({
       dialog.removeEventListener("click", onBackdropClick);
       confirmBtn.removeEventListener("click", onConfirm);
       cancelBtn.removeEventListener("click", onCancelClick);
-      restoreInitialFocusState();
       closeStyledDialog(dialog);
       if (dialogPresentationClass) dialog.classList.remove(dialogPresentationClass);
       if (result === true && showCancel) {
@@ -1639,12 +1623,7 @@ function showAppDialog({
     confirmBtn.addEventListener("click", onConfirm);
     cancelBtn.addEventListener("click", onCancelClick);
     openStyledDialog(dialog);
-    if (suppressInitialConfirmFocus) {
-      dialog.focus({ preventScroll: true });
-      window.setTimeout(restoreInitialFocusState, 80);
-    } else {
-      confirmBtn.focus();
-    }
+    confirmBtn.focus();
   });
 }
 
@@ -4251,8 +4230,53 @@ function renderAgendaList() {
       ${privateApp ? '<span class="private-chip">Privé</span>' : `<button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>`}
     `;
 
+    let appointmentLongPressTimer = null;
+    let appointmentLongPressTriggered = false;
+    let appointmentLongPressStartX = 0;
+    let appointmentLongPressStartY = 0;
+
+    const cancelAppointmentLongPress = () => {
+      if (appointmentLongPressTimer !== null) {
+        window.clearTimeout(appointmentLongPressTimer);
+        appointmentLongPressTimer = null;
+      }
+    };
+
+    row.addEventListener("pointerdown", (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      if (event.target.closest(".price-chip")) return;
+
+      appointmentLongPressTriggered = false;
+      appointmentLongPressStartX = event.clientX;
+      appointmentLongPressStartY = event.clientY;
+      cancelAppointmentLongPress();
+
+      appointmentLongPressTimer = window.setTimeout(() => {
+        appointmentLongPressTimer = null;
+        appointmentLongPressTriggered = true;
+        closeAppointmentActionPopover();
+        openEditAppointmentDialog(app.sourceAppointmentId || app.id);
+      }, 550);
+    });
+
+    row.addEventListener("pointermove", (event) => {
+      const movedX = Math.abs(event.clientX - appointmentLongPressStartX);
+      const movedY = Math.abs(event.clientY - appointmentLongPressStartY);
+      if (movedX > 10 || movedY > 10) cancelAppointmentLongPress();
+    });
+
+    row.addEventListener("pointerup", cancelAppointmentLongPress);
+    row.addEventListener("pointercancel", cancelAppointmentLongPress);
+    row.addEventListener("pointerleave", cancelAppointmentLongPress);
+
     row.addEventListener("click", (e) => {
       if (e.target.closest(".price-chip")) return;
+      if (appointmentLongPressTriggered) {
+        appointmentLongPressTriggered = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (privateApp) {
         openEditAppointmentDialog(app.sourceAppointmentId || app.id);
         return;
