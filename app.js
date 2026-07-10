@@ -3514,6 +3514,15 @@ function createCalendarDayCell(dateStr, dayNumber, { isOtherMonth = false, inter
       if (dayTapMoved || panelIsCalendarSwiping()) return;
       selectCalendarDate(event);
     });
+
+    // Een pointerup wordt normaal gevolgd door een synthetische click. Wanneer een
+    // uitgegrijsde dag de kalender naar een andere maand laat springen, zou die
+    // tweede click anders op hetzelfde vakje in de nieuw gerenderde maand belanden.
+    // Alleen toetsenbord-clicks (detail === 0) worden hier nog apart verwerkt.
+    cell.addEventListener("click", event => {
+      if (event.detail !== 0 || dayTapMoved || panelIsCalendarSwiping()) return;
+      selectCalendarDate(event);
+    });
   } else {
     cell.addEventListener("touchstart", event => {
       if (event.touches.length !== 1) return;
@@ -3527,12 +3536,12 @@ function createCalendarDayCell(dateStr, dayNumber, { isOtherMonth = false, inter
       if (dayTapMoved || panelIsCalendarSwiping()) return;
       selectCalendarDate(event);
     }, { passive: false });
-  }
 
-  cell.addEventListener("click", event => {
-    if (dayTapMoved || panelIsCalendarSwiping()) return;
-    selectCalendarDate(event);
-  });
+    cell.addEventListener("click", event => {
+      if (dayTapMoved || panelIsCalendarSwiping()) return;
+      selectCalendarDate(event);
+    });
+  }
 
   return cell;
 }
@@ -4256,7 +4265,7 @@ function renderAgendaList() {
         appointmentLongPressTriggered = true;
         closeAppointmentActionPopover();
         openEditAppointmentDialog(app.sourceAppointmentId || app.id);
-      }, 550);
+      }, 450);
     });
 
     row.addEventListener("pointermove", (event) => {
