@@ -1,6 +1,6 @@
 {
-  "name": "NailBooker",
-  "short_name": "NailBooker",
+  "name": "NB",
+  "short_name": "NB",
   "description": "Eenvoudig beheer van klanten, afspraken en omzet",
   "start_url": "./index.html",
   "scope": "./",
@@ -9,17 +9,17 @@
   "theme_color": "#d98ea7",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "icons/icon-192-v2.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icons/icon-512-v2.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "icons/maskable-512.png",
+      "src": "icons/maskable-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
