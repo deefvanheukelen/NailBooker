@@ -1841,13 +1841,25 @@ async function getCurrentProfile() {
     if (!user) return null;
 
     const baseSelect = "first_name, last_name, salon_name, vat_number, email, country, region, timezone, language, currency, terms_accepted, terms_accepted_at, terms_version, privacy_version, privacy_accepted_at, is_blocked, blocked_at, blocked_reason, is_admin";
-    const subscriptionSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at, is_lifetime`;
+    const subscriptionBaseSelect = `${baseSelect}, subscription_plan, subscription_status, trial_started_at, trial_ends_at, subscription_current_period_end, subscription_price_monthly, subscription_currency, subscription_updated_at, is_lifetime, access_expires_at, data_delete_at`;
+    const subscriptionSelect = `${subscriptionBaseSelect}, payment_provider, payment_customer_id, payment_subscription_id`;
 
     let result = await supabaseClient
         .from("profiles")
         .select(subscriptionSelect)
         .eq("id", user.id)
         .maybeSingle();
+
+    // Compatibel houden tijdens de migratie: als de nieuwe provider-onafhankelijke
+    // betaalvelden nog niet bestaan, halen we de bestaande abonnementsvelden wel op.
+    if (result.error) {
+      console.warn("Betaalprovider-velden nog niet beschikbaar. Voer de Mollie/provider-SQL uit:", result.error.message);
+      result = await supabaseClient
+        .from("profiles")
+        .select(subscriptionBaseSelect)
+        .eq("id", user.id)
+        .maybeSingle();
+    }
 
     if (result.error) {
       console.warn("Profiel opgehaald zonder abonnementvelden. Voer de abonnement-SQL uit om proefdagen te tonen:", result.error.message);
@@ -1877,6 +1889,167 @@ function isLifetimeProSubscription(profile = null) {
   const plan = String(profile?.subscription_plan || "free").toLowerCase();
   const status = String(profile?.subscription_status || "trial").toLowerCase();
   return plan === "pro" && (Boolean(profile?.is_lifetime) || status === "lifetime");
+}
+
+function getPaymentProviderLabel(profile = null) {
+  const provider = String(profile?.payment_provider || "").trim().toLowerCase();
+  if (provider === "mollie") return "Mollie";
+  if (provider === "stripe") return "Stripe";
+  if (provider === "manual" || provider === "admin") return "Handmatig beheerd";
+  return "Mollie (voorzien)";
+}
+
+function parseSubscriptionDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function addMonthsSafe(date, months) {
+  const copy = new Date(date);
+  const originalDay = copy.getDate();
+  copy.setDate(1);
+  copy.setMonth(copy.getMonth() + months);
+  const lastDay = new Date(copy.getFullYear(), copy.getMonth() + 1, 0).getDate();
+  copy.setDate(Math.min(originalDay, lastDay));
+  return copy;
+}
+
+function getSubscriptionAccessState(profile = null, user = null) {
+  if (!user) return { mode: "signed_out", canWrite: false, accessEndsAt: null, dataDeleteAt: null };
+
+  if (isLifetimeProSubscription(profile)) {
+    return { mode: "active", canWrite: true, accessEndsAt: null, dataDeleteAt: null };
+  }
+
+  let accessEndsAt = parseSubscriptionDate(profile?.access_expires_at);
+
+  if (!accessEndsAt && isProSubscription(profile)) {
+    const periodEnd = parseSubscriptionDate(profile?.subscription_current_period_end);
+    if (!periodEnd) {
+      return { mode: "active", canWrite: true, accessEndsAt: null, dataDeleteAt: null };
+    }
+    accessEndsAt = periodEnd;
+  }
+
+  if (!accessEndsAt) {
+    const explicitTrialEnd = parseSubscriptionDate(profile?.trial_ends_at);
+    if (explicitTrialEnd) {
+      accessEndsAt = explicitTrialEnd;
+    } else {
+      const start = getTrialStartDate(profile, user);
+      if (start) {
+        accessEndsAt = new Date(start);
+        accessEndsAt.setDate(accessEndsAt.getDate() + 30);
+      }
+    }
+  }
+
+  if (!accessEndsAt) {
+    return { mode: "active", canWrite: true, accessEndsAt: null, dataDeleteAt: null };
+  }
+
+  const now = Date.now();
+  if (accessEndsAt.getTime() > now) {
+    return { mode: "active", canWrite: true, accessEndsAt, dataDeleteAt: null };
+  }
+
+  const dataDeleteAt = parseSubscriptionDate(profile?.data_delete_at) || addMonthsSafe(accessEndsAt, 6);
+  if (dataDeleteAt.getTime() > now) {
+    return { mode: "readonly", canWrite: false, accessEndsAt, dataDeleteAt };
+  }
+
+  return { mode: "delete_due", canWrite: false, accessEndsAt, dataDeleteAt };
+}
+
+function formatSubscriptionDate(date) {
+  if (!date) return "";
+  try {
+    return new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "long", year: "numeric" }).format(date);
+  } catch (_) {
+    return date.toLocaleDateString("nl-BE");
+  }
+}
+
+let subscriptionReadonlyNoticeShown = false;
+
+async function showExpiredSubscriptionPrompt(state = null, profile = null) {
+  const deleteDate = formatSubscriptionDate(state?.dataDeleteAt);
+  const isTrial = String(profile?.subscription_plan || "free").toLowerCase() !== "pro";
+  const title = isTrial ? "Proefperiode verlopen" : "Abonnement verlopen";
+  const retentionText = deleteDate
+    ? ` Je bestaande gegevens blijven tot ${deleteDate} beschikbaar in alleen-lezen modus.`
+    : " Je bestaande gegevens blijven tijdelijk beschikbaar in alleen-lezen modus.";
+
+  const openSubscription = await appConfirm(
+    `${isTrial ? "Je gratis proefperiode is afgelopen." : "Je abonnement is afgelopen."}${retentionText} Om opnieuw afspraken of andere gegevens toe te voegen of te wijzigen, heb je een actief NailBooker PRO-abonnement nodig.`,
+    {
+      title,
+      confirmText: "Bekijk abonnement",
+      cancelText: "Sluiten",
+      variant: "warning"
+    }
+  );
+
+  if (openSubscription) {
+    switchScreen("subscriptionScreen", t("subscription"));
+  }
+}
+
+async function ensureDataWriteAccess(options = {}) {
+  const user = await getCurrentUser();
+  if (!user) {
+    await appAlert("Log eerst in om gegevens te wijzigen.", { title: "Niet ingelogd", variant: "warning" });
+    return false;
+  }
+
+  const profile = await getCurrentProfile();
+  let state = getSubscriptionAccessState(profile, user);
+
+  // Laat Supabase de finale beslissing nemen. Dit voorkomt dat een lokaal verouderde
+  // abonnementsstatus toch tot een technische RLS-fout bij INSERT/UPDATE leidt.
+  if (state.canWrite && supabaseClient?.rpc) {
+    try {
+      const { data: serverCanWrite, error } = await supabaseClient.rpc("nailbooker_can_write", { p_user_id: user.id });
+      if (!error && serverCanWrite === false) {
+        const accessEndsAt = state.accessEndsAt || parseSubscriptionDate(profile?.access_expires_at) || parseSubscriptionDate(profile?.trial_ends_at);
+        state = {
+          mode: "readonly",
+          canWrite: false,
+          accessEndsAt,
+          dataDeleteAt: parseSubscriptionDate(profile?.data_delete_at) || (accessEndsAt ? addMonthsSafe(accessEndsAt, 6) : null)
+        };
+      }
+    } catch (_) {
+      // Als de optionele RPC niet beschikbaar is, blijft de lokale datumcontrole gelden.
+    }
+  }
+
+  if (state.canWrite) return true;
+
+  if (state.mode === "readonly") {
+    if (options.navigateToSubscription !== false) {
+      await showExpiredSubscriptionPrompt(state, profile);
+    } else {
+      const deleteDate = formatSubscriptionDate(state.dataDeleteAt);
+      await appAlert(
+        `Je proefperiode of abonnement is verlopen. Je gegevens blijven alleen-lezen beschikbaar${deleteDate ? ` tot ${deleteDate}` : ""}.`,
+        { title: "Abonnement verlopen", variant: "warning" }
+      );
+    }
+    return false;
+  }
+
+  await appAlert(
+    "De bewaartermijn van 6 maanden is verstreken. Dit account is gedeactiveerd en komt in aanmerking voor definitieve verwijdering.",
+    { title: "Account gedeactiveerd", variant: "danger" }
+  );
+  return false;
+}
+
+async function runWriteEntryPoint(action) {
+  if (!(await ensureDataWriteAccess())) return;
+  action?.();
 }
 
 function getTrialDaysRemaining(profile = null, user = null) {
@@ -1920,6 +2093,19 @@ function updateHeaderTrialBadge(profile = null, user = null) {
     return;
   }
 
+  const accessState = getSubscriptionAccessState(profile, user);
+  if (accessState.mode === "readonly" || accessState.mode === "delete_due") {
+    badge.classList.remove("hidden");
+    badge.textContent = "!";
+    const label = accessState.mode === "readonly"
+      ? `Abonnement verlopen. Gegevens bewaard tot ${formatSubscriptionDate(accessState.dataDeleteAt)}.`
+      : "Account gedeactiveerd. Bewaartermijn verstreken.";
+    badge.setAttribute("aria-label", `${label} Abonnement bekijken.`);
+    badge.title = label;
+    renderSubscriptionPage(profile, user);
+    return;
+  }
+
   const days = getTrialDaysRemaining(profile, user);
   badge.classList.toggle("hidden", days === null);
   if (days !== null) {
@@ -1937,9 +2123,16 @@ function renderSubscriptionPage(profile = null, user = null) {
   const daysText = document.getElementById("subscriptionDaysText");
   const cancelBtn = document.getElementById("subscriptionCancelBtn");
   const upgradeBtn = document.getElementById("subscriptionUpgradeBtn");
-  if (!heroTitle && !heroText && !statusText && !daysText && !cancelBtn && !upgradeBtn) return;
+  const paymentProviderText = document.getElementById("subscriptionPaymentProviderText");
+  if (!heroTitle && !heroText && !statusText && !daysText && !cancelBtn && !upgradeBtn && !paymentProviderText) return;
 
   const days = user ? getTrialDaysRemaining(profile, user) : null;
+  const providerLabel = getPaymentProviderLabel(profile);
+  if (paymentProviderText) {
+    paymentProviderText.textContent = profile?.payment_provider
+      ? `Betaalbeheer: ${providerLabel}.`
+      : "Betalingen worden binnenkort veilig verwerkt via Mollie.";
+  }
 
   if (isLifetimeProSubscription(profile)) {
     if (heroTitle) heroTitle.textContent = "Je hebt Lifetime PRO";
@@ -1967,6 +2160,34 @@ function renderSubscriptionPage(profile = null, user = null) {
     return;
   }
 
+  const accessState = user ? getSubscriptionAccessState(profile, user) : null;
+  if (accessState?.mode === "readonly") {
+    const deleteDate = formatSubscriptionDate(accessState.dataDeleteAt);
+    if (heroTitle) heroTitle.textContent = "Je abonnement is verlopen";
+    if (heroText) heroText.textContent = `Je bestaande gegevens blijven tot ${deleteDate} beschikbaar in alleen-lezen modus. Activeer PRO om opnieuw gegevens toe te voegen of te wijzigen.`;
+    if (statusText) statusText.textContent = "Vervallen – alleen-lezen";
+    if (daysText) daysText.textContent = `Definitieve verwijdering voorzien op ${deleteDate}.`;
+    if (upgradeBtn) {
+      upgradeBtn.textContent = "Upgrade binnenkort beschikbaar";
+      upgradeBtn.disabled = true;
+    }
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+    return;
+  }
+
+  if (accessState?.mode === "delete_due") {
+    if (heroTitle) heroTitle.textContent = "Account gedeactiveerd";
+    if (heroText) heroText.textContent = "De bewaartermijn van 6 maanden is verstreken. De accountgegevens worden definitief verwijderd door de automatische opschoning.";
+    if (statusText) statusText.textContent = "Gedeactiveerd";
+    if (daysText) daysText.textContent = "Bewaartermijn verstreken.";
+    if (upgradeBtn) {
+      upgradeBtn.textContent = "Niet meer beschikbaar";
+      upgradeBtn.disabled = true;
+    }
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+    return;
+  }
+
   if (heroTitle) heroTitle.textContent = "Upgrade naar NailBooker Pro";
   if (heroText) heroText.textContent = "Je proefperiode is 30 dagen geldig. Met Pro behoud je volledige toegang tot alle functies.";
   if (statusText) statusText.textContent = "Free proefperiode";
@@ -1976,7 +2197,7 @@ function renderSubscriptionPage(profile = null, user = null) {
       : `Nog ${days} ${days === 1 ? "dag" : "dagen"} geldig`;
   }
   if (upgradeBtn) {
-    upgradeBtn.textContent = "Upgrade binnenkort beschikbaar";
+    upgradeBtn.textContent = "PRO activeren via Mollie – binnenkort";
     upgradeBtn.disabled = true;
   }
   if (cancelBtn) cancelBtn.classList.add("hidden");
@@ -1989,8 +2210,9 @@ async function handleSubscriptionCancelRequest() {
     return;
   }
 
+  const provider = getPaymentProviderLabel(profile);
   await appAlert(
-    "Opzeggen wordt binnenkort automatisch verwerkt. Voorlopig kun je je Pro-abonnement manueel laten stopzetten via support.",
+    `Automatisch opzeggen via ${provider} wordt geactiveerd zodra de betaalintegratie live staat. Voorlopig kun je je Pro-abonnement manueel laten stopzetten via support.`,
     { title: "Abonnement opzeggen", variant: "info" }
   );
 }
@@ -2138,11 +2360,30 @@ Reden: ${profile.blocked_reason}` : "";
     return;
   }
 
+  const subscriptionAccess = getSubscriptionAccessState(profile, user);
+  if (user && subscriptionAccess.mode === "delete_due") {
+    await supabaseClient.auth.signOut();
+    setAuthLocked(true);
+    await appAlert(
+      "De bewaartermijn van 6 maanden is verstreken. Dit account is gedeactiveerd en de gegevens worden definitief verwijderd.",
+      { title: "Account gedeactiveerd", variant: "warning" }
+    );
+    return;
+  }
+
   updateStaticI18n();
   syncHeaderLanguageSelect();
   updateHeaderTrialBadge(profile, user);
 
   setAuthLocked(!user);
+
+  if (user && subscriptionAccess.mode === "readonly" && !subscriptionReadonlyNoticeShown) {
+    subscriptionReadonlyNoticeShown = true;
+    await appAlert(
+      `Je abonnement is verlopen. Je bestaande gegevens blijven tot ${formatSubscriptionDate(subscriptionAccess.dataDeleteAt)} beschikbaar, maar kunnen niet meer worden toegevoegd, aangepast of verwijderd.`,
+      { title: "Alleen-lezen toegang", variant: "warning" }
+    );
+  }
 
   const headerUserName = document.getElementById("headerUserName");
   const headerAccountIcon = document.querySelector("#headerAccountBtn .header-account-icon");
@@ -3189,19 +3430,21 @@ function openAgendaFabMenu() {
   fab.setAttribute("aria-expanded", "true");
 }
 
-function toggleAgendaFabMenu(event) {
+async function toggleAgendaFabMenu(event) {
   event?.stopPropagation?.();
   if (isAuthLocked()) return;
+  if (!(await ensureDataWriteAccess())) return;
   const menu = ensureAgendaFabMenu();
   if (!menu) return;
   if (menu.classList.contains("open")) closeAgendaFabMenu();
   else openAgendaFabMenu();
 }
 
-function runAgendaFabAction(action) {
+async function runAgendaFabAction(action) {
   closeAgendaFabMenu();
 
   if (!action || isAuthLocked()) return;
+  if (!(await ensureDataWriteAccess())) return;
 
   if (state.currentScreen !== action.screenId) {
     switchScreen(action.screenId, getScreenTitle(action.screenId));
@@ -3313,26 +3556,26 @@ function updateTopbar(screenId, title) {
       fab.setAttribute("aria-expanded", "false");
     } else {
       closeAgendaFabMenu();
-      fab.onclick = openNewAppointmentDialog;
+      fab.onclick = () => runWriteEntryPoint(openNewAppointmentDialog);
       fab.classList.remove("fab-menu-open");
       fab.setAttribute("aria-expanded", "false");
     }
     fab.style.display = "block";
   } else if (screenId === "costsScreen") {
     closeAgendaFabMenu();
-    fab.onclick = openNewCostDialog;
+    fab.onclick = () => runWriteEntryPoint(openNewCostDialog);
     fab.style.display = "block";
   } else if (screenId === "todoScreen") {
-    fab.onclick = openNewTodoDialog;
+    fab.onclick = () => runWriteEntryPoint(openNewTodoDialog);
     fab.style.display = "block";
   } else if (screenId === "clientsScreen") {
-    fab.onclick = openNewClientDialog;
+    fab.onclick = () => runWriteEntryPoint(openNewClientDialog);
     fab.style.display = "block";
   } else if (screenId === "servicesScreen") {
-    fab.onclick = openNewServiceDialog;
+    fab.onclick = () => runWriteEntryPoint(openNewServiceDialog);
     fab.style.display = "block";
   } else if (screenId === "paymentMethodsScreen") {
-    fab.onclick = openNewPaymentMethodDialog;
+    fab.onclick = () => runWriteEntryPoint(openNewPaymentMethodDialog);
     fab.style.display = "block";
   } else {
     closeAgendaFabMenu();
@@ -5081,6 +5324,7 @@ function openFollowUpAppointmentDialog(sourceId) {
 
 async function saveFollowUpAppointmentFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
   const user = await getCurrentUser();
   const data = getData();
   const sourceId = document.getElementById("followUpSourceAppointmentId")?.value;
@@ -7846,6 +8090,7 @@ async function loadSettingsFromSupabase() {
 
 async function saveSettingsFromForm(event) {
   if (event) event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const settings = {
     defaultBreakMinutes: Math.max(0, Number(document.getElementById("settingsDefaultBreakMinutes")?.value || 0)),
@@ -9358,6 +9603,7 @@ function openEditServiceDialog(id) {
 
 async function savePaymentMethodFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const user = await getCurrentUser();
   const data = getData();
@@ -9419,6 +9665,7 @@ async function savePaymentMethodFromForm(event) {
 }
 
 async function deleteCurrentPaymentMethod() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("paymentMethodId").value;
   if (!id) return;
 
@@ -9522,6 +9769,7 @@ async function resolveServiceNameBeforeSave(data, requestedName, excludeId = nul
 
 async function saveClientFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const user = await getCurrentUser();
   const data = getData();
@@ -9611,6 +9859,7 @@ async function saveClientFromForm(event) {
 
 async function saveServiceFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const user = await getCurrentUser();
   const data = getData();
@@ -9699,6 +9948,7 @@ function getAppointmentTimePlusMinutes(timeStr, minutesToAdd = 60) {
 
 async function saveAppointmentFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const user = await getCurrentUser();
   const data = getData();
@@ -9937,6 +10187,7 @@ async function saveAppointmentFromForm(event) {
 }
 
 async function deleteCurrentAppointment() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("appointmentId").value;
   if (!id) return;
 
@@ -10102,6 +10353,7 @@ async function renderDeletedAppointmentsDialog() {
 }
 
 async function restoreDeletedAppointment(id) {
+  if (!(await ensureDataWriteAccess())) return;
   if (!id) return;
   const confirmed = await appConfirm("Deze afspraak wordt opnieuw zichtbaar in de agenda, omzet en statistieken.", {
     title: "Afspraak herstellen",
@@ -10130,6 +10382,7 @@ async function restoreDeletedAppointment(id) {
 }
 
 async function permanentlyDeleteAppointment(id) {
+  if (!(await ensureDataWriteAccess())) return;
   if (!id) return;
 
   const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.", {
@@ -10161,6 +10414,7 @@ async function permanentlyDeleteAppointment(id) {
 }
 
 async function deleteCurrentService() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("serviceId").value;
   if (!id) return;
 
@@ -10202,6 +10456,7 @@ async function deleteCurrentService() {
 }
 
 async function confirmPaymentSelection(methodName) {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("paymentAppointmentId").value;
   const safeMethodName = String(methodName || "").trim();
   const user = await getCurrentUser();
@@ -10247,6 +10502,7 @@ async function confirmPaymentSelection(methodName) {
 }
 
 async function markUnpaid() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("paymentAppointmentId").value;
   const user = await getCurrentUser();
 
@@ -10286,6 +10542,7 @@ async function markUnpaid() {
 }
 
 async function markNoShow() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("paymentAppointmentId").value;
   const user = await getCurrentUser();
 
@@ -10720,6 +10977,7 @@ function openEditCostDialog(id) {
 }
 
 async function saveStandardCost(description, vatRate, existingId = null) {
+  if (!(await ensureDataWriteAccess())) return;
   const user = await getCurrentUser();
   const data = getData();
   const cleanDescription = String(description || "").trim();
@@ -10755,6 +11013,7 @@ async function saveStandardCost(description, vatRate, existingId = null) {
 
 async function saveCostFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
   const rawId = document.getElementById("costId")?.value;
   const id = rawId ? Number(rawId) || rawId : null;
   const description = String(document.getElementById("costDescription")?.value || "").trim();
@@ -10846,6 +11105,7 @@ async function saveCostFromForm(event) {
 }
 
 async function deleteCurrentCost() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("costId")?.value;
   if (!id) return;
   const confirmed = await appConfirm("Deze kost verwijderen?", {
@@ -10981,6 +11241,7 @@ function openEditStandardCostDialog(id) {
 
 async function saveStandardCostEditFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("standardCostEditId")?.value;
   const description = String(document.getElementById("standardCostEditDescription")?.value || "").trim();
   const vatRate = Number(document.getElementById("standardCostEditVatRate")?.value || 21);
@@ -11028,6 +11289,7 @@ async function saveStandardCostEditFromForm(event) {
 }
 
 async function deleteStandardCost(id) {
+  if (!(await ensureDataWriteAccess())) return;
   if (!id) return;
   const confirmed = await appConfirm(t("deleteStandardCostConfirm"), {
     title: t("delete"),
@@ -11230,6 +11492,7 @@ function addTodoBulletLine() {
 
 async function saveTodoFromForm(event) {
   event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
 
   const user = await getCurrentUser();
   const data = getData();
@@ -11295,6 +11558,7 @@ async function saveTodoFromForm(event) {
 }
 
 async function toggleTodoCompleted(id) {
+  if (!(await ensureDataWriteAccess())) return;
   const data = getData();
   const todo = todoById(data, id);
   if (!todo) return;
@@ -11324,6 +11588,7 @@ async function toggleTodoCompleted(id) {
 }
 
 async function deleteCurrentTodo() {
+  if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("todoId")?.value;
   if (!id) return;
 
@@ -11984,6 +12249,10 @@ async function loadPaymentMethodsFromSupabase() {
   }
 
   if (!data || !data.length) {
+    const profile = await getCurrentProfile();
+    const accessState = getSubscriptionAccessState(profile, user);
+    if (!accessState.canWrite) return [];
+
     const seedPayload = defaultPaymentMethods.map((method, index) => ({
       user_id: user.id,
       name: method.name,
@@ -13874,7 +14143,11 @@ function renderAdminStats() {
   const total = users.length;
   const blocked = users.filter(user => user.is_blocked).length;
   const active = total - blocked;
-  const subscriptions = users.filter(user => ["active", "trial", "lifetime"].includes(String(user.subscription_status || "").toLowerCase())).length;
+  const subscriptions = users.filter(user => {
+    if (user.is_blocked) return false;
+    const state = getAdminSubscriptionDisplayState(user);
+    return state.subscriptionText === "Lifetime PRO" || state.subscriptionText === "PRO actief" || state.subscriptionText === "Free proefperiode";
+  }).length;
   [["adminTotalUsers", total], ["adminActiveUsers", active], ["adminBlockedUsers", blocked], ["adminActiveSubscriptions", subscriptions]].forEach(([id, value]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = String(value);
@@ -13974,6 +14247,51 @@ async function runAdminSubscriptionUpdate(userId, mode, payload) {
   }
 }
 
+function getAdminSubscriptionDisplayState(user = {}) {
+  if (user.is_blocked) {
+    return { accountText: "Geblokkeerd", statusClass: "blocked", subscriptionText: "Geblokkeerd" };
+  }
+
+  const plan = String(user.subscription_plan || "free").toLowerCase();
+  const status = String(user.subscription_status || "trial").toLowerCase();
+  const isLifetime = Boolean(user.is_lifetime) || status === "lifetime";
+  if (isLifetime) {
+    return { accountText: "Actief", statusClass: "", subscriptionText: "Lifetime PRO" };
+  }
+
+  let accessEndsAt = parseSubscriptionDate(user.access_expires_at);
+  if (!accessEndsAt && plan === "pro") accessEndsAt = parseSubscriptionDate(user.subscription_current_period_end);
+  if (!accessEndsAt) accessEndsAt = parseSubscriptionDate(user.trial_ends_at);
+  if (!accessEndsAt) {
+    const start = parseSubscriptionDate(user.trial_started_at) || parseSubscriptionDate(user.created_at);
+    if (start) {
+      accessEndsAt = new Date(start);
+      accessEndsAt.setDate(accessEndsAt.getDate() + 30);
+    }
+  }
+
+  if (plan === "pro" && status === "active" && !accessEndsAt) {
+    return { accountText: "Actief", statusClass: "", subscriptionText: "PRO actief" };
+  }
+
+  if (!accessEndsAt || accessEndsAt.getTime() > Date.now()) {
+    const label = plan === "pro" ? "PRO actief" : "Free proefperiode";
+    return { accountText: "Actief", statusClass: "", subscriptionText: label };
+  }
+
+  const deleteAt = parseSubscriptionDate(user.data_delete_at) || addMonthsSafe(accessEndsAt, 6);
+  if (deleteAt && deleteAt.getTime() <= Date.now()) {
+    return { accountText: "Deactiveren", statusClass: "blocked", subscriptionText: "Bewaartermijn verstreken" };
+  }
+
+  const deleteLabel = deleteAt ? ` · data tot ${formatSubscriptionDate(deleteAt)}` : "";
+  return {
+    accountText: "Alleen-lezen",
+    statusClass: "",
+    subscriptionText: `${plan === "pro" ? "PRO verlopen" : "Proefperiode verlopen"}${deleteLabel}`
+  };
+}
+
 function renderAdminUsers() {
   const list = document.getElementById("adminUsersList");
   if (!list) return;
@@ -13986,8 +14304,9 @@ function renderAdminUsers() {
     const location = [user.region, user.country].filter(Boolean).join(" · ") || "-";
     const plan = user.subscription_plan || "free";
     const subStatus = user.subscription_status || "none";
-    const statusClass = user.is_blocked ? "blocked" : "";
-    const statusText = user.is_blocked ? "Geblokkeerd" : "Actief";
+    const adminSubscriptionState = getAdminSubscriptionDisplayState(user);
+    const statusClass = adminSubscriptionState.statusClass;
+    const statusText = adminSubscriptionState.accountText;
     const blockAction = user.is_blocked
       ? `<button class="btn btn-secondary" type="button" data-admin-action="unblock" data-user-id="${escapeAdminHtml(user.id)}">Deblokkeren</button>`
       : `<button class="btn btn-secondary" type="button" data-admin-action="block" data-user-id="${escapeAdminHtml(user.id)}">Blokkeren</button>`;
@@ -14010,7 +14329,7 @@ function renderAdminUsers() {
             <div class="admin-user-field"><span>Salon</span><strong>${escapeAdminHtml(user.salon_name || "-")}</strong></div>
             <div class="admin-user-field"><span>Locatie</span><strong>${escapeAdminHtml(location)}</strong></div>
             <div class="admin-user-field"><span>Tijdzone</span><strong>${escapeAdminHtml(user.timezone || "-")}</strong></div>
-            <div class="admin-user-field"><span>Abonnement</span><strong>${escapeAdminHtml(plan)} · ${escapeAdminHtml(subStatus)}</strong></div>
+            <div class="admin-user-field"><span>Abonnement</span><strong>${escapeAdminHtml(adminSubscriptionState.subscriptionText)}</strong></div>
             <div class="admin-user-field"><span>Gebruik</span><strong>${Number(user.visible_appointments_count ?? user.appointments_count ?? 0)} afspraken</strong></div>
             <div class="admin-user-field"><span>Data</span><strong>${Number(user.customers_count || 0)} klanten · ${Number(user.errors_count || 0)} errors</strong></div>
           </div>
@@ -14062,6 +14381,9 @@ async function setAdminUserSubscription(userId, mode) {
         subscription_price_monthly: 0,
         subscription_currency: "EUR",
         subscription_updated_at: nowIso,
+        payment_provider: "admin",
+        payment_customer_id: null,
+        payment_subscription_id: null,
         updated_at: nowIso
       }
     : {
@@ -14072,6 +14394,9 @@ async function setAdminUserSubscription(userId, mode) {
         subscription_price_monthly: 8.95,
         subscription_currency: "EUR",
         subscription_updated_at: nowIso,
+        payment_provider: "manual",
+        payment_customer_id: null,
+        payment_subscription_id: null,
         updated_at: nowIso
       };
 
