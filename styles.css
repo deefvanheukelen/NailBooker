@@ -12969,3 +12969,18 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 .agenda-calendar-toggle-chevrons span {
   color: #008080 !important;
 }
+
+/* =========================================================
+   LOGIN KNOP - EIGEN ACHTERGRONDKLEUR
+   Alleen de knop "Inloggen"; andere primaire knoppen blijven ongewijzigd.
+========================================================= */
+#loginBtn {
+  background: #544f41;
+  color: #ffffff;
+}
+
+#loginBtn:hover,
+#loginBtn:active {
+  background: #454136;
+}
+
