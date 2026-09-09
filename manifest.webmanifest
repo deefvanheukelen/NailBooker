@@ -1,6 +1,6 @@
 {
-  "name": "NailBooker",
-  "short_name": "NailBooker",
+  "name": "NB",
+  "short_name": "NB",
   "description": "Eenvoudig beheer van klanten, afspraken en omzet",
   "start_url": "./index.html",
   "scope": "./",
