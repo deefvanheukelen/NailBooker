@@ -4941,7 +4941,7 @@ function attachRevenuePeriodSwipe(button, mode, target = "revenue") {
   button.dataset.revenueSwipeReady = "1";
   button.dataset.revenueSwipeTarget = target;
 
-  const threshold = 20;
+  const threshold = 15;
   const maxDrag = 5;
   const resetSwipeVisual = () => {
     button.classList.remove("is-revenue-swiping", "is-revenue-swipe-committing", "is-revenue-swipe-settling");
@@ -4964,8 +4964,8 @@ function attachRevenuePeriodSwipe(button, mode, target = "revenue") {
   const commitSwipe = (step) => {
     const anchor = target === "costs" ? getCostsPeriodDate() : (document.getElementById("revenueDate")?.value || todayStr);
     const nextDate = shiftRevenueDate(anchor, mode, step);
-    const exitY = step > 0 ? -14 : 14;
-    const enterY = step > 0 ? 14 : -14;
+    const exitY = step > 0 ? -10 : 10;
+    const enterY = step > 0 ? 10 : -10;
 
     button.dataset.revenueSwipeSuppressClick = "1";
     window.setTimeout(() => delete button.dataset.revenueSwipeSuppressClick, 360);
