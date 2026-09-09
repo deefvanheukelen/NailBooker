@@ -67,6 +67,7 @@ button {
 
 /* ====================================================
    SPLASHSCREEN
+   Native Android/PWA splash -> eigen icoon -> NailBooker-logo
    ===================================================*/
 .custom-splash {
   position: fixed;
@@ -75,13 +76,13 @@ button {
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    radial-gradient(circle at top, #ffffff 0%, #f7f4f2 45%, #eeeae7 100%);
+
+  /* Exact dezelfde effen kleur als background_color in manifest.webmanifest.
+     Zo verdwijnt de zichtbare achtergrond-sprong tussen Android en HTML. */
+  background: #f7f4f2;
   opacity: 1;
   visibility: visible;
-  transition:
-    opacity 0.55s ease,
-    visibility 0.55s ease;
+  transition: opacity 0.42s ease, visibility 0.42s ease;
 }
 
 .custom-splash.fade-out {
@@ -91,36 +92,76 @@ button {
 }
 
 .custom-splash-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: splashPopIn 0.7s ease-out both;
+  position: relative;
+  width: min(76vw, 320px);
+  height: 180px;
+  display: grid;
+  place-items: center;
 }
 
+/* Eerste HTML-frame: hetzelfde icoon als het manifest.
+   Daardoor lijkt het native Android-icoon gewoon door te lopen. */
+.custom-splash-app-icon {
+  position: absolute;
+  width: min(34vw, 138px);
+  height: min(34vw, 138px);
+  object-fit: contain;
+  opacity: 1;
+  transform: scale(1);
+  animation: splashIconBridge 0.48s ease-in-out 0.10s forwards;
+  will-change: opacity, transform;
+}
+
+/* Daarna verschijnt rustig het brede NailBooker-logo. */
 .custom-splash-logo {
   display: block;
   width: min(72vw, 300px);
   max-width: 300px;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 18px 32px rgba(0, 128, 128, 0.18));
+  opacity: 0;
+  transform: scale(0.965);
+  filter: drop-shadow(0 12px 24px rgba(0, 128, 128, 0.12));
+  animation: splashLogoReveal 0.58s cubic-bezier(.2,.75,.25,1) 0.28s forwards;
+  will-change: opacity, transform;
 }
 
-@keyframes splashPopIn {
+@keyframes splashIconBridge {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes splashLogoReveal {
   0% {
     opacity: 0;
-    transform: scale(0.92) translateY(10px);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.02) translateY(0);
+    transform: scale(0.965);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
-}   
-   
+}
+
+/* Respecteer gebruikers die minder animatie wensen. */
+@media (prefers-reduced-motion: reduce) {
+  .custom-splash-app-icon {
+    animation: none;
+    opacity: 0;
+  }
+
+  .custom-splash-logo {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 
 /* =========================================================
    2. APP SHELL / ALGEMENE LAYOUT

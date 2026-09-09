@@ -1,11 +1,11 @@
 {
-  "name": "NB",
-  "short_name": "NB",
+  "name": "NailBooker",
+  "short_name": "NailBooker",
   "description": "Eenvoudig beheer van klanten, afspraken en omzet",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f7f4f2",
   "theme_color": "#008080",
   "icons": [
     {

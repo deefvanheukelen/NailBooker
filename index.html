@@ -21,6 +21,10 @@
        Dat is normaal en geen HTML-fout. -->
   <link rel="manifest" href="manifest.webmanifest" />
 
+  <!-- Splash-assets vooraf laden voor een vloeiendere overgang -->
+  <link rel="preload" as="image" href="icons/splash-icon-512.png" />
+  <link rel="preload" as="image" href="img/NB_logo.png" />
+
   <!-- Icoon voor geïnstalleerde app op iPhone/iPad -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
@@ -40,15 +44,24 @@
   <title>NailBooker</title>
 </head>
 <body class="auth-locked">
-	<div id="customSplash" class="custom-splash" aria-hidden="true">
-	  <div class="custom-splash-inner">
-		<img
-		  src="img/NB_logo.png"
-		  alt="NailBooker splash screen"
-		  class="custom-splash-logo"
-		/>
-	  </div>
-	</div>
+  <div id="customSplash" class="custom-splash" aria-hidden="true">
+    <div class="custom-splash-inner">
+      <!-- Zelfde 512px icoon als het native Android/PWA-startscherm.
+           Dit beeld staat er al op het eerste HTML-frame en vervaagt daarna naar het logo. -->
+      <img
+        src="icons/splash-icon-512.png"
+        alt=""
+        class="custom-splash-app-icon"
+        aria-hidden="true"
+      />
+
+      <img
+        src="img/NB_logo.png"
+        alt="NailBooker"
+        class="custom-splash-logo"
+      />
+    </div>
+  </div>
 
   <div class="app-shell">
 
@@ -1932,25 +1945,39 @@
   <script src="app.js"></script>
   
   <script>
-  window.addEventListener("load", () => {
+  (() => {
     const splash = document.getElementById("customSplash");
     if (!splash) return;
 
-    const animationDuration = 700; // moet overeenkomen met CSS (0.7s)
-    const visibleDelay = 2000;     // 👈 2 seconden zichtbaar blijven
+    // Laat het eigen splashscreen lang genoeg staan om de icoon->logo overgang
+    // netjes af te spelen, maar wacht niet onnodig nog 2 seconden na window.load.
+    const MIN_SPLASH_TIME = 1050;
+    const MAX_SPLASH_TIME = 3500;
+    const startedAt = performance.now();
+    let dismissed = false;
 
-    setTimeout(() => {
-      splash.classList.add("fade-out");
+    const dismissSplash = () => {
+      if (dismissed) return;
+      dismissed = true;
 
-      splash.addEventListener(
-        "transitionend",
-        () => {
-          splash.remove();
-        },
-        { once: true }
-      );
-    }, animationDuration + visibleDelay);
-  });
+      const elapsed = performance.now() - startedAt;
+      const remaining = Math.max(0, MIN_SPLASH_TIME - elapsed);
+
+      window.setTimeout(() => {
+        splash.classList.add("fade-out");
+        splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+      }, remaining);
+    };
+
+    if (document.readyState === "complete") {
+      dismissSplash();
+    } else {
+      window.addEventListener("load", dismissSplash, { once: true });
+    }
+
+    // Veiligheidsnet: een traag extern script of asset mag de splash niet eeuwig vasthouden.
+    window.setTimeout(dismissSplash, MAX_SPLASH_TIME);
+  })();
 </script>
 
 <script>
