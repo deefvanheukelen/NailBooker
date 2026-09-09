@@ -7638,15 +7638,15 @@ button.is-action-locked .app-action-nav-label {
 #settingsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #f7f6f5;
+  /* background: #f7f6f5; */
 }
 
 .settings-page {
   min-height: 0;
   overflow: hidden;
-  background:
+  /* background:
     radial-gradient(circle at top left, rgba(248, 232, 238, 0.88), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f7f6f5 100%);
+    linear-gradient(180deg, #ffffff 0%, #f7f6f5 100%); */
 }
 
 .settings-scroll {
