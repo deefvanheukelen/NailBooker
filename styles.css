@@ -6,17 +6,17 @@
 }
 
 :root {
-  --bg: #f7f4f6;
+  --bg: #f7f6f5;
   --card: #ffffff;
-  --line: #eddfe6;
-  --line-strong: #e4d1da;
+  --line: #e8e4e1;
+  --line-strong: #cec9c3;
 
-  --primary: #d991ab;
-  --primary-dark: #b86d87;
-  --primary-soft: #f8e8ee;
+  --primary: #008080;
+  --primary-dark: #544f41;
+  --primary-soft: #e8f4f3;
 
-  --text: #4e4650;
-  --muted: #8c838d;
+  --text: #544f41;
+  --muted: #7b766b;
 
   --success-bg: #e7f6ea;
   --success-text: #2d8b4e;
@@ -24,8 +24,8 @@
   --danger: #d46a8a;
   --danger-soft: #fff1f5;
 
-  --shadow-soft: 0 2px 4px rgba(170, 120, 145, 0.10); /* 0 8px 20px rgba(170, 120, 145, 0.10); */
-  --shadow-card: 0 2px 4px rgba(170, 120, 145, 0.12);  /* 0 12px 28px rgba(170, 120, 145, 0.12); */
+  --shadow-soft: 0 2px 4px rgba(84, 79, 65, 0.10); /* 0 8px 20px rgba(84, 79, 65, 0.10); */
+  --shadow-card: 0 2px 4px rgba(84, 79, 65, 0.12);  /* 0 12px 28px rgba(84, 79, 65, 0.12); */
 
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -76,7 +76,7 @@ button {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at top, #fff8fb 0%, #f9eef3 42%, #f4e4eb 100%);
+    radial-gradient(circle at top, #ffffff 0%, #f7f4f2 45%, #eeeae7 100%);
   opacity: 1;
   visibility: visible;
   transition:
@@ -103,7 +103,7 @@ button {
   max-width: 300px;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 18px 32px rgba(185, 109, 135, 0.18));
+  filter: drop-shadow(0 18px 32px rgba(0, 128, 128, 0.18));
 }
 
 @keyframes splashPopIn {
@@ -136,7 +136,7 @@ button {
   margin: 0 auto;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: linear-gradient(180deg, #ffffff 0%, #fffdfd 48%, #fbf7f9 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 48%, #f7f6f5 100%);
   overflow: hidden;
 }
 
@@ -169,11 +169,7 @@ button {
   gap: 12px;
   padding: 12px 16px 10px;
   background: rgba(255, 255, 255, 0.96);
-  background: linear-gradient(
-    to bottom,
-    #f8e8ee 0%,
-    rgba(248, 232, 238, 0) 100%
-  );
+  background: linear-gradient(180deg, #f6f4f2 0%, #f1efec 100%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -353,7 +349,7 @@ button {
 
 .detail-block {
   padding: 16px;
-  border-bottom: 1px solid #f3e9ee;
+  border-bottom: 1px solid #ece9e6;
 }
 
 .detail-block:last-child {
@@ -516,7 +512,7 @@ button {
 }
 
 .day-cell.today.selected {
-  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 128, 128, 0.18);
 }
 
 .day-dots {
@@ -635,7 +631,7 @@ button {
   border-radius: 2px;
   font-weight: 700;
   flex: 0 0 auto;
-  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.06);
+  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.06);
 }
 
 .alphabet-btn.active {
@@ -743,29 +739,29 @@ button {
 }
 
 .action-btn {
-  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.14);
+  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.14);
 }
 
 .btn-primary {
-  background: #e6b1c3; /* linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%); */
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
   color: #ffffff;
-  /* box-shadow: 0 12px 22px rgba(201, 120, 150, 0.22); */
+  /* box-shadow: 0 12px 22px rgba(0, 128, 128, 0.22); */
 }
 
 .btn-primary:hover {
-  /* box-shadow: 0 16px 28px rgba(201, 120, 150, 0.28); */
+  /* box-shadow: 0 16px 28px rgba(0, 128, 128, 0.28); */
 }
 
 .btn-secondary {
   background: #f5f1f3;
   color: var(--text);
-  border: 1px solid #eee2e8;
+  border: 1px solid #e6e2de;
 }
 
 .btn-danger {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid #f5c2d2;
+  border: 1px solid #d9d4cf;
 }
 
 .ghost-btn {
@@ -775,7 +771,7 @@ button {
   border-radius: 2px;
   padding: 10px 14px;
   font-weight: 700;
-  /* box-shadow: 0 6px 14px rgba(165, 116, 140, 0.08); */
+  /* box-shadow: 0 6px 14px rgba(84, 79, 65, 0.08); */
 }
 
 .full-btn {
@@ -803,12 +799,13 @@ button {
 
 .price-chip {
   border: none;
-  background: var(--primary-soft);
-  color: var(--primary-dark);
+  /* Onbetaalde afspraak: zelfde roodachtige stijl als "Onbetaald" bij Omzet */
+  background: var(--danger-soft);
+  color: var(--danger);
   border-radius: 999px;
   font-weight: 700;
   padding: 10px 12px;
-  /* box-shadow: 0 2px 4px rgba(165, 116, 140, 0.12); */
+  /* box-shadow: 0 2px 4px rgba(84, 79, 65, 0.12); */
 }
 
 .price-chip.paid {
@@ -868,7 +865,7 @@ button {
 }
 
 .nav-btn.active path {
-  fill: #df9db3;
+  fill: #008080;
 }
 
 .nav-ico {
@@ -899,9 +896,9 @@ button {
   z-index: 40;
   width: 58px;
   height: 58px;
-  border: 1px solid #d5819d;
+  border: 1px solid #008080;
   border-radius: 999px;
-  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
   color: #ffffff;
   font-size: 34px;
 }
@@ -1006,7 +1003,7 @@ button {
 }
 
 .password-toggle-btn:focus-visible {
-  outline: 2px solid rgba(185, 109, 135, 0.35);
+  outline: 2px solid rgba(0, 128, 128, 0.35);
   outline-offset: 1px;
 }
 
@@ -1066,7 +1063,7 @@ button {
   background: #ffffff;
   border-radius: 2px;
   padding: 18px;
-  box-shadow: 0 24px 44px rgba(84, 48, 65, 0.25);
+  box-shadow: 0 24px 44px rgba(84, 79, 65, 0.25);
   overflow-x: hidden;
 }
 
@@ -1269,7 +1266,7 @@ button {
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 2px;
-  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.2);
+  box-shadow: 0 16px 32px rgba(84, 79, 65, 0.2);
   overflow: hidden;
 }
 
@@ -1309,14 +1306,14 @@ button {
   align-items: center;
   gap: 7px;
   min-height: 34px;
-  border: 1px solid #f0dce5;
+  border: 1px solid #f2f0ee;
   border-radius: 2px;
   padding: 6px 10px;
-  background: #fff8fb;
+  background: #f7f6f5;
   color: var(--primary-dark);
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.08);
+  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.08);
 }
 
 .payment-qr-toggle:hover,
@@ -1352,10 +1349,10 @@ button {
   width: 150px;
   margin-top: 8px;
   padding: 10px;
-  border: 1px solid #f1dfe7;
+  border: 1px solid #e5e1dd;
   border-radius: 2px;
   background: #ffffff;
-  box-shadow: 0 12px 24px rgba(84, 48, 65, 0.14);
+  box-shadow: 0 12px 24px rgba(84, 79, 65, 0.14);
 }
 
 .payment-qr-code-wrap {
@@ -1364,7 +1361,7 @@ button {
   padding: 6px;
   border-radius: 2px;
   background: #ffffff;
-  border: 1px solid #f4e8ee;
+  border: 1px solid #ece9e6;
 }
 
 .payment-qr-image {
@@ -1425,13 +1422,13 @@ button {
 }
 
 .payment-method-popup-item.active {
-  background: #f2d7e1;
+  background: #f2f0ee;
   color: var(--primary-dark);
   font-weight: 700;
 }
 
 .payment-method-popup-item + .payment-method-popup-item {
-  border-top: 1px solid #f6edf1;
+  border-top: 1px solid #efedea;
 }
 
 .payment-method-popup-item.is-unpaid {
@@ -1562,7 +1559,7 @@ button {
   gap: 4px;
   align-items: start;
   padding: 14px 0;
-  border-bottom: 1px solid #f2e8ed;
+  border-bottom: 1px solid #ebe8e5;
 }
 
 .account-data-row:last-child {
@@ -1617,7 +1614,7 @@ button {
 
 .text-link-btn:hover,
 .text-link-btn:active {
-  color: #9f5f75;
+  color: #544f41;
 }
 
 /* =========================================================
@@ -1688,7 +1685,7 @@ button {
   gap: 4px;
   align-items: start;
   padding: 14px 0;
-  border-bottom: 1px solid #f2e8ed;
+  border-bottom: 1px solid #ebe8e5;
 }
 
 .account-data-row:last-child {
@@ -1743,7 +1740,7 @@ button {
 
 .text-link-btn:hover,
 .text-link-btn:active {
-  color: #9f5f75;
+  color: #544f41;
 }
 }
 
@@ -1830,7 +1827,7 @@ button {
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
-  box-shadow: 0 1px 2px rgba(165, 116, 140, 0.18);
+  box-shadow: 0 1px 2px rgba(84, 79, 65, 0.18);
 }
 
 .client-appointments-section {
@@ -1972,7 +1969,7 @@ button {
 }
 
 .client-detail-row-stacked {
-  border-bottom: 1px solid #f1e5eb;
+  border-bottom: 1px solid #e7e3df;
 }
 
 .client-detail-row-stacked:last-child {
@@ -2025,7 +2022,7 @@ button {
   align-items: baseline;
   gap: 18px;
   padding: 12px 14px 10px;
-  border-bottom: 1px solid #f1e5eb;
+  border-bottom: 1px solid #e7e3df;
 }
 
 .client-appointments-title {
@@ -2046,7 +2043,7 @@ button {
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
-  border-bottom: 1px solid #f1e5eb;
+  border-bottom: 1px solid #e7e3df;
 }
 
 .client-appointment-row:last-child {
@@ -2165,7 +2162,7 @@ button {
   gap: 6px;
   padding: 12px 8px 10px;
   font-family: 'Montserrat', sans-serif;
-  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  box-shadow: 0 1px 2px rgba(84, 79, 65, 0.08);
   text-align: center;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -2249,8 +2246,8 @@ button {
   display: grid;
   gap: 6px;
   padding: 14px 12px;
-  border: 1px solid #f0e4ea;
-  background: #fbf7f9;
+  border: 1px solid #e7e3df;
+  background: #f7f6f5;
 }
 
 .revenue-summary-item strong {
@@ -2356,7 +2353,7 @@ button {
   flex-direction: column-reverse;
   justify-content: flex-start;
   overflow: hidden;
-  background: #f3e7ec;
+  background: #ebe8e5;
 }
 
 .revenue-bar-segment {
@@ -2491,8 +2488,8 @@ button {
   top: 50%;
   height: 48px;
   transform: translateY(-50%);
-  border-top: 1px solid #eadbe3;
-  border-bottom: 1px solid #eadbe3;
+  border-top: 1px solid #ded9d4;
+  border-bottom: 1px solid #ded9d4;
   background: rgba(245, 235, 240, 0.45);
   pointer-events: none;
   border-radius: 2px;
@@ -2542,7 +2539,7 @@ button {
 }
 
 .revenue-wheel-option.active {
-  color: #a5567a;
+  color: #544f41;
   opacity: 1;
   transform: scale(1.02);
   font-weight: 700;
@@ -2642,7 +2639,7 @@ button {
 #todoScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .todo-screen-shell {
@@ -2712,7 +2709,7 @@ button {
 
 .todo-check-btn {
   border: none;
-  border-right: 1px solid #f2e8ed;
+  border-right: 1px solid #ebe8e5;
   background: #fff;
   display: grid;
   place-items: center;
@@ -2791,12 +2788,12 @@ button {
 }
 
 .todo-card.is-overdue {
-  border-color: #f1bfd0;
+  border-color: #d7d1cc;
 }
 
 .todo-completed-row {
   margin-top: 10px;
-  border-top: 1px solid #f1e5eb;
+  border-top: 1px solid #e7e3df;
 }
 
 
@@ -2858,7 +2855,7 @@ button {
 }
 
 .settings-group {
-  border-bottom: 1px solid #f1e5eb;
+  border-bottom: 1px solid #e7e3df;
   padding-bottom: 14px;
 }
 
@@ -2963,7 +2960,7 @@ button {
 }
 
 .app-message-card[data-variant="danger"] .app-message-badge {
-  background: #f2bfd0;
+  background: #d7d1cc;
 }
 
 #appMessageDialogActions {
@@ -3012,7 +3009,7 @@ button {
 #statisticsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .statistics-screen-shell {
@@ -3048,7 +3045,7 @@ button {
 
 .statistics-kpi {
   border: 1px solid var(--line);
-  background: #fffdfd;
+  background: #ffffff;
   padding: 10px 8px;
   aspect-ratio: 1 / 1;
   display: grid;
@@ -3136,7 +3133,7 @@ button {
   align-items: center;
   font-size: 14px;
   padding: 8px 0;
-  border-top: 1px solid #f1e5eb;
+  border-top: 1px solid #e7e3df;
   min-width: 0;
 }
 
@@ -3191,7 +3188,7 @@ button {
   align-items: center;
   padding: 14px 0;
   border: none;
-  border-top: 1px solid #f1e5eb;
+  border-top: 1px solid #e7e3df;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -3397,8 +3394,8 @@ button {
 }
 
 .revenue-action-btn-report {
-  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
-  border: 1px solid #d5819d;
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
+  border: 1px solid #008080;
 }
 
 .revenue-action-export-label,
@@ -3472,7 +3469,7 @@ button {
   body {
     background:
       radial-gradient(circle at top left, rgba(248, 232, 238, 0.9), transparent 34%),
-      linear-gradient(135deg, #f7f4f6 0%, #fff 46%, #fbf7f9 100%);
+      linear-gradient(135deg, #f7f4f6 0%, #fff 46%, #f7f6f5 100%);
   }
 
   .app-shell {
@@ -3483,7 +3480,7 @@ button {
     grid-template-rows: auto minmax(0, 1fr);
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
-    box-shadow: 0 20px 60px rgba(170, 120, 145, 0.12);
+    box-shadow: 0 20px 60px rgba(84, 79, 65, 0.12);
   }
 
   .topbar {
@@ -3512,7 +3509,7 @@ button {
     overflow-x: hidden;
     overflow-y: auto;
     background:
-      linear-gradient(180deg, #fff 0%, #fff8fb 52%, #f8e8ee 100%);
+      linear-gradient(180deg, #fff 0%, #f7f6f5 52%, #f2f0ee 100%);
   }
 
   .nav-btn {
@@ -3717,7 +3714,7 @@ button {
   .clients-panel,
   .services-panel,
   .detail-panel {
-    background: #fbf7f9;
+    background: #f7f6f5;
   }
 
   .search-input {
@@ -4000,7 +3997,7 @@ button {
   background: #ffffff;
   border: 1px solid var(--line-strong);
   border-radius: 2px;
-  box-shadow: 0 16px 34px rgba(84, 48, 65, 0.18);
+  box-shadow: 0 16px 34px rgba(84, 79, 65, 0.18);
   padding: 6px;
 }
 
@@ -4131,7 +4128,7 @@ button {
 
 .main-layout.is-swiping,
 .main-layout.is-swipe-animating {
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .main-layout.is-swiping > .screen,
@@ -4472,7 +4469,7 @@ button {
   background: var(--primary-soft);
   border-color: var(--primary-dark);
   transform: scale(1.01);
-  box-shadow: 0 10px 24px rgba(170, 120, 145, 0.24);
+  box-shadow: 0 10px 24px rgba(84, 79, 65, 0.24);
   z-index: 10;
 }
 
@@ -5072,7 +5069,7 @@ button {
 }
 
 .revenue-summary-item.revenue-summary-total {
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 @media (max-width: 420px) {
@@ -5102,9 +5099,9 @@ button {
 .client-inline-add-btn {
   width: 52px;
   height: 52px;
-  border: 1px solid #d5819d;
+  border: 1px solid #008080;
   border-radius: 999px;
-  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
   color: #ffffff;
   font-size: 32px;
   line-height: 1;
@@ -5112,7 +5109,7 @@ button {
   display: inline-grid;
   place-items: center;
   padding: 0 0 3px;
-  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.16);
+  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.16);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -5134,7 +5131,7 @@ button {
 
 .client-detail-appointment-row {
   grid-template-columns: 72px 1fr auto;
-  border-bottom: 1px solid #f1e5eb;
+  border-bottom: 1px solid #e7e3df;
   cursor: pointer;
 }
 
@@ -5143,7 +5140,7 @@ button {
 }
 
 .client-detail-appointment-row:focus-visible {
-  outline: 2px solid rgba(185, 109, 135, 0.35);
+  outline: 2px solid rgba(0, 128, 128, 0.35);
   outline-offset: -2px;
 }
 
@@ -5464,7 +5461,7 @@ button.is-action-locked .app-action-nav-label {
   padding: clamp(12px, 4.2vw, 24px) clamp(5px, 2.5vw, 18px) clamp(10px, 3.2vw, 18px);
   font-family: 'Montserrat', sans-serif;
   text-align: left;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12);
 }
 
 .revenue-screen-shell .revenue-period-tile:hover,
@@ -5479,7 +5476,7 @@ button.is-action-locked .app-action-nav-label {
   background: var(--primary-soft);
   border: 2px solid var(--primary-dark);
   color: #3f3b42;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12);
 }
 
 .revenue-screen-shell .revenue-period-icon {
@@ -5653,7 +5650,7 @@ button.is-action-locked .app-action-nav-label {
 
   font-family: 'Montserrat', sans-serif !important;
   text-align: center !important;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
   overflow: hidden !important;
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -5671,7 +5668,7 @@ button.is-action-locked .app-action-nav-label {
   background: var(--primary-soft) !important;
   border: 2px solid var(--primary-dark) !important;
   color: #3f3b42 !important;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
 }
 
 .revenue-screen-shell .revenue-period-icon {
@@ -6187,7 +6184,7 @@ button.is-action-locked .app-action-nav-label {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 46px;
   align-items: stretch;
-  border-bottom: 1px solid #f6edf1;
+  border-bottom: 1px solid #efedea;
 }
 
 .appointment-action-details-row .payment-method-popup-item {
@@ -6203,7 +6200,7 @@ button.is-action-locked .app-action-nav-label {
   width: 46px;
   min-width: 46px;
   border: none;
-  border-left: 1px solid #f6edf1;
+  border-left: 1px solid #efedea;
   background: #ffffff;
   color: var(--primary-dark);
   display: inline-flex;
@@ -6346,7 +6343,7 @@ button.is-action-locked .app-action-nav-label {
   justify-content: space-between;
   gap: 10px;
   text-align: left;
-  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.08);
+  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.08);
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -6359,7 +6356,7 @@ button.is-action-locked .app-action-nav-label {
 .app-select-wrap.is-open .app-select-button {
   border-color: var(--primary);
   background: var(--primary-soft);
-  box-shadow: 0 4px 10px rgba(170, 120, 145, 0.12);
+  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.12);
 }
 
 .app-select-button:active {
@@ -6367,7 +6364,7 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .app-select-button:focus-visible {
-  outline: 2px solid rgba(185, 109, 135, 0.32);
+  outline: 2px solid rgba(0, 128, 128, 0.32);
   outline-offset: 2px;
 }
 
@@ -6415,7 +6412,7 @@ button.is-action-locked .app-action-nav-label {
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 2px;
-  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.18);
+  box-shadow: 0 16px 32px rgba(84, 79, 65, 0.18);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -6448,7 +6445,7 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .app-select-option.is-selected {
-  background: #f2d7e1;
+  background: #f2f0ee;
   border-color: var(--primary);
   color: var(--primary-dark);
   font-weight: 400;
@@ -6531,7 +6528,7 @@ button.is-action-locked .app-action-nav-label {
   justify-content: center;
   text-decoration: none;
   color: #ffffff;
-  box-shadow: 0 2px 4px rgba(165, 116, 140, 0.14);
+  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.14);
   transition:
     transform 0.14s ease,
     box-shadow 0.18s ease,
@@ -6541,7 +6538,7 @@ button.is-action-locked .app-action-nav-label {
 .appointment-action-contact-btn:hover,
 .appointment-action-contact-btn:active {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(165, 116, 140, 0.16);
+  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.16);
 }
 
 .appointment-action-contact-btn .client-action-icon {
@@ -6745,14 +6742,14 @@ button.is-action-locked .app-action-nav-label {
   place-items: center;
   padding: 0;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  box-shadow: 0 1px 2px rgba(84, 79, 65, 0.08);
   -webkit-tap-highlight-color: transparent;
 }
 
 .revenue-calendar-day.is-other-month {
-  background: #fbf7f9;
+  background: #f7f6f5;
   color: #b2a8b1;
-  border-color: #f2e8ed;
+  border-color: #ebe8e5;
   box-shadow: none;
 }
 
@@ -6766,14 +6763,14 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .revenue-calendar-day.selected-week {
-  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 128, 128, 0.18);
 }
 
 .revenue-calendar-day.is-other-month.selected,
 .revenue-calendar-day.is-other-month.selected-week {
-  background: #f8e8ee;
+  background: #f2f0ee;
   color: var(--primary-dark);
-  border-color: #e6b1c3;
+  border-color: #008080;
 }
 
 .revenue-month-grid {
@@ -6793,7 +6790,7 @@ button.is-action-locked .app-action-nav-label {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.1;
-  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  box-shadow: 0 1px 2px rgba(84, 79, 65, 0.08);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -6865,7 +6862,7 @@ button.is-action-locked .app-action-nav-label {
 #todoScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .todo-screen-shell {
@@ -6903,7 +6900,7 @@ button.is-action-locked .app-action-nav-label {
   border-radius: 2px;
   padding: 8px 14px;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(170, 120, 145, 0.08);
+  box-shadow: 0 1px 2px rgba(84, 79, 65, 0.08);
 }
 
 .todo-filter-btn.active {
@@ -6957,7 +6954,7 @@ button.is-action-locked .app-action-nav-label {
 
 .todo-check-btn {
   border: none;
-  border-right: 1px solid #f2e8ed;
+  border-right: 1px solid #ebe8e5;
   background: #ffffff;
   display: grid;
   place-items: center;
@@ -7139,7 +7136,7 @@ button.is-action-locked .app-action-nav-label {
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 4px;
-  box-shadow: 0 16px 32px rgba(84, 48, 65, 0.18);
+  box-shadow: 0 16px 32px rgba(84, 79, 65, 0.18);
   padding: 12px;
 }
 
@@ -7158,8 +7155,8 @@ button.is-action-locked .app-action-nav-label {
   place-items: center;
   padding: 8px;
   border-radius: 14px;
-  background: #fff8fb;
-  border: 1px solid #f4e8ee;
+  background: #f7f6f5;
+  border: 1px solid #ece9e6;
 }
 
 .payment-qr-card .payment-qr-image {
@@ -7233,7 +7230,7 @@ button.is-action-locked .app-action-nav-label {
   gap: 8px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.10);
+  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.10);
 }
 
 .payment-qr-open-trigger:disabled {
@@ -7262,7 +7259,7 @@ button.is-action-locked .app-action-nav-label {
 .payment-qr-dialog-card {
   text-align: center;
   border: 1px solid var(--line);
-  box-shadow: 0 28px 58px rgba(84, 48, 65, 0.22);
+  box-shadow: 0 28px 58px rgba(84, 79, 65, 0.22);
 }
 
 .payment-qr-dialog-card .modal-head {
@@ -7285,7 +7282,7 @@ button.is-action-locked .app-action-nav-label {
   padding: 12px;
   border: 5px solid #f0e3ea;
   border-radius: 22px;
-  background: #fff8fb;
+  background: #f7f6f5;
 }
 
 .payment-qr-dialog-image {
@@ -7502,7 +7499,7 @@ button.is-action-locked .app-action-nav-label {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 2px;
-  background: #fff8fb;
+  background: #f7f6f5;
   color: var(--primary-dark);
   font-weight: 700;
   user-select: none;
@@ -7641,7 +7638,7 @@ button.is-action-locked .app-action-nav-label {
 #settingsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .settings-page {
@@ -7649,7 +7646,7 @@ button.is-action-locked .app-action-nav-label {
   overflow: hidden;
   background:
     radial-gradient(circle at top left, rgba(248, 232, 238, 0.88), transparent 34%),
-    linear-gradient(180deg, #fffdfd 0%, #fbf7f9 100%);
+    linear-gradient(180deg, #ffffff 0%, #f7f6f5 100%);
 }
 
 .settings-scroll {
@@ -7746,7 +7743,7 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .settings-section-card .field {
-  background: #fffdfd;
+  background: #ffffff;
 }
 
 .settings-section-head {
@@ -7774,7 +7771,7 @@ button.is-action-locked .app-action-nav-label {
   height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid #f0dce5;
+  border: 1px solid #f2f0ee;
   border-radius: 15px;
   background: var(--primary-soft);
   color: var(--primary-dark);
@@ -7882,7 +7879,7 @@ button.is-action-locked .app-action-nav-label {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 -6px 18px rgba(170, 120, 145, 0.10);
+  box-shadow: 0 -6px 18px rgba(84, 79, 65, 0.10);
   backdrop-filter: blur(10px);
 }
 
@@ -7898,7 +7895,7 @@ button.is-action-locked .app-action-nav-label {
   justify-content: space-between;
   gap: 10px;
   border-color: #e7bfd0;
-  background: #fff8fb;
+  background: #f7f6f5;
 }
 
 .settings-actions-sticky .action-btn {
@@ -8148,7 +8145,7 @@ body.app-is-busy .revenue-action-bar {
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.96);
   color: var(--primary-dark);
-  box-shadow: 0 18px 42px rgba(84, 48, 65, 0.18);
+  box-shadow: 0 18px 42px rgba(84, 79, 65, 0.18);
   font-family: 'Montserrat', sans-serif;
   font-size: 14px;
   font-weight: 700;
@@ -8332,7 +8329,7 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 .header-account-icon {
   width: 30px;
   height: 30px;
-  color: #b86d87;
+  color: #544f41;
 }
 
 .header-account-icon .header-account-svg {
@@ -8361,7 +8358,7 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 .revenue-chart-card .revenue-method-breakdown {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #f0e4ea;
+  border-top: 1px solid #e7e3df;
 }
 
 /* =========================================================
@@ -8370,7 +8367,7 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 #costsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .costs-screen-shell {
@@ -8686,12 +8683,12 @@ body.costs-fab-pair #floatingAddBtn {
   height: 50px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
   color: #ffffff;
   display: grid;
   place-items: center;
   padding: 0;
-  box-shadow: 0 8px 18px rgba(185, 109, 135, 0.24);
+  box-shadow: 0 8px 18px rgba(0, 128, 128, 0.24);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0.52);
@@ -8717,7 +8714,7 @@ body.costs-fab-pair #floatingAddBtn {
 
 .agenda-fab-menu-item:hover,
 .agenda-fab-menu-item:active {
-  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
+  box-shadow: 0 10px 22px rgba(0, 128, 128, 0.30);
   transform:
     translate(calc(-50% + var(--fab-x)), calc(-50% + var(--fab-y)))
     scale(1.05);
@@ -8757,7 +8754,7 @@ body.costs-fab-pair #floatingAddBtn {
 
 .fab.fab-menu-open {
   transform: translateX(-50%) rotate(45deg);
-  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
+  box-shadow: 0 10px 22px rgba(0, 128, 128, 0.30);
 }
 
 @media (max-width: 360px) {
@@ -8808,7 +8805,7 @@ body.costs-fab-pair #floatingAddBtn {
   padding: clamp(10px, 2.7cqw, 20px) clamp(4px, 1.45cqw, 12px) !important;
   font-family: 'Montserrat', sans-serif !important;
   text-align: center !important;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
   overflow: hidden !important;
   transform: translate3d(0, var(--revenue-swipe-y, 0px), 0) !important;
   opacity: var(--revenue-swipe-opacity, 1);
@@ -8831,7 +8828,7 @@ body.costs-fab-pair #floatingAddBtn {
   background: var(--primary-soft) !important;
   border: 2px solid var(--primary-dark) !important;
   color: #3f3b42 !important;
-  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
 }
 
 .costs-screen-shell .revenue-period-icon {
@@ -9012,8 +9009,8 @@ body.costs-fab-pair #floatingAddBtn {
   display: grid;
   gap: 6px;
   padding: 14px 12px;
-  border: 1px solid #f0e4ea;
-  background: #fbf7f9;
+  border: 1px solid #e7e3df;
+  background: #f7f6f5;
   box-shadow: none;
 }
 
@@ -9110,8 +9107,8 @@ body.app-is-busy .costs-action-bar {
   min-height: 76px;
   aspect-ratio: auto;
   padding: 14px 12px;
-  border: 1px solid #f0e4ea;
-  background: #fbf7f9;
+  border: 1px solid #e7e3df;
+  background: #f7f6f5;
 }
 
 .statistics-kpi-label {
@@ -9536,8 +9533,8 @@ body.costs-action-mode.costs-fab-pair #floatingAddBtn {
   height: 26px;
   min-height: 26px;
   border: none;
-  border-top: 1px solid #f4e8ee;
-  border-bottom: 1px solid #f4e8ee;
+  border-top: 1px solid #ece9e6;
+  border-bottom: 1px solid #ece9e6;
   background: #fff4f8;
   color: var(--primary-dark);
   display: grid;
@@ -9574,7 +9571,7 @@ body.agenda-day-mode #agendaScreen .agenda-list-panel {
   position: relative;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #f1e5eb;
+  border: 1px solid #e7e3df;
   background: #ffffff;
   margin-top: 8px;
 }
@@ -9638,7 +9635,7 @@ body.agenda-day-mode #agendaScreen .agenda-list-panel {
   align-content: start;
   gap: 2px;
   text-align: left;
-  box-shadow: 0 1px 3px rgba(170, 120, 145, 0.12);
+  box-shadow: 0 1px 3px rgba(84, 79, 65, 0.12);
   pointer-events: auto;
   overflow: hidden;
 }
@@ -9771,7 +9768,7 @@ body.agenda-day-mode #agendaDayCalendar {
 }
 
 .agenda-day-appointment.private {
-  background: #fff8fb !important;
+  background: #f7f6f5 !important;
 }
 
 .agenda-day-appointment-row.appointment-row {
@@ -9836,7 +9833,7 @@ body.agenda-day-mode #agendaDayCalendar {
 ========================================================= */
 .agenda-day-calendar.has-pinned-private-day .agenda-day-scroll,
 .agenda-day-calendar.has-pinned-private-day .agenda-day-grid {
-  background: #fff8fb !important;
+  background: #f7f6f5 !important;
 }
 
 .agenda-day-pinned-private-wrap {
@@ -9846,7 +9843,7 @@ body.agenda-day-mode #agendaDayCalendar {
   display: grid;
   gap: 4px;
   padding: 6px 8px 6px 50px;
-  background: #fff8fb;
+  background: #f7f6f5;
   border-bottom: 1px solid #efd7e1;
 }
 
@@ -9854,7 +9851,7 @@ body.agenda-day-mode #agendaDayCalendar {
   width: 100%;
   border-radius: 0 !important;
   padding: 0 !important;
-  background: #fff8fb !important;
+  background: #f7f6f5 !important;
   border: 1px solid #eecbd8 !important;
   box-shadow: var(--shadow-card) !important;
   color: inherit !important;
@@ -9869,7 +9866,7 @@ body.agenda-day-mode #agendaDayCalendar {
 }
 
 .agenda-day-appointment.private.appointment-card {
-  background: #fff8fb !important;
+  background: #f7f6f5 !important;
   border-color: #eecbd8 !important;
 }
 
@@ -10339,7 +10336,7 @@ body.agenda-day-mode #agendaCalendarModeToggle {
   bottom: 0;
   width: var(--revenue-bar-group-width, 10px);
   transform: translateX(-50%);
-  background: #f3e7ec;
+  background: #ebe8e5;
   z-index: 0;
 }
 
@@ -10468,7 +10465,7 @@ body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
   font-weight: 700;
   line-height: 1;
   padding: 0 12px 4px;
-  box-shadow: 0 2px 8px rgba(84, 48, 65, 0.14);
+  box-shadow: 0 2px 8px rgba(84, 79, 65, 0.14);
   pointer-events: auto;
   touch-action: manipulation;
 }
@@ -10503,7 +10500,7 @@ body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
   padding: 0 0 3px !important;
   font-size: 13px !important;
   line-height: 1 !important;
-  box-shadow: 0 1px 4px rgba(84, 48, 65, 0.12) !important;
+  box-shadow: 0 1px 4px rgba(84, 79, 65, 0.12) !important;
 }
 
 .agenda-day-hidden-nav:hover,
@@ -10547,7 +10544,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
    AGENDA: dagen van vorige/volgende maand opnieuw zichtbaar
 ========================================================= */
 .day-cell.other-month {
-  background: #fbf7f9;
+  background: #f7f6f5;
   border-color: #f1e7ed;
   color: #b7a9b2;
   opacity: 0.72;
@@ -10756,7 +10753,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   gap: 12px;
   align-items: flex-start;
   padding: 12px;
-  border: 1px solid #f0dce5;
+  border: 1px solid #f2f0ee;
   border-radius: 16px;
   background: #fff;
 }
@@ -10836,7 +10833,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   height: 100%;
   min-height: 0;
   display: grid;
-  background: #fbf7f9;
+  background: #f7f6f5;
   overflow: hidden;
 }
 
@@ -10846,7 +10843,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   min-height: 0;
   border: 0;
   display: block;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 /* =========================================================
@@ -10859,7 +10856,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   padding: 14px 14px 34px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .admin-overview-card {
@@ -10908,9 +10905,9 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   display: grid;
   gap: 7px;
   padding: 13px 10px;
-  border: 1px solid #f0e4ea;
+  border: 1px solid #e7e3df;
   border-radius: var(--radius-md);
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .admin-stat-card span {
@@ -11008,7 +11005,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   min-width: 0;
   padding: 9px;
   border-radius: var(--radius-md);
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .admin-user-field span {
@@ -11032,7 +11029,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   gap: 8px;
   padding: 10px 12px 12px;
   border-top: 1px solid var(--line);
-  background: #fffdfd;
+  background: #ffffff;
 }
 
 .admin-empty-state {
@@ -11083,7 +11080,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
 .header-support-btn {
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(184, 109, 135, 0.22);
+  border: 1px solid rgba(0, 128, 128, 0.22);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--primary-dark);
@@ -11843,9 +11840,9 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   height: 34px;
   min-width: 34px;
   min-height: 34px;
-  border: 1px solid rgba(184, 109, 135, 0.22);
+  border: 1px solid rgba(0, 128, 128, 0.22);
   border-radius: 999px;
-  background: #bd6d89;
+  background: #008080;
   color: #ffffff;
   font-family: 'Montserrat', sans-serif;
   font-size: 15px;
@@ -11982,7 +11979,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   min-width: 32px;
   min-height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(184, 109, 135, 0.20);
+  border: 1px solid rgba(0, 128, 128, 0.20);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -12090,8 +12087,8 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 }
 
 #appTopbar .header-language-btn {
-  background: #bd6d89 !important;
-  border: 1px solid #bd6d89 !important;
+  background: #008080 !important;
+  border: 1px solid #008080 !important;
   color: #ffffff !important;
 }
 
@@ -12112,7 +12109,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 #appTopbar .header-language-option {
   background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(184, 109, 135, 0.20) !important;
+  border: 1px solid rgba(0, 128, 128, 0.20) !important;
   color: var(--primary-dark) !important;
 }
 
@@ -12186,8 +12183,8 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 }
 
 #appTopbar .header-language-btn {
-  background: #bd6d89 !important;
-  border: 1px solid #bd6d89 !important;
+  background: #008080 !important;
+  border: 1px solid #008080 !important;
   color: #ffffff !important;
 }
 
@@ -12209,7 +12206,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 #appTopbar .header-language-option {
   background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(184, 109, 135, 0.20) !important;
+  border: 1px solid rgba(0, 128, 128, 0.20) !important;
   color: var(--primary-dark) !important;
 }
 
@@ -12259,7 +12256,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(84, 48, 65, 0.12);
+  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.12);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -12293,7 +12290,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 .subscription-page {
   min-height: 0;
   height: 100%;
-  background: #fbf7f9;
+  background: #f7f6f5;
 }
 
 .subscription-scroll {
@@ -12381,7 +12378,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 .subscription-cancel-btn {
   margin-top: 12px;
   color: var(--danger);
-  border-color: #f5c2d2;
+  border-color: #d9d4cf;
   background: var(--danger-soft);
 }
 
@@ -12400,7 +12397,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   gap: 8px 14px;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid #f2e8ed;
+  border-top: 1px solid #ebe8e5;
   font-size: 13px;
   line-height: 1.35;
 }
@@ -12417,7 +12414,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 .account-legal-links a:active,
 .terms-checkbox-row a:hover,
 .terms-checkbox-row a:active {
-  color: #9f5f75;
+  color: #544f41;
 }
 
 .terms-checkbox-row span {
@@ -12623,7 +12620,7 @@ dialog.modal#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-mes
   max-height: calc(100dvh - 48px) !important;
   padding: 0 30px 18px !important;
   border-radius: 0 !important;
-  box-shadow: 0 22px 46px rgba(84, 48, 65, 0.24) !important;
+  box-shadow: 0 22px 46px rgba(84, 79, 65, 0.24) !important;
   background: #fff !important;
   overflow-y: auto !important;
 }
@@ -12645,7 +12642,7 @@ dialog.modal#appMessageDialog.agenda-unpaid-message-dialog > .modal-card.app-mes
   height: 34px;
   margin: 0;
   border-radius: 0;
-  background: url("img/logoNailBooker.png") center / contain no-repeat !important;
+  background: url("img/NB_logo.png") center / contain no-repeat !important;
 }
 
 #appMessageDialog.agenda-unpaid-message-dialog .app-message-head {
@@ -12762,7 +12759,7 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
   padding: 0 30px 18px !important;
   border-radius: 0 !important;
   background: #fff !important;
-  box-shadow: 0 22px 46px rgba(84, 48, 65, 0.24) !important;
+  box-shadow: 0 22px 46px rgba(84, 79, 65, 0.24) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
@@ -12785,7 +12782,7 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
   height: 36px !important;
   margin: 0 !important;
   border-radius: 0 !important;
-  background: url("img/logoNailBooker.png") center / contain no-repeat !important;
+  background: url("img/NB_logo.png") center / contain no-repeat !important;
 }
 
 #appMessageDialog.agenda-unpaid-message-dialog .app-message-head {
@@ -12886,4 +12883,89 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
   padding: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+
+/* Kosten en To Do zijn in deze versie bewust uitgeschakeld. */
+.feature-retired { display: none !important; }
+
+
+/* =========================================================
+   BRAND REFRESH v2 — lichtere basis, iets fleuriger
+========================================================= */
+:root {
+  --bg: #faf9f8;
+  --line: #e8e4e1;
+  --line-strong: #ddd7d2;
+  --primary: #008080;
+  --primary-dark: #544f41;
+  --primary-soft: #e8f4f3;
+  --text: #544f41;
+  --muted: #7d786d;
+}
+
+.app-shell {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfbfa 50%, #f8f6f4 100%);
+}
+
+#appTopbar.topbar {
+  background: linear-gradient(180deg, #f7f5f3 0%, #f0eeeb 100%) !important;
+  border-bottom-color: #e4dfdb !important;
+}
+
+.nav-btn.active,
+.day-cell.selected,
+.revenue-period-tile.active,
+.todo-filter-btn.active,
+.app-select-option.is-selected {
+  background: #e8f4f3 !important;
+}
+
+#appTopbar .header-language-btn {
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
+  border-color: #008080 !important;
+  color: #fff !important;
+  box-shadow: 0 5px 12px rgba(0, 128, 128, 0.18) !important;
+}
+
+#appTopbar .header-language-option {
+  border-color: rgba(0, 128, 128, 0.20) !important;
+  color: #544f41 !important;
+}
+
+#appTopbar .header-language-option:hover,
+#appTopbar .header-language-option:active {
+  background: #e8f4f3 !important;
+  color: #008080 !important;
+}
+
+.btn-primary, .fab {
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
+}
+
+/* =========================================================
+   BRAND REFRESH v5 — topklanten + agenda kalender-toggle
+========================================================= */
+.statistics-top-customer-rank {
+  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 128, 128, 0.24) !important;
+  box-shadow: 0 3px 8px rgba(0, 128, 128, 0.16);
+}
+
+.agenda-calendar-mode-toggle {
+  background: #e8f4f3 !important;
+  color: #008080 !important;
+  border-top-color: #cfe6e4 !important;
+  border-bottom-color: #cfe6e4 !important;
+}
+
+.agenda-calendar-mode-toggle:hover,
+.agenda-calendar-mode-toggle:active {
+  background: #d9efed !important;
+}
+
+.agenda-calendar-toggle-chevrons,
+.agenda-calendar-toggle-chevrons span {
+  color: #008080 !important;
 }
