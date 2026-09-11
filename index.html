@@ -8,7 +8,7 @@
   />
 
   <!-- Basiskleuren / PWA meta -->
-  <meta name="theme-color" content="#008080" />
+  <meta name="theme-color" content="#d98ea7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="NailBooker" />
@@ -81,7 +81,7 @@
         <div class="topbar-title-wrap">
           <img
             class="topbar-logo"
-            src="img/NB_icon.png"
+            src="img/logoNailBooker.png"
             alt="NailBooker logo"
           />
           <h1 id="screenTitle">Agenda</h1>
@@ -466,6 +466,61 @@
                     </span>
                     <input id="settingsOverlapWarningsEnabled" type="checkbox" />
                   </label>
+
+                  <div class="settings-free-days">
+                    <div class="field-label" data-i18n="freeDays">Vrije dagen</div>
+                    <p class="settings-info-text settings-free-days-hint" data-i18n="freeDaysHint">Stel terugkerende vrije dagen, een vrije periode en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.</p>
+
+                    <div class="settings-free-days-subgroup">
+                      <div class="settings-free-days-subtitle" data-i18n="recurringFreeDays">Terugkerende vrije dagen</div>
+                      <div class="settings-free-days-grid" role="group" aria-label="Terugkerende vrije dagen">
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="1" /><span>Ma</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="2" /><span>Di</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="3" /><span>Wo</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="4" /><span>Do</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="5" /><span>Vr</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="6" /><span>Za</span></label>
+                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="0" /><span>Zo</span></label>
+                      </div>
+                      <label class="settings-free-days-inline" for="settingsFreeWeekInterval">
+                        <span data-i18n="repeatEvery">Elke</span>
+                        <select id="settingsFreeWeekInterval" class="field settings-free-week-interval">
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                        </select>
+                        <span data-i18n="weeksUnit">week/weken</span>
+                      </label>
+                      <p class="settings-info-text settings-free-days-note" data-i18n="repeatWeekHint">Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.</p>
+                    </div>
+
+                    <div class="settings-free-days-subgroup">
+                      <div class="settings-free-days-subtitle" data-i18n="freePeriod">Vrije periode</div>
+                      <div class="settings-free-period-grid">
+                        <label class="settings-free-period-field">
+                          <span class="field-label" data-i18n="from">Van</span>
+                          <input id="settingsFreePeriodStart" class="field appointment-native-picker-input" type="date" tabindex="-1" aria-hidden="true" />
+                          <button id="settingsFreePeriodStartDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Begindatum kiezen">Kies datum</button>
+                        </label>
+                        <label class="settings-free-period-field">
+                          <span class="field-label" data-i18n="until">Tot</span>
+                          <input id="settingsFreePeriodEnd" class="field appointment-native-picker-input" type="date" tabindex="-1" aria-hidden="true" />
+                          <button id="settingsFreePeriodEndDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Einddatum kiezen">Kies datum</button>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="settings-free-days-subgroup settings-free-holidays-row">
+                      <label class="settings-switch-row" for="settingsBelgianHolidaysEnabled">
+                        <span>
+                          <strong data-i18n="belgianHolidays">Belgische feestdagen</strong>
+                          <small data-i18n="belgianHolidaysHint">Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.</small>
+                        </span>
+                        <input id="settingsBelgianHolidaysEnabled" type="checkbox" />
+                      </label>
+                    </div>
+                  </div>
                 </section>
 
                 <section class="settings-section-card">

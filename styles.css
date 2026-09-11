@@ -6,17 +6,17 @@
 }
 
 :root {
-  --bg: #f7f6f5;
+  --bg: #f7f4f6;
   --card: #ffffff;
-  --line: #e8e4e1;
-  --line-strong: #cec9c3;
+  --line: #eddfe6;
+  --line-strong: #e4d1da;
 
-  --primary: #008080;
-  --primary-dark: #544f41;
-  --primary-soft: #e8f4f3;
+  --primary: #d991ab;
+  --primary-dark: #b86d87;
+  --primary-soft: #f8e8ee;
 
-  --text: #544f41;
-  --muted: #7b766b;
+  --text: #4e4650;
+  --muted: #8c838d;
 
   --success-bg: #e7f6ea;
   --success-text: #2d8b4e;
@@ -24,8 +24,8 @@
   --danger: #d46a8a;
   --danger-soft: #fff1f5;
 
-  --shadow-soft: 0 2px 4px rgba(84, 79, 65, 0.10); /* 0 8px 20px rgba(84, 79, 65, 0.10); */
-  --shadow-card: 0 2px 4px rgba(84, 79, 65, 0.12);  /* 0 12px 28px rgba(84, 79, 65, 0.12); */
+  --shadow-soft: 0 2px 4px rgba(170, 120, 145, 0.10); /* 0 8px 20px rgba(170, 120, 145, 0.10); */
+  --shadow-card: 0 2px 4px rgba(170, 120, 145, 0.12);  /* 0 12px 28px rgba(170, 120, 145, 0.12); */
 
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -75,7 +75,7 @@ button {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f7f4f2;
+  background: #f9eef3;
   opacity: 1;
   visibility: visible;
   transition:
@@ -119,7 +119,7 @@ button {
   opacity: 0;
   transform: scale(0.96);
   animation: splashLogoIn 0.7s cubic-bezier(.2,.75,.25,1) 0.55s forwards;
-  filter: drop-shadow(0 10px 20px rgba(0, 128, 128, 0.10));
+  filter: drop-shadow(0 10px 20px rgba(185, 109, 135, 0.18));
 }
 
 @keyframes splashIconOut {
@@ -172,7 +172,7 @@ button {
   margin: 0 auto;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: linear-gradient(180deg, #ffffff 0%, #ffffff 48%, #f7f6f5 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfd 48%, #fbf7f9 100%);
   overflow: hidden;
 }
 
@@ -205,7 +205,11 @@ button {
   gap: 12px;
   padding: 12px 16px 10px;
   background: rgba(255, 255, 255, 0.96);
-  background: linear-gradient(180deg, #f6f4f2 0%, #f1efec 100%);
+  background: linear-gradient(
+    to bottom,
+    #f8e8ee 0%,
+    rgba(248, 232, 238, 0) 100%
+  );
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -548,7 +552,7 @@ button {
 }
 
 .day-cell.today.selected {
-  box-shadow: inset 0 0 0 1px rgba(0, 128, 128, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
 }
 
 .day-dots {
@@ -779,13 +783,13 @@ button {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
-  /* box-shadow: 0 12px 22px rgba(0, 128, 128, 0.22); */
+  /* box-shadow: 0 12px 22px rgba(185, 109, 135, 0.22); */
 }
 
 .btn-primary:hover {
-  /* box-shadow: 0 16px 28px rgba(0, 128, 128, 0.28); */
+  /* box-shadow: 0 16px 28px rgba(185, 109, 135, 0.28); */
 }
 
 .btn-secondary {
@@ -841,7 +845,7 @@ button {
   border-radius: 999px;
   font-weight: 700;
   padding: 10px 12px;
-  /* box-shadow: 0 2px 4px rgba(84, 79, 65, 0.12); */
+  /* box-shadow: 0 2px 4px rgba(170, 120, 145, 0.12); */
 }
 
 .price-chip.paid {
@@ -901,7 +905,7 @@ button {
 }
 
 .nav-btn.active path {
-  fill: #008080;
+  fill: #df9db3;
 }
 
 .nav-ico {
@@ -932,9 +936,9 @@ button {
   z-index: 40;
   width: 58px;
   height: 58px;
-  border: 1px solid #008080;
+  border: 1px solid #d5819d;
   border-radius: 999px;
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
   font-size: 34px;
 }
@@ -1039,7 +1043,7 @@ button {
 }
 
 .password-toggle-btn:focus-visible {
-  outline: 2px solid rgba(0, 128, 128, 0.35);
+  outline: 2px solid rgba(185, 109, 135, 0.35);
   outline-offset: 1px;
 }
 
@@ -1345,7 +1349,7 @@ button {
   border: 1px solid #f2f0ee;
   border-radius: 2px;
   padding: 6px 10px;
-  background: #f7f6f5;
+  background: #f7f4f6;
   color: var(--primary-dark);
   font-size: 13px;
   font-weight: 700;
@@ -2283,7 +2287,7 @@ button {
   gap: 6px;
   padding: 14px 12px;
   border: 1px solid #e7e3df;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .revenue-summary-item strong {
@@ -2675,7 +2679,7 @@ button {
 #todoScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .todo-screen-shell {
@@ -3045,7 +3049,7 @@ button {
 #statisticsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .statistics-screen-shell {
@@ -3430,8 +3434,8 @@ button {
 }
 
 .revenue-action-btn-report {
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
-  border: 1px solid #008080;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  border: 1px solid #d5819d;
 }
 
 .revenue-action-export-label,
@@ -3505,7 +3509,7 @@ button {
   body {
     background:
       radial-gradient(circle at top left, rgba(248, 232, 238, 0.9), transparent 34%),
-      linear-gradient(135deg, #f7f4f6 0%, #fff 46%, #f7f6f5 100%);
+      linear-gradient(135deg, #f7f4f6 0%, #fff 46%, #f7f4f6 100%);
   }
 
   .app-shell {
@@ -3516,7 +3520,7 @@ button {
     grid-template-rows: auto minmax(0, 1fr);
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
-    box-shadow: 0 20px 60px rgba(84, 79, 65, 0.12);
+    box-shadow: 0 20px 60px rgba(170, 120, 145, 0.12);
   }
 
   .topbar {
@@ -3545,7 +3549,7 @@ button {
     overflow-x: hidden;
     overflow-y: auto;
     background:
-      linear-gradient(180deg, #fff 0%, #f7f6f5 52%, #f2f0ee 100%);
+      linear-gradient(180deg, #fff 0%, #f7f4f6 52%, #f2f0ee 100%);
   }
 
   .nav-btn {
@@ -3750,7 +3754,7 @@ button {
   .clients-panel,
   .services-panel,
   .detail-panel {
-    background: #f7f6f5;
+    background: #f7f4f6;
   }
 
   .search-input {
@@ -4164,7 +4168,7 @@ button {
 
 .main-layout.is-swiping,
 .main-layout.is-swipe-animating {
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .main-layout.is-swiping > .screen,
@@ -5105,7 +5109,7 @@ button {
 }
 
 .revenue-summary-item.revenue-summary-total {
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 @media (max-width: 420px) {
@@ -5135,9 +5139,9 @@ button {
 .client-inline-add-btn {
   width: 52px;
   height: 52px;
-  border: 1px solid #008080;
+  border: 1px solid #d5819d;
   border-radius: 999px;
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
   font-size: 32px;
   line-height: 1;
@@ -5176,7 +5180,7 @@ button {
 }
 
 .client-detail-appointment-row:focus-visible {
-  outline: 2px solid rgba(0, 128, 128, 0.35);
+  outline: 2px solid rgba(185, 109, 135, 0.35);
   outline-offset: -2px;
 }
 
@@ -5497,7 +5501,7 @@ button.is-action-locked .app-action-nav-label {
   padding: clamp(12px, 4.2vw, 24px) clamp(5px, 2.5vw, 18px) clamp(10px, 3.2vw, 18px);
   font-family: 'Montserrat', sans-serif;
   text-align: left;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12);
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
 }
 
 .revenue-screen-shell .revenue-period-tile:hover,
@@ -5512,7 +5516,7 @@ button.is-action-locked .app-action-nav-label {
   background: var(--primary-soft);
   border: 2px solid var(--primary-dark);
   color: #3f3b42;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12);
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12);
 }
 
 .revenue-screen-shell .revenue-period-icon {
@@ -5686,7 +5690,7 @@ button.is-action-locked .app-action-nav-label {
 
   font-family: 'Montserrat', sans-serif !important;
   text-align: center !important;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
   overflow: hidden !important;
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -5704,7 +5708,7 @@ button.is-action-locked .app-action-nav-label {
   background: var(--primary-soft) !important;
   border: 2px solid var(--primary-dark) !important;
   color: #3f3b42 !important;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
 }
 
 .revenue-screen-shell .revenue-period-icon {
@@ -6392,7 +6396,7 @@ button.is-action-locked .app-action-nav-label {
 .app-select-wrap.is-open .app-select-button {
   border-color: var(--primary);
   background: var(--primary-soft);
-  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.12);
+  box-shadow: 0 4px 10px rgba(170, 120, 145, 0.12);
 }
 
 .app-select-button:active {
@@ -6400,7 +6404,7 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .app-select-button:focus-visible {
-  outline: 2px solid rgba(0, 128, 128, 0.32);
+  outline: 2px solid rgba(185, 109, 135, 0.32);
   outline-offset: 2px;
 }
 
@@ -6783,7 +6787,7 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .revenue-calendar-day.is-other-month {
-  background: #f7f6f5;
+  background: #f7f4f6;
   color: #b2a8b1;
   border-color: #ebe8e5;
   box-shadow: none;
@@ -6799,14 +6803,14 @@ button.is-action-locked .app-action-nav-label {
 }
 
 .revenue-calendar-day.selected-week {
-  box-shadow: inset 0 0 0 1px rgba(0, 128, 128, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(185, 109, 135, 0.18);
 }
 
 .revenue-calendar-day.is-other-month.selected,
 .revenue-calendar-day.is-other-month.selected-week {
   background: #f2f0ee;
   color: var(--primary-dark);
-  border-color: #008080;
+  border-color: #d5819d;
 }
 
 .revenue-month-grid {
@@ -6898,7 +6902,7 @@ button.is-action-locked .app-action-nav-label {
 #todoScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .todo-screen-shell {
@@ -7191,7 +7195,7 @@ button.is-action-locked .app-action-nav-label {
   place-items: center;
   padding: 8px;
   border-radius: 14px;
-  background: #f7f6f5;
+  background: #f7f4f6;
   border: 1px solid #ece9e6;
 }
 
@@ -7266,7 +7270,7 @@ button.is-action-locked .app-action-nav-label {
   gap: 8px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(84, 79, 65, 0.10);
+  box-shadow: 0 2px 4px rgba(170, 120, 145, 0.10);
 }
 
 .payment-qr-open-trigger:disabled {
@@ -7318,7 +7322,7 @@ button.is-action-locked .app-action-nav-label {
   padding: 12px;
   border: 5px solid #f0e3ea;
   border-radius: 22px;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .payment-qr-dialog-image {
@@ -7535,7 +7539,7 @@ button.is-action-locked .app-action-nav-label {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 2px;
-  background: #f7f6f5;
+  background: #f7f4f6;
   color: var(--primary-dark);
   font-weight: 700;
   user-select: none;
@@ -7674,7 +7678,7 @@ button.is-action-locked .app-action-nav-label {
 #settingsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  /* background: #f7f6f5; */
+  /* background: #f7f4f6; */
 }
 
 .settings-page {
@@ -7682,7 +7686,7 @@ button.is-action-locked .app-action-nav-label {
   overflow: hidden;
   /* background:
     radial-gradient(circle at top left, rgba(248, 232, 238, 0.88), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f7f6f5 100%); */
+    linear-gradient(180deg, #ffffff 0%, #f7f4f6 100%); */
 }
 
 .settings-scroll {
@@ -7915,7 +7919,7 @@ button.is-action-locked .app-action-nav-label {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 -6px 18px rgba(84, 79, 65, 0.10);
+  box-shadow: 0 -6px 18px rgba(170, 120, 145, 0.10);
   backdrop-filter: blur(10px);
 }
 
@@ -7931,7 +7935,7 @@ button.is-action-locked .app-action-nav-label {
   justify-content: space-between;
   gap: 10px;
   border-color: #e7bfd0;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .settings-actions-sticky .action-btn {
@@ -8403,7 +8407,7 @@ body.app-is-busy *:not(#appBusyOverlay):not(#appBusyOverlay *) {
 #costsScreen {
   grid-template-rows: 1fr;
   min-height: 0;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .costs-screen-shell {
@@ -8719,12 +8723,12 @@ body.costs-fab-pair #floatingAddBtn {
   height: 50px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%);
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
   display: grid;
   place-items: center;
   padding: 0;
-  box-shadow: 0 8px 18px rgba(0, 128, 128, 0.24);
+  box-shadow: 0 8px 18px rgba(185, 109, 135, 0.24);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0.52);
@@ -8750,7 +8754,7 @@ body.costs-fab-pair #floatingAddBtn {
 
 .agenda-fab-menu-item:hover,
 .agenda-fab-menu-item:active {
-  box-shadow: 0 10px 22px rgba(0, 128, 128, 0.30);
+  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
   transform:
     translate(calc(-50% + var(--fab-x)), calc(-50% + var(--fab-y)))
     scale(1.05);
@@ -8790,7 +8794,7 @@ body.costs-fab-pair #floatingAddBtn {
 
 .fab.fab-menu-open {
   transform: translateX(-50%) rotate(45deg);
-  box-shadow: 0 10px 22px rgba(0, 128, 128, 0.30);
+  box-shadow: 0 10px 22px rgba(185, 109, 135, 0.30);
 }
 
 @media (max-width: 360px) {
@@ -8841,7 +8845,7 @@ body.costs-fab-pair #floatingAddBtn {
   padding: clamp(10px, 2.7cqw, 20px) clamp(4px, 1.45cqw, 12px) !important;
   font-family: 'Montserrat', sans-serif !important;
   text-align: center !important;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
   overflow: hidden !important;
   transform: translate3d(0, var(--revenue-swipe-y, 0px), 0) !important;
   opacity: var(--revenue-swipe-opacity, 1);
@@ -8864,7 +8868,7 @@ body.costs-fab-pair #floatingAddBtn {
   background: var(--primary-soft) !important;
   border: 2px solid var(--primary-dark) !important;
   color: #3f3b42 !important;
-  box-shadow: 0 8px 22px rgba(84, 79, 65, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(170, 120, 145, 0.12) !important;
 }
 
 .costs-screen-shell .revenue-period-icon {
@@ -9046,7 +9050,7 @@ body.costs-fab-pair #floatingAddBtn {
   gap: 6px;
   padding: 14px 12px;
   border: 1px solid #e7e3df;
-  background: #f7f6f5;
+  background: #f7f4f6;
   box-shadow: none;
 }
 
@@ -9144,7 +9148,7 @@ body.app-is-busy .costs-action-bar {
   aspect-ratio: auto;
   padding: 14px 12px;
   border: 1px solid #e7e3df;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .statistics-kpi-label {
@@ -9671,7 +9675,7 @@ body.agenda-day-mode #agendaScreen .agenda-list-panel {
   align-content: start;
   gap: 2px;
   text-align: left;
-  box-shadow: 0 1px 3px rgba(84, 79, 65, 0.12);
+  box-shadow: 0 1px 3px rgba(170, 120, 145, 0.12);
   pointer-events: auto;
   overflow: hidden;
 }
@@ -9804,7 +9808,7 @@ body.agenda-day-mode #agendaDayCalendar {
 }
 
 .agenda-day-appointment.private {
-  background: #f7f6f5 !important;
+  background: #f7f4f6 !important;
 }
 
 .agenda-day-appointment-row.appointment-row {
@@ -9869,7 +9873,7 @@ body.agenda-day-mode #agendaDayCalendar {
 ========================================================= */
 .agenda-day-calendar.has-pinned-private-day .agenda-day-scroll,
 .agenda-day-calendar.has-pinned-private-day .agenda-day-grid {
-  background: #f7f6f5 !important;
+  background: #f7f4f6 !important;
 }
 
 .agenda-day-pinned-private-wrap {
@@ -9879,7 +9883,7 @@ body.agenda-day-mode #agendaDayCalendar {
   display: grid;
   gap: 4px;
   padding: 6px 8px 6px 50px;
-  background: #f7f6f5;
+  background: #f7f4f6;
   border-bottom: 1px solid #efd7e1;
 }
 
@@ -9887,7 +9891,7 @@ body.agenda-day-mode #agendaDayCalendar {
   width: 100%;
   border-radius: 0 !important;
   padding: 0 !important;
-  background: #f7f6f5 !important;
+  background: #f7f4f6 !important;
   border: 1px solid #eecbd8 !important;
   box-shadow: var(--shadow-card) !important;
   color: inherit !important;
@@ -9902,7 +9906,7 @@ body.agenda-day-mode #agendaDayCalendar {
 }
 
 .agenda-day-appointment.private.appointment-card {
-  background: #f7f6f5 !important;
+  background: #f7f4f6 !important;
   border-color: #eecbd8 !important;
 }
 
@@ -10536,7 +10540,7 @@ body.costs-action-mode #standardCostsBtn.fab.fab-secondary:not(.hidden) {
   padding: 0 0 3px !important;
   font-size: 13px !important;
   line-height: 1 !important;
-  box-shadow: 0 1px 4px rgba(84, 79, 65, 0.12) !important;
+  box-shadow: 0 1px 4px rgba(170, 120, 145, 0.12) !important;
 }
 
 .agenda-day-hidden-nav:hover,
@@ -10580,7 +10584,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
    AGENDA: dagen van vorige/volgende maand opnieuw zichtbaar
 ========================================================= */
 .day-cell.other-month {
-  background: #f7f6f5;
+  background: #f7f4f6;
   border-color: #f1e7ed;
   color: #b7a9b2;
   opacity: 0.72;
@@ -10869,7 +10873,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   height: 100%;
   min-height: 0;
   display: grid;
-  background: #f7f6f5;
+  background: #f7f4f6;
   overflow: hidden;
 }
 
@@ -10879,7 +10883,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   min-height: 0;
   border: 0;
   display: block;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 /* =========================================================
@@ -10892,7 +10896,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   padding: 14px 14px 34px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .admin-overview-card {
@@ -10943,7 +10947,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   padding: 13px 10px;
   border: 1px solid #e7e3df;
   border-radius: var(--radius-md);
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .admin-stat-card span {
@@ -11041,7 +11045,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
   min-width: 0;
   padding: 9px;
   border-radius: var(--radius-md);
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .admin-user-field span {
@@ -11116,7 +11120,7 @@ body.agenda-day-mode #agendaDayCalendar .agenda-day-hidden-nav-top {
 .header-support-btn {
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(0, 128, 128, 0.22);
+  border: 1px solid rgba(185, 109, 135, 0.22);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--primary-dark);
@@ -11876,9 +11880,9 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   height: 34px;
   min-width: 34px;
   min-height: 34px;
-  border: 1px solid rgba(0, 128, 128, 0.22);
+  border: 1px solid rgba(185, 109, 135, 0.22);
   border-radius: 999px;
-  background: #008080;
+  background: #d98ea7;
   color: #ffffff;
   font-family: 'Montserrat', sans-serif;
   font-size: 15px;
@@ -12015,7 +12019,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   min-width: 32px;
   min-height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 128, 128, 0.20);
+  border: 1px solid rgba(185, 109, 135, 0.20);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -12123,8 +12127,8 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 }
 
 #appTopbar .header-language-btn {
-  background: #008080 !important;
-  border: 1px solid #008080 !important;
+  background: #d98ea7 !important;
+  border: 1px solid #d5819d !important;
   color: #ffffff !important;
 }
 
@@ -12145,7 +12149,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 #appTopbar .header-language-option {
   background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(0, 128, 128, 0.20) !important;
+  border: 1px solid rgba(185, 109, 135, 0.20) !important;
   color: var(--primary-dark) !important;
 }
 
@@ -12219,8 +12223,8 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 }
 
 #appTopbar .header-language-btn {
-  background: #008080 !important;
-  border: 1px solid #008080 !important;
+  background: #d98ea7 !important;
+  border: 1px solid #d5819d !important;
   color: #ffffff !important;
 }
 
@@ -12242,7 +12246,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 
 #appTopbar .header-language-option {
   background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(0, 128, 128, 0.20) !important;
+  border: 1px solid rgba(185, 109, 135, 0.20) !important;
   color: var(--primary-dark) !important;
 }
 
@@ -12292,7 +12296,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(84, 79, 65, 0.12);
+  box-shadow: 0 4px 10px rgba(170, 120, 145, 0.12);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -12326,7 +12330,7 @@ dialog.modal.has-app-topbar #registerForm.modal-card {
 .subscription-page {
   min-height: 0;
   height: 100%;
-  background: #f7f6f5;
+  background: #f7f4f6;
 }
 
 .subscription-scroll {
@@ -12930,23 +12934,23 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
    BRAND REFRESH v2 — lichtere basis, iets fleuriger
 ========================================================= */
 :root {
-  --bg: #faf9f8;
-  --line: #e8e4e1;
-  --line-strong: #ddd7d2;
-  --primary: #008080;
-  --primary-dark: #544f41;
-  --primary-soft: #e8f4f3;
-  --text: #544f41;
-  --muted: #7d786d;
+  --bg: #f7f4f6;
+  --line: #eddfe6;
+  --line-strong: #e4d1da;
+  --primary: #d991ab;
+  --primary-dark: #b86d87;
+  --primary-soft: #f8e8ee;
+  --text: #4e4650;
+  --muted: #8c838d;
 }
 
 .app-shell {
-  background: linear-gradient(180deg, #ffffff 0%, #fcfbfa 50%, #f8f6f4 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfd 50%, #fbf7f9 100%);
 }
 
 #appTopbar.topbar {
-  background: linear-gradient(180deg, #f7f5f3 0%, #f0eeeb 100%) !important;
-  border-bottom-color: #e4dfdb !important;
+  background: linear-gradient(to bottom, #f8e8ee 0%, rgba(248, 232, 238, 0) 100%) !important;
+  border-bottom-color: #eddfe6 !important;
 }
 
 .nav-btn.active,
@@ -12954,56 +12958,56 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 .revenue-period-tile.active,
 .todo-filter-btn.active,
 .app-select-option.is-selected {
-  background: #e8f4f3 !important;
+  background: #f8e8ee !important;
 }
 
 #appTopbar .header-language-btn {
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
-  border-color: #008080 !important;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%) !important;
+  border-color: #d5819d !important;
   color: #fff !important;
-  box-shadow: 0 5px 12px rgba(0, 128, 128, 0.18) !important;
+  box-shadow: 0 5px 12px rgba(185, 109, 135, 0.18) !important;
 }
 
 #appTopbar .header-language-option {
-  border-color: rgba(0, 128, 128, 0.20) !important;
+  border-color: rgba(185, 109, 135, 0.20) !important;
   color: #544f41 !important;
 }
 
 #appTopbar .header-language-option:hover,
 #appTopbar .header-language-option:active {
-  background: #e8f4f3 !important;
-  color: #008080 !important;
+  background: #f8e8ee !important;
+  color: #b86d87 !important;
 }
 
 .btn-primary, .fab {
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%) !important;
 }
 
 /* =========================================================
    BRAND REFRESH v5 — topklanten + agenda kalender-toggle
 ========================================================= */
 .statistics-top-customer-rank {
-  background: linear-gradient(180deg, #009a96 0%, #008080 100%) !important;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(0, 128, 128, 0.24) !important;
-  box-shadow: 0 3px 8px rgba(0, 128, 128, 0.16);
+  border: 1px solid rgba(185, 109, 135, 0.24) !important;
+  box-shadow: 0 3px 8px rgba(185, 109, 135, 0.16);
 }
 
 .agenda-calendar-mode-toggle {
-  background: #e8f4f3 !important;
-  color: #008080 !important;
-  border-top-color: #cfe6e4 !important;
-  border-bottom-color: #cfe6e4 !important;
+  background: #f8e8ee !important;
+  color: #b86d87 !important;
+  border-top-color: #efd8e2 !important;
+  border-bottom-color: #efd8e2 !important;
 }
 
 .agenda-calendar-mode-toggle:hover,
 .agenda-calendar-mode-toggle:active {
-  background: #d9efed !important;
+  background: #f3dce5 !important;
 }
 
 .agenda-calendar-toggle-chevrons,
 .agenda-calendar-toggle-chevrons span {
-  color: #008080 !important;
+  color: #b86d87 !important;
 }
 
 /* =========================================================
@@ -13011,12 +13015,178 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
    Alleen de knop "Inloggen"; andere primaire knoppen blijven ongewijzigd.
 ========================================================= */
 #loginBtn {
-  background: #544f41;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
   color: #ffffff;
 }
 
 #loginBtn:hover,
 #loginBtn:active {
-  background: #454136;
+  background: #d5819d;
+}
+
+
+
+/* =========================================================
+   VRIJE DAGEN / VRIJE PERIODES
+========================================================= */
+.settings-free-days {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-free-days-hint {
+  margin: 0 0 12px;
+}
+
+.settings-free-days-subgroup {
+  padding: 12px 0;
+  border-top: 1px solid #ece8e5;
+}
+
+.settings-free-days-subgroup:first-of-type {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.settings-free-days-subtitle {
+  margin-bottom: 9px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-free-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.settings-free-day-chip {
+  display: block;
+  min-width: 0;
+}
+
+.settings-free-day-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-free-day-chip span {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-free-day-chip input:checked + span {
+  background: #d9d7d5;
+  border-color: #aaa6a2;
+  color: #514d49;
+  box-shadow: inset 0 0 0 1px #c9c6c3;
+}
+
+.settings-free-day-chip input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.settings-free-days-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-free-week-interval {
+  width: 76px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.settings-free-days-note {
+  margin: 7px 0 0;
+  font-size: 11px;
+}
+
+.settings-free-period-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-free-period-grid .field-label {
+  margin-top: 0;
+}
+
+.settings-free-holidays-row .settings-switch-row {
+  padding: 0;
+}
+
+/* Iets donkerder dan de vorige versie, maar nog duidelijk lichter dan tekst/kaarten. */
+.day-cell.fixed-free-day {
+  background: #dedcda;
+  border-color: #c6c2bf;
+}
+
+.day-cell.fixed-free-day.selected {
+  background: #d6d3d1;
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(184, 109, 135, 0.18);
+}
+
+.day-cell.fixed-free-day.other-month {
+  background: #e7e5e3;
+}
+
+.agenda-day-calendar.is-fixed-free-day,
+.agenda-day-calendar.is-fixed-free-day .agenda-day-scroll,
+.agenda-day-calendar.is-fixed-free-day .agenda-day-grid,
+.agenda-day-calendar.is-fixed-free-day.has-pinned-private-day .agenda-day-scroll,
+.agenda-day-calendar.is-fixed-free-day.has-pinned-private-day .agenda-day-grid {
+  background: #d8d6d4 !important;
+}
+
+.agenda-day-calendar.is-fixed-free-day .agenda-day-hour-line {
+  border-top-color: #bdb9b6 !important;
+}
+
+.agenda-day-calendar.is-fixed-free-day .agenda-day-hour-label {
+  color: #544f4c !important;
+}
+
+.settings-free-period-field {
+  position: relative;
+}
+
+.settings-free-period-field .appointment-picker-display {
+  min-height: 44px;
+}
+
+@media (max-width: 420px) {
+  .settings-free-days-grid {
+    gap: 4px;
+  }
+
+  .settings-free-day-chip span {
+    min-height: 36px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  .settings-free-period-grid {
+    grid-template-columns: 1fr;
+  }
 }
 

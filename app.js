@@ -162,6 +162,7 @@ const i18nSettingsComplete = {
     calendarFeedStatusReady: "Deze link kun je één keer toevoegen in Google Calendar via ‘Via URL’. Nieuwe wijzigingen in NailBooker komen daarna automatisch mee zodra Google de feed ververst.",
     calendarRefreshNote: "Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.",
     deletedAppointments: "Verwijderde afspraken", deletedAppointmentsSubtitle: "Bekijk en herstel afspraken die uit de agenda, omzet en statistieken verborgen zijn.", openDeletedAppointments: "Verwijderde afspraken openen",
+    freeDays: "Vrije dagen", freeDaysHint: "Stel terugkerende vrije dagen, een vrije periode en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.", recurringFreeDays: "Terugkerende vrije dagen", repeatEvery: "Elke", weeksUnit: "week/weken", repeatWeekHint: "Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.", freePeriod: "Vrije periode", from: "Van", belgianHolidays: "Belgische feestdagen", belgianHolidaysHint: "Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.",
     filter: "Filter", deletedAppointmentsSearchPlaceholder: "Alle, klantnaam, dienst, datum, opmerking..."
   },
   "en-GB": {
@@ -179,6 +180,7 @@ const i18nSettingsComplete = {
     calendarFeedStatusReady: "You can add this link once in Google Calendar via ‘From URL’. New changes in NailBooker will then appear automatically when Google refreshes the feed.",
     calendarRefreshNote: "Note: Google Calendar does not refresh external calendar links immediately. Changes will usually appear automatically later.",
     deletedAppointments: "Deleted appointments", deletedAppointmentsSubtitle: "View and restore appointments that are hidden from the agenda, revenue and statistics.", openDeletedAppointments: "Open deleted appointments",
+    freeDays: "Days off", freeDaysHint: "Set recurring days off, a holiday period and Belgian public holidays. These days are marked in grey, but regular and private appointments remain possible.", recurringFreeDays: "Recurring days off", repeatEvery: "Every", weeksUnit: "week(s)", repeatWeekHint: "For a 2, 3 or 4 week cycle, the cycle starts in the week in which you save this setting.", freePeriod: "Period off", from: "From", belgianHolidays: "Belgian public holidays", belgianHolidaysHint: "Automatically mark official Belgian public holidays as days off.",
     filter: "Filter", deletedAppointmentsSearchPlaceholder: "All, client name, service, date, note..."
   },
   "fr-FR": {
@@ -196,6 +198,7 @@ const i18nSettingsComplete = {
     calendarFeedStatusReady: "Vous pouvez ajouter ce lien une seule fois dans Google Agenda via « À partir de l’URL ». Les nouvelles modifications dans NailBooker apparaîtront ensuite automatiquement lorsque Google actualisera le flux.",
     calendarRefreshNote: "Remarque : Google Agenda n’actualise pas immédiatement les liens de calendriers externes. Les modifications apparaissent généralement automatiquement plus tard.",
     deletedAppointments: "Rendez-vous supprimés", deletedAppointmentsSubtitle: "Consultez et restaurez les rendez-vous masqués de l’agenda, du chiffre d’affaires et des statistiques.", openDeletedAppointments: "Ouvrir les rendez-vous supprimés",
+    freeDays: "Jours libres", freeDaysHint: "Définissez des jours libres récurrents, une période de congé et les jours fériés belges. Ces jours sont marqués en gris, mais les rendez-vous normaux et privés restent possibles.", recurringFreeDays: "Jours libres récurrents", repeatEvery: "Toutes les", weeksUnit: "semaine(s)", repeatWeekHint: "Pour un cycle de 2, 3 ou 4 semaines, le cycle commence pendant la semaine où vous enregistrez ce réglage.", freePeriod: "Période de congé", from: "Du", belgianHolidays: "Jours fériés belges", belgianHolidaysHint: "Marquer automatiquement les jours fériés légaux belges comme jours libres.",
     filter: "Filtre", deletedAppointmentsSearchPlaceholder: "Tous, nom du client, service, date, remarque..."
   }
 };
@@ -452,6 +455,12 @@ async function saveHeaderLanguagePreference(language) {
       notifications_enabled: Boolean(currentSettings.notificationsEnabled ?? false),
       reminder_minutes: Number(currentSettings.reminderMinutes ?? 30),
       overlap_warnings_enabled: currentSettings.overlapWarningsEnabled !== false,
+      free_weekdays: getFixedFreeWeekdays(currentSettings),
+      free_week_interval: getFreeWeekInterval(currentSettings),
+      free_week_anchor_date: getFreeWeekAnchorDate(currentSettings) || null,
+      free_period_start: normalizeOptionalDate(currentSettings.freePeriodStart) || null,
+      free_period_end: normalizeOptionalDate(currentSettings.freePeriodEnd) || null,
+      belgian_holidays_enabled: Boolean(currentSettings.belgianHolidaysEnabled),
       language: nextLanguage,
       currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
       payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
@@ -824,12 +833,135 @@ function isAgendaFabMenuEnabled() {
   return readAgendaFabMenuEnabledPreference();
 }
 
+function normalizeFreeWeekdays(value) {
+  const source = Array.isArray(value) ? value : [];
+  return Array.from(new Set(source
+    .map(day => Number(day))
+    .filter(day => Number.isInteger(day) && day >= 0 && day <= 6)))
+    .sort((a, b) => a - b);
+}
+
+function normalizeFreeWeekInterval(value) {
+  const interval = Number(value || 1);
+  return [1, 2, 3, 4].includes(interval) ? interval : 1;
+}
+
+function normalizeOptionalDate(value) {
+  const text = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+function getWeekMondayDate(dateStr = todayStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return todayStr;
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return formatDateInput(d);
+}
+
+function getFixedFreeWeekdays(settings = getSettings()) {
+  return normalizeFreeWeekdays(settings?.freeWeekdays);
+}
+
+function getFreeWeekInterval(settings = getSettings()) {
+  return normalizeFreeWeekInterval(settings?.freeWeekInterval);
+}
+
+function getFreeWeekAnchorDate(settings = getSettings()) {
+  return normalizeOptionalDate(settings?.freeWeekAnchorDate) || getWeekMondayDate(todayStr);
+}
+
+function getFreePeriod(settings = getSettings()) {
+  return {
+    start: normalizeOptionalDate(settings?.freePeriodStart),
+    end: normalizeOptionalDate(settings?.freePeriodEnd)
+  };
+}
+
+function easterSundayDate(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function belgianPublicHolidayDates(year) {
+  const easter = easterSundayDate(year);
+  const movable = days => {
+    const d = new Date(easter);
+    d.setDate(d.getDate() + days);
+    return formatDateInput(d);
+  };
+  return new Set([
+    `${year}-01-01`,
+    movable(1),
+    `${year}-05-01`,
+    movable(39),
+    movable(50),
+    `${year}-07-21`,
+    `${year}-08-15`,
+    `${year}-11-01`,
+    `${year}-11-11`,
+    `${year}-12-25`
+  ]);
+}
+
+function isBelgianPublicHoliday(dateStr, settings = getSettings()) {
+  if (!settings?.belgianHolidaysEnabled) return false;
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return false;
+  return belgianPublicHolidayDates(date.getFullYear()).has(dateStr);
+}
+
+function isRecurringFreeWeekday(dateStr, settings = getSettings()) {
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return false;
+  if (!getFixedFreeWeekdays(settings).includes(date.getDay())) return false;
+
+  const interval = getFreeWeekInterval(settings);
+  if (interval === 1) return true;
+
+  const targetMonday = new Date(`${getWeekMondayDate(dateStr)}T00:00:00`);
+  const anchorMonday = new Date(`${getWeekMondayDate(getFreeWeekAnchorDate(settings))}T00:00:00`);
+  const diffWeeks = Math.round((targetMonday - anchorMonday) / 604800000);
+  return ((diffWeeks % interval) + interval) % interval === 0;
+}
+
+function isFreePeriodDay(dateStr, settings = getSettings()) {
+  const { start, end } = getFreePeriod(settings);
+  if (!start || !end) return false;
+  return dateStr >= start && dateStr <= end;
+}
+
+function isFixedFreeDay(dateStr, settings = getSettings()) {
+  return isRecurringFreeWeekday(dateStr, settings)
+    || isFreePeriodDay(dateStr, settings)
+    || isBelgianPublicHoliday(dateStr, settings);
+}
+
 function getDefaultSettings() {
   return {
     defaultBreakMinutes: 10,
     notificationsEnabled: false,
     reminderMinutes: 30,
     overlapWarningsEnabled: true,
+    freeWeekdays: [],
+    freeWeekInterval: 1,
+    freeWeekAnchorDate: "",
+    freePeriodStart: "",
+    freePeriodEnd: "",
+    belgianHolidaysEnabled: false,
     agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
     showTipsOnOpen: true,
     language: DEFAULT_LANGUAGE,
@@ -1495,6 +1627,12 @@ async function ensureCalendarFeedToken({ forceNew = false } = {}) {
     notifications_enabled: Boolean(currentSettings.notificationsEnabled),
     reminder_minutes: Number(currentSettings.reminderMinutes ?? 30),
     overlap_warnings_enabled: currentSettings.overlapWarningsEnabled !== false,
+    free_weekdays: getFixedFreeWeekdays(currentSettings),
+    free_week_interval: getFreeWeekInterval(currentSettings),
+    free_week_anchor_date: getFreeWeekAnchorDate(currentSettings) || null,
+    free_period_start: normalizeOptionalDate(currentSettings.freePeriodStart) || null,
+    free_period_end: normalizeOptionalDate(currentSettings.freePeriodEnd) || null,
+    belgian_holidays_enabled: Boolean(currentSettings.belgianHolidaysEnabled),
     language: normalizeLanguage(currentSettings.language || getCurrentLanguage()),
     currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
     payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
@@ -2348,7 +2486,7 @@ function buildAccountAvatar(profile = null) {
 	version="1.1"
 	id="svg-login"
 	<g>
-		<path style="fill:#008080;fill-opacity:1;stroke-width:0" 
+		<path style="fill:#d98ea7;fill-opacity:1;stroke-width:0" 
 		d="M 0.02065483,7.2874174 C 0.03201486,7.2209141 0.0639516,7.0141483 0.0916248,6.8279378 0.21895894,5.9711217 0.37280855,5.6926829 0.89086309,5.3814668 1.05004,5.2858419 1.6348599,5.0375849 2.1757299,4.8360375 L 2.3600042,4.7673699 2.1596079,5.0209379 C 1.986093,5.2404912 1.6851358,5.7017814 1.6851358,5.7481817 c 0,0.00863 0.1250337,0.015698 0.2778528,0.015698 H 2.2408415 L 2.8530307,6.2532212 C 3.4230649,6.7088655 3.4699877,6.7395931 3.5344423,6.6994453 3.572515,6.6757307 3.8673267,6.455528 4.1895795,6.2101045 L 4.7754942,5.7638794 h 0.2766182 c 0.1521396,0 0.2766166,-0.00707 0.2766166,-0.015698 0,-0.046142 -0.3004675,-0.5070727 -0.4721889,-0.724357 L 4.658428,4.773145 5.0661282,4.925074 c 1.4784506,0.5509424 1.6869677,0.7647133 1.8561126,1.9028638 0.027673,0.1862105 0.05961,0.3929763 0.07097,0.4594796 L 7.013865,7.4083333 H 3.506933 0 Z M 2.9062392,5.7770326 C 2.5804514,5.5192332 2.3091449,5.2949832 2.3033355,5.2786978 2.2975266,5.2624127 2.3672545,5.1257806 2.4582872,4.9750705 2.6052344,4.731793 2.6226959,4.6838039 2.6139482,4.5472776 L 2.6040958,4.3935012 2.313898,4.3703343 C 1.9190568,4.3388129 1.7026179,4.2988831 1.4862662,4.2176449 1.2820603,4.1409668 0.99423866,3.9021911 1.0690015,3.8714841 1.1742715,3.8282454 1.3668014,3.6176736 1.4424658,3.4630209 1.5789141,3.1841313 1.6206478,2.8667813 1.6206478,2.1081004 c 0,-0.5052406 0.012687,-0.7323499 0.04862,-0.8703043 0.1442381,-0.5537686 0.4971434,-0.94225993 1.0324557,-1.13656738 0.4257712,-0.15454662 0.8256262,-0.13233376 1.2243837,0.0680206 0.1479511,0.074337 0.2709037,0.11335661 0.3568949,0.11326152 0.1686944,-1.2176e-4 0.4425545,0.0814004 0.5938668,0.17691926 0.2466422,0.15569834 0.4171024,0.44569742 0.5023768,0.8546797 0.03596,0.1724636 0.046482,0.4192716 0.041689,0.97791 -0.00533,0.6212567 0.00301,0.7825573 0.049466,0.9568124 0.067097,0.2516667 0.2364139,0.5209458 0.390194,0.6205583 0.061721,0.03998 0.1124,0.083788 0.1126194,0.097349 C 5.9738228,4.004197 5.7850672,4.1119303 5.5866834,4.1873546 5.3821139,4.2651294 5.0219102,4.328291 4.5951743,4.3612147 l -0.2982582,0.023011 v 0.1528807 c 0,0.1381665 0.020172,0.1796259 0.2095871,0.430743 C 4.6217766,5.1206739 4.7155066,5.2571026 4.7147935,5.271026 4.7137087,5.2917587 3.749698,6.0689008 3.5545424,6.2063455 3.5060758,6.2404797 3.4192546,6.1829855 2.9062397,5.7770334 Z"
 		id="path-login" />
 	</g>
@@ -3750,7 +3888,8 @@ function createCalendarDayCell(dateStr, dayNumber, { isOtherMonth = false, inter
   const cell = document.createElement("div");
   const isSelected = dateStr === state.selectedDate;
   const isToday = dateStr === todayStr;
-  cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}${isOtherMonth ? " other-month" : ""}`;
+  const isFreeDay = isFixedFreeDay(dateStr);
+  cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}${isOtherMonth ? " other-month" : ""}${isFreeDay ? " fixed-free-day" : ""}`;
   cell.innerHTML = `<button class="day-button" aria-label="${dateStr}"${preview ? ' tabindex="-1" aria-hidden="true"' : ""}></button><span class="day-number">${dayNumber}</span>`;
 
   if (appts.length) {
@@ -5271,6 +5410,16 @@ function syncCostDateDisplay() {
   if (dateBtn && dateInput) dateBtn.textContent = formatAppointmentDateLabel(dateInput.value || todayStr);
 }
 
+function syncSettingsFreePeriodDisplays() {
+  const startInput = document.getElementById("settingsFreePeriodStart");
+  const endInput = document.getElementById("settingsFreePeriodEnd");
+  const startBtn = document.getElementById("settingsFreePeriodStartDisplayBtn");
+  const endBtn = document.getElementById("settingsFreePeriodEndDisplayBtn");
+
+  if (startBtn && startInput) startBtn.textContent = formatAppointmentDateLabel(startInput.value);
+  if (endBtn && endInput) endBtn.textContent = formatAppointmentDateLabel(endInput.value);
+}
+
 function syncPrivateEndTimeWithStart() {
   const isPrivate = Boolean(document.getElementById("appointmentIsPrivate")?.checked);
   if (!isPrivate) return;
@@ -5536,7 +5685,10 @@ function applyAppointmentWheelPickerSelection() {
   }
 
   const dateInput = document.getElementById(appointmentPickerState.targetInputId || "appointmentDate");
-  if (dateInput) dateInput.value = appointmentPickerState.selected.date || dateInput.value || state.selectedDate || todayStr;
+  if (dateInput) {
+    dateInput.value = appointmentPickerState.selected.date || dateInput.value || state.selectedDate || todayStr;
+    dateInput.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 
   const startDateInput = document.getElementById("appointmentDate");
   const endDateInput = document.getElementById("appointmentPrivateEndDate");
@@ -5551,6 +5703,7 @@ function applyAppointmentWheelPickerSelection() {
 
   syncAppointmentDateTimeDisplays();
   syncCostDateDisplay();
+  syncSettingsFreePeriodDisplays();
   syncFollowUpDisplays();
   updatePrivateRepeatWeeklyLabel();
 }
@@ -6649,11 +6802,11 @@ function downloadRevenueStyledReport() {
       --bg: #fbf7f9;
       --card: #ffffff;
       --line: #eddfe6;
-      --primary: #008080;
-      --primary-dark: #544f41;
-      --primary-soft: #e3dfdc;
+      --primary: #d991ab;
+      --primary-dark: #b86d87;
+      --primary-soft: #f8e8ee;
       --text: #4e4650;
-      --muted: #7b766b;
+      --muted: #8c838d;
       --success-bg: #e7f6ea;
       --success-text: #2d8b4e;
       --danger-soft: #fff1f5;
@@ -7240,7 +7393,7 @@ function downloadCostsStyledReport() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${htmlEscape(report.reportTitle)}</title>
   <style>
-    :root { --bg:#fbf7f9; --card:#fff; --line:#eddfe6; --primary:#008080; --primary-dark:#544f41; --primary-soft:#e3dfdc; --text:#4e4650; --muted:#7b766b; }
+    :root { --bg:#fbf7f9; --card:#fff; --line:#eddfe6; --primary:#d991ab; --primary-dark:#b86d87; --primary-soft:#f8e8ee; --text:#4e4650; --muted:#8c838d; }
     * { box-sizing:border-box; }
     body { margin:0; background:linear-gradient(180deg,#fff 0%,var(--bg) 100%); color:var(--text); font-family:Arial, Helvetica, sans-serif; line-height:1.45; }
     .page { width:min(1180px, calc(100% - 32px)); margin:0 auto; padding:34px 0 48px; }
@@ -7873,6 +8026,10 @@ function getSettingsFormSnapshot() {
     "settingsNotificationsEnabled",
     "settingsReminderMinutes",
     "settingsOverlapWarningsEnabled",
+    "settingsFreeWeekInterval",
+    "settingsFreePeriodStart",
+    "settingsFreePeriodEnd",
+    "settingsBelgianHolidaysEnabled",
     "settingsAgendaFabMenuEnabled",
     "settingsShowTipsOnOpen",
     "settingsLanguage",
@@ -7888,6 +8045,11 @@ function getSettingsFormSnapshot() {
     acc[id] = el.type === "checkbox" ? Boolean(el.checked) : String(el.value || "");
     return acc;
   }, {});
+
+  snapshot.settingsFreeWeekdays = Array.from(document.querySelectorAll('[data-free-weekday]'))
+    .filter(input => input.checked)
+    .map(input => Number(input.dataset.freeWeekday))
+    .sort((a, b) => a - b);
 
   return JSON.stringify(snapshot);
 }
@@ -7976,6 +8138,10 @@ function renderSettings() {
   const notificationsToggle = document.getElementById("settingsNotificationsEnabled");
   const reminderSelect = document.getElementById("settingsReminderMinutes");
   const overlapToggle = document.getElementById("settingsOverlapWarningsEnabled");
+  const freeWeekIntervalSelect = document.getElementById("settingsFreeWeekInterval");
+  const freePeriodStartInput = document.getElementById("settingsFreePeriodStart");
+  const freePeriodEndInput = document.getElementById("settingsFreePeriodEnd");
+  const belgianHolidaysToggle = document.getElementById("settingsBelgianHolidaysEnabled");
   const agendaFabMenuToggle = document.getElementById("settingsAgendaFabMenuEnabled");
   const tipsToggle = document.getElementById("settingsShowTipsOnOpen");
   const reminderWrap = document.getElementById("settingsReminderWrap");
@@ -7994,6 +8160,15 @@ function renderSettings() {
   notificationsToggle.checked = Boolean(settings.notificationsEnabled);
   reminderSelect.value = String(settings.reminderMinutes || 30);
   overlapToggle.checked = settings.overlapWarningsEnabled !== false;
+  const freeWeekdays = getFixedFreeWeekdays(settings);
+  document.querySelectorAll('[data-free-weekday]').forEach(input => {
+    input.checked = freeWeekdays.includes(Number(input.dataset.freeWeekday));
+  });
+  if (freeWeekIntervalSelect) freeWeekIntervalSelect.value = String(getFreeWeekInterval(settings));
+  if (freePeriodStartInput) freePeriodStartInput.value = normalizeOptionalDate(settings.freePeriodStart);
+  if (freePeriodEndInput) freePeriodEndInput.value = normalizeOptionalDate(settings.freePeriodEnd);
+  syncSettingsFreePeriodDisplays();
+  if (belgianHolidaysToggle) belgianHolidaysToggle.checked = Boolean(settings.belgianHolidaysEnabled);
   if (agendaFabMenuToggle) agendaFabMenuToggle.checked = settings.agendaFabMenuEnabled !== false;
   if (tipsToggle) tipsToggle.checked = settings.showTipsOnOpen !== false;
   if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
@@ -8126,7 +8301,7 @@ async function loadSettingsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, calendar_feed_token")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, free_weekdays, free_week_interval, free_week_anchor_date, free_period_start, free_period_end, belgian_holidays_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, calendar_feed_token")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -8140,6 +8315,12 @@ async function loadSettingsFromSupabase() {
     notificationsEnabled: Boolean(data?.notifications_enabled ?? false),
     reminderMinutes: Number(data?.reminder_minutes ?? 30),
     overlapWarningsEnabled: data?.overlap_warnings_enabled !== false,
+    freeWeekdays: normalizeFreeWeekdays(data?.free_weekdays),
+    freeWeekInterval: normalizeFreeWeekInterval(data?.free_week_interval),
+    freeWeekAnchorDate: normalizeOptionalDate(data?.free_week_anchor_date),
+    freePeriodStart: normalizeOptionalDate(data?.free_period_start),
+    freePeriodEnd: normalizeOptionalDate(data?.free_period_end),
+    belgianHolidaysEnabled: Boolean(data?.belgian_holidays_enabled),
     agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
     showTipsOnOpen: getData()?.settings?.showTipsOnOpen !== false,
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
@@ -8156,11 +8337,28 @@ async function saveSettingsFromForm(event) {
   if (event) event.preventDefault();
   if (!(await ensureDataWriteAccess())) return;
 
+  const previousSettings = getSettings();
+  const nextFreeWeekdays = normalizeFreeWeekdays(Array.from(document.querySelectorAll('[data-free-weekday]'))
+    .filter(input => input.checked)
+    .map(input => Number(input.dataset.freeWeekday)));
+  const nextFreeWeekInterval = normalizeFreeWeekInterval(document.getElementById("settingsFreeWeekInterval")?.value || 1);
+  const sameRecurringRule = JSON.stringify(nextFreeWeekdays) === JSON.stringify(getFixedFreeWeekdays(previousSettings))
+    && nextFreeWeekInterval === getFreeWeekInterval(previousSettings);
+  const nextFreeWeekAnchorDate = sameRecurringRule && normalizeOptionalDate(previousSettings.freeWeekAnchorDate)
+    ? normalizeOptionalDate(previousSettings.freeWeekAnchorDate)
+    : getWeekMondayDate(todayStr);
+
   const settings = {
     defaultBreakMinutes: Math.max(0, Number(document.getElementById("settingsDefaultBreakMinutes")?.value || 0)),
     notificationsEnabled: Boolean(document.getElementById("settingsNotificationsEnabled")?.checked),
     reminderMinutes: Number(document.getElementById("settingsReminderMinutes")?.value || 30),
     overlapWarningsEnabled: Boolean(document.getElementById("settingsOverlapWarningsEnabled")?.checked),
+    freeWeekdays: nextFreeWeekdays,
+    freeWeekInterval: nextFreeWeekInterval,
+    freeWeekAnchorDate: nextFreeWeekAnchorDate,
+    freePeriodStart: normalizeOptionalDate(document.getElementById("settingsFreePeriodStart")?.value),
+    freePeriodEnd: normalizeOptionalDate(document.getElementById("settingsFreePeriodEnd")?.value),
+    belgianHolidaysEnabled: Boolean(document.getElementById("settingsBelgianHolidaysEnabled")?.checked),
     agendaFabMenuEnabled: Boolean(document.getElementById("settingsAgendaFabMenuEnabled")?.checked),
     showTipsOnOpen: document.getElementById("settingsShowTipsOnOpen")?.checked !== false,
     language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
@@ -8171,6 +8369,15 @@ async function saveSettingsFromForm(event) {
     paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
+
+  if ((settings.freePeriodStart && !settings.freePeriodEnd) || (!settings.freePeriodStart && settings.freePeriodEnd)) {
+    await appAlert("Vul voor een vrije periode zowel een begindatum als een einddatum in.", { title: "Vrije periode", variant: "warning" });
+    return;
+  }
+  if (settings.freePeriodStart && settings.freePeriodEnd && settings.freePeriodEnd < settings.freePeriodStart) {
+    await appAlert("De einddatum van de vrije periode moet op of na de begindatum liggen.", { title: "Vrije periode", variant: "warning" });
+    return;
+  }
 
   if (settings.paymentAccountNumber && !isValidBankAccountNumber(settings.paymentAccountNumber)) {
     await appAlert("Het rekeningnummer is niet geldig. Controleer het rekeningnummer en probeer opnieuw.", {
@@ -8212,6 +8419,12 @@ async function saveSettingsFromForm(event) {
     notifications_enabled: settings.notificationsEnabled,
     reminder_minutes: settings.reminderMinutes,
     overlap_warnings_enabled: settings.overlapWarningsEnabled,
+    free_weekdays: settings.freeWeekdays,
+    free_week_interval: settings.freeWeekInterval,
+    free_week_anchor_date: settings.freeWeekAnchorDate || null,
+    free_period_start: settings.freePeriodStart || null,
+    free_period_end: settings.freePeriodEnd || null,
+    belgian_holidays_enabled: settings.belgianHolidaysEnabled,
     language: settings.language,
     currency: settings.currency,
     payment_beneficiary_name: settings.paymentBeneficiaryName || null,
@@ -11903,6 +12116,10 @@ function registerEvents() {
   });
 
   document.getElementById("appointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date"));
+  document.getElementById("settingsFreePeriodStartDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "settingsFreePeriodStart"));
+  document.getElementById("settingsFreePeriodEndDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "settingsFreePeriodEnd"));
+  document.getElementById("settingsFreePeriodStart")?.addEventListener("change", syncSettingsFreePeriodDisplays);
+  document.getElementById("settingsFreePeriodEnd")?.addEventListener("change", syncSettingsFreePeriodDisplays);
   document.getElementById("appointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentTime"));
   document.getElementById("appointmentPrivateEndDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "appointmentPrivateEndDate"));
   document.getElementById("appointmentPrivateEndTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "appointmentPrivateEndTime"));
@@ -13628,6 +13845,7 @@ async function startApp() {
     }).join("");
 
     wrap.classList.toggle("has-pinned-private-day", pinnedPrivateAppointments.length > 0);
+    wrap.classList.toggle("is-fixed-free-day", isFixedFreeDay(state.selectedDate));
     wrap.innerHTML = `
       ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
       <button class="agenda-day-hidden-nav agenda-day-hidden-nav-top hidden" type="button" aria-label="Toon eerdere verborgen afspraken">...</button>
