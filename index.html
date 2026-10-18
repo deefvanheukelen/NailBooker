@@ -22,10 +22,10 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <!-- Icoon voor geïnstalleerde app op iPhone/iPad -->
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-v3.png" />
 
   <!-- PWA / Android app-icoon -->
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v3.png" />
 
   <!-- Stijlen -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +35,6 @@
     rel="stylesheet"
   />
 
-  <link rel="preload" as="image" href="icons/splash-icon-512.png" />
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
   <link rel="stylesheet" href="styles.css" />
@@ -43,22 +42,6 @@
   <title>NailBooker</title>
 </head>
 <body class="auth-locked">
-	<div id="customSplash" class="custom-splash" aria-hidden="true">
-	  <div class="custom-splash-inner">
-		<img
-		  src="icons/splash-icon-512.png"
-		  alt=""
-		  class="custom-splash-app-icon"
-		  aria-hidden="true"
-		/>
-
-		<img
-		  src="img/NB_logo.png"
-		  alt="NailBooker"
-		  class="custom-splash-logo"
-		/>
-	  </div>
-	</div>
 
   <div class="app-shell">
 
@@ -1995,36 +1978,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
   <script src="app.js"></script>
-  
-  <script>
-  (() => {
-    const splashStartedAt = performance.now();
-    const MIN_SPLASH_TIME = 1900;
-    const MAX_SPLASH_TIME = 3500;
-
-    function hideCustomSplash() {
-      const splash = document.getElementById("customSplash");
-      if (!splash || splash.classList.contains("fade-out")) return;
-
-      const elapsed = performance.now() - splashStartedAt;
-      const remaining = Math.max(0, MIN_SPLASH_TIME - elapsed);
-
-      window.setTimeout(() => {
-        if (!splash.isConnected || splash.classList.contains("fade-out")) return;
-
-        splash.classList.add("fade-out");
-        splash.addEventListener(
-          "transitionend",
-          () => splash.remove(),
-          { once: true }
-        );
-      }, remaining);
-    }
-
-    window.addEventListener("load", hideCustomSplash, { once: true });
-    window.setTimeout(hideCustomSplash, MAX_SPLASH_TIME);
-  })();
-</script>
 
 <script>
   const bottomNav = document.querySelector('.bottom-nav');
