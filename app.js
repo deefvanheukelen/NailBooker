@@ -9,11 +9,7 @@ function formatDateInput(d) {
 const todayStr = formatDateInput(today);
 
 
-const SUPPORTED_LANGUAGES = [
-  { code: "nl-BE", label: "Nederlands" },
-  { code: "en-GB", label: "English" },
-  { code: "fr-FR", label: "Français" }
-];
+const SUPPORTED_LANGUAGES = [{ code: "nl-BE", label: "Nederlands" }];
 
 const SUPPORTED_CURRENCIES = [
   { code: "EUR", label: "Euro", symbol: "€" },
@@ -66,32 +62,12 @@ const i18n = {
     language: "Taal", currency: "Valuta", appPreferences: "App-voorkeuren", currencyChangeWarning: "Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.",
     firstName: "Voornaam", lastName: "Naam", salonName: "Salonnaam", vatNumber: "BTW-nummer", email: "E-mail", password: "Wachtwoord", confirmPassword: "Bevestig wachtwoord", optional: "optioneel",
     noRevenueForSelection: "Geen omzetgegevens voor deze selectie.", paid: "Betaald", unpaid: "Onbetaald", paymentMethod: "Betaalwijze", unknown: "Onbekend", settingsSaved: "Instellingen opgeslagen.", settingsSavedDevice: "Instellingen opgeslagen op dit toestel.", saveSettings: "Instellingen opslaan", ok: "OK", confirmTitle: "Bevestiging", confirm: "Bevestigen"
-  },
-  "en-GB": {
-    agenda: "Agenda", revenue: "Revenue", clients: "Clients", services: "Services", paymentMethods: "Payment methods", statistics: "Statistics", settings: "Settings", support: "Support", account: "Account",
-    save: "Save", cancel: "Cancel", register: "Register", login: "Log in", logout: "Log out", editProfile: "Edit details", changePassword: "Change password",
-    language: "Language", currency: "Currency", appPreferences: "App preferences", currencyChangeWarning: "New appointments will use this currency from now on. Existing appointments and revenue remain in their original currency and are not converted.",
-    firstName: "First name", lastName: "Last name", salonName: "Salon name", vatNumber: "VAT number", email: "Email", password: "Password", confirmPassword: "Confirm password", optional: "optional",
-    noRevenueForSelection: "No revenue data for this selection.", paid: "Paid", unpaid: "Unpaid", paymentMethod: "Payment method", unknown: "Unknown", settingsSaved: "Settings saved.", settingsSavedDevice: "Settings saved on this device.", saveSettings: "Save settings", ok: "OK", confirmTitle: "Confirmation", confirm: "Confirm"
-  },
-  "fr-FR": {
-    agenda: "Agenda", revenue: "Chiffre d’affaires", clients: "Clients", services: "Services", paymentMethods: "Modes de paiement", statistics: "Statistiques", settings: "Paramètres", support: "Support", account: "Compte",
-    save: "Enregistrer", cancel: "Annuler", register: "S’inscrire", login: "Connexion", logout: "Déconnexion", editProfile: "Modifier les données", changePassword: "Modifier le mot de passe",
-    language: "Langue", currency: "Devise", appPreferences: "Préférences de l’application", currencyChangeWarning: "Les nouveaux rendez-vous utiliseront désormais cette devise. Les rendez-vous et revenus existants restent dans leur devise d’origine et ne sont pas convertis.",
-    firstName: "Prénom", lastName: "Nom", salonName: "Nom du salon", vatNumber: "Numéro de TVA", email: "E-mail", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", optional: "optionnel",
-    noRevenueForSelection: "Aucune donnée de chiffre d’affaires pour cette sélection.", paid: "Payé", unpaid: "Impayé", paymentMethod: "Mode de paiement", unknown: "Inconnu", settingsSaved: "Paramètres enregistrés.", settingsSavedDevice: "Paramètres enregistrés sur cet appareil.", saveSettings: "Enregistrer les paramètres", ok: "OK", confirmTitle: "Confirmation", confirm: "Confirmer"
   }
 };
 
 const i18nExtra = {
   "nl-BE": {
     planning: "Planning", paymentDetailsQr: "Betaalgegevens QR-code", googleCalendar: "Google kalender", until: "tot", allDay: "Hele dag", minutesUnit: "minuten", oneHour: "1 uur", twentyFourHours: "24 uur", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", enableAgendaFabMenu: "Tab-menu activeren", enableAgendaFabMenuHint: "Toon rond de + knop snelle knoppen voor afspraak, klant, dienst en betaalwijze.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Maand kiezen", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
-  },
-  "en-GB": {
-    planning: "Planning", paymentDetailsQr: "QR payment details", googleCalendar: "Google Calendar", until: "to", allDay: "All day", minutesUnit: "minutes", oneHour: "1 hour", twentyFourHours: "24 hours", notifications: "Notifications", extras: "Useful extras", defaultBreak: "Default break between 2 appointments (min)", overlapWarnings: "Overlap warnings", overlapWarningsHint: "Warn when an appointment overlaps with an existing appointment, taking duration and break time into account.", enableNotifications: "Enable notifications", enableNotificationsHint: "Prepared for appointment reminders in the app.", enableAgendaFabMenu: "Enable tab menu", enableAgendaFabMenuHint: "Show quick buttons around the + button for appointment, client, service and payment method.", reminderBefore: "Reminder before appointment", savePending: "Saving settings...", notificationsOff: "Notifications are disabled.", notificationsActive: "Notifications are active on this device while the browser or app supports notifications.", notificationsBlocked: "Notifications are blocked in your browser settings.", notificationsUnsupported: "This browser does not support web notifications.", notificationsPermissionHint: "Enable notifications and allow permission to show reminders.", appointmentsOn: "Appointments on", noAppointmentsOnDay: "No appointments on this day.", noClientsFound: "No clients found.", noPhone: "No mobile", appointmentSingular: "appointment", appointmentPlural: "appointments", noActiveServices: "No active services yet.", inactive: "inactive", showInactiveServices: "Show inactive services", allPaymentMethods: "All payment methods", allStatuses: "All statuses", day: "Day", week: "Week", month: "Month", year: "Year", today: "Today", total: "Total", revenueOn: "Revenue on", revenueReport: "Revenue report", paymentMethodTitle: "Payment method", unknownCustomer: "Unknown client", chooseMonth: "Choose month", choose: "Choose", newAppointment: "New appointment", editAppointment: "Edit appointment", customer: "Client", date: "Date", time: "Time", service: "Service", duration: "Duration (min)", price: "Price", status: "Status", planned: "Planned", completed: "Completed", newClient: "New client", phone: "Phone", note: "Note", appointmentRemarks: "Remarks", newService: "New service", serviceName: "Service name", newPaymentMethod: "New payment method", paymentMethodName: "Payment method name", editProfileTitle: "Edit profile", currentPassword: "Current password", newPassword: "New password", message: "Message", registerHere: "No account yet? Register here"
-  },
-  "fr-FR": {
-    planning: "Planning", paymentDetailsQr: "Données de paiement QR", googleCalendar: "Google Agenda", until: "jusqu’à", allDay: "Toute la journée", minutesUnit: "minutes", oneHour: "1 heure", twentyFourHours: "24 heures", notifications: "Notifications", extras: "Extras utiles", defaultBreak: "Pause standard entre 2 rendez-vous (min)", overlapWarnings: "Avertissements de chevauchement", overlapWarningsHint: "Avertir lorsqu’un rendez-vous chevauche un rendez-vous existant, en tenant compte de la durée et de la pause.", enableNotifications: "Activer les notifications", enableNotificationsHint: "Prévu pour les rappels de rendez-vous dans l’application.", enableAgendaFabMenu: "Activer le menu d’onglets", enableAgendaFabMenuHint: "Afficher autour du bouton + des raccourcis pour rendez-vous, client, service et mode de paiement.", reminderBefore: "Rappel avant le rendez-vous", savePending: "Enregistrement des paramètres...", notificationsOff: "Les notifications sont désactivées.", notificationsActive: "Les notifications sont actives sur cet appareil tant que le navigateur ou l’application les prend en charge.", notificationsBlocked: "Les notifications sont bloquées dans les paramètres de votre navigateur.", notificationsUnsupported: "Ce navigateur ne prend pas en charge les notifications web.", notificationsPermissionHint: "Activez les notifications et autorisez-les pour afficher les rappels.", appointmentsOn: "Rendez-vous le", noAppointmentsOnDay: "Aucun rendez-vous ce jour-là.", noClientsFound: "Aucun client trouvé.", noPhone: "Pas de GSM", appointmentSingular: "rendez-vous", appointmentPlural: "rendez-vous", noActiveServices: "Aucun service actif pour le moment.", inactive: "inactif", showInactiveServices: "Afficher les services inactifs", allPaymentMethods: "Tous les modes de paiement", allStatuses: "Tous les statuts", day: "Jour", week: "Semaine", month: "Mois", year: "Année", today: "Aujourd’hui", total: "Total", revenueOn: "Chiffre d’affaires le", revenueReport: "Rapport du chiffre d’affaires", paymentMethodTitle: "Mode de paiement", unknownCustomer: "Client inconnu", chooseMonth: "Choisir le mois", choose: "Choisir", newAppointment: "Nouveau rendez-vous", editAppointment: "Modifier le rendez-vous", customer: "Client", date: "Date", time: "Heure", service: "Service", duration: "Durée (min)", price: "Prix", status: "Statut", planned: "Planifié", completed: "Terminé", newClient: "Nouveau client", phone: "Téléphone", note: "Note", appointmentRemarks: "Remarques", newService: "Nouveau service", serviceName: "Nom du service", newPaymentMethod: "Nouveau mode de paiement", paymentMethodName: "Nom du mode de paiement", editProfileTitle: "Modifier le profil", currentPassword: "Mot de passe actuel", newPassword: "Nouveau mot de passe", message: "Message", registerHere: "Pas encore de compte ? Inscrivez-vous ici"
   }
 };
 Object.keys(i18nExtra).forEach(lang => Object.assign(i18n[lang], i18nExtra[lang]));
@@ -104,44 +80,22 @@ const i18nMore = {
     customerNumber:"Klantnummer", appointments:"Afspraken", totalLower:"totaal", noAppointmentsYet:"Nog geen afspraken.", noPaymentMethods:"Nog geen betaalwijzen.", paymentSingular:"betaling", paymentPlural:"betalingen",
     customerCount:"Aantal klanten", pastAppointments:"Afgeronde afspraken", futureAppointments:"Geplande afspraken", totalRevenueUntilToday:"Totale omzet tot vandaag", chosenServices:"Gekozen behandelingen", revenueByService:"Omzet per behandeling", chosenPaymentMethod:"Gekozen betaalwijze", topCustomers:"Top klanten", all:"Alle", noCustomerStats:"Nog geen klantgegevens beschikbaar.", more:"Meer...", less:"Minder",
     serviceNameRequired:"Geef een naam voor de dienst in.", duplicateServiceTitle:"Dubbele dienstnaam", saveAnyway:"Toch opslaan", saveFailed:"Opslaan mislukt", duplicateServiceMessage:"Er bestaat al een dienst met de naam \"{name}\".\n\nWil je toch opslaan? Dan wordt deze dienst opgeslagen als \"{uniqueName}\".", chooseDate:"Kies datum", chooseTime:"Kies tijd", chooseCustomer:"Kies een klant...", chooseService:"Kies een dienst...", choosePaymentMethod:"Kies een betaalwijze...", chooseConfirm:"Kies"
-  },
-  "en-GB": {
-    mondayShort:"Mon", tuesdayShort:"Tue", wednesdayShort:"Wed", thursdayShort:"Thu", fridayShort:"Fri", saturdayShort:"Sat", sundayShort:"Sun",
-    searchClientPlaceholder:"Search client...", searchAppointmentCustomerPlaceholder:"Search by name, phone or email...", searchServicePlaceholder:"Search service...",
-    delete:"Delete", edit:"Edit", editClient:"Edit client", editService:"Edit service", editPaymentMethod:"Edit payment method", reactivateService:"Reactivate service", reactivateServiceHint:"The service will appear again in the active services list and for new appointments.",
-    customerNumber:"Client number", appointments:"Appointments", totalLower:"total", noAppointmentsYet:"No appointments yet.", noPaymentMethods:"No payment methods yet.", paymentSingular:"payment", paymentPlural:"payments",
-    customerCount:"Number of clients", pastAppointments:"Completed appointments", futureAppointments:"Planned appointments", totalRevenueUntilToday:"Total revenue until today", chosenServices:"Selected services", revenueByService:"Revenue per service", chosenPaymentMethod:"Selected payment method", topCustomers:"Top clients", all:"All", noCustomerStats:"No client data available yet.", more:"More...", less:"Less",
-    serviceNameRequired:"Enter a service name.", duplicateServiceTitle:"Duplicate service name", saveAnyway:"Save anyway", saveFailed:"Save failed", duplicateServiceMessage:"A service named \"{name}\" already exists.\n\nDo you still want to save it? This service will be saved as \"{uniqueName}\".", chooseDate:"Choose date", chooseTime:"Choose time", chooseCustomer:"Choose a client...", chooseService:"Choose a service...", choosePaymentMethod:"Choose a payment method...", chooseConfirm:"Choose"
-  },
-  "fr-FR": {
-    mondayShort:"Lu", tuesdayShort:"Ma", wednesdayShort:"Me", thursdayShort:"Je", fridayShort:"Ve", saturdayShort:"Sa", sundayShort:"Di",
-    searchClientPlaceholder:"Rechercher un client...", searchAppointmentCustomerPlaceholder:"Rechercher par nom, téléphone ou e-mail...", searchServicePlaceholder:"Rechercher un service...",
-    delete:"Supprimer", edit:"Modifier", editClient:"Modifier le client", editService:"Modifier le service", editPaymentMethod:"Modifier le mode de paiement", reactivateService:"Réactiver le service", reactivateServiceHint:"Le service réapparaîtra dans la liste des services actifs et pour les nouveaux rendez-vous.",
-    customerNumber:"Numéro client", appointments:"Rendez-vous", totalLower:"au total", noAppointmentsYet:"Pas encore de rendez-vous.", noPaymentMethods:"Aucun mode de paiement pour le moment.", paymentSingular:"paiement", paymentPlural:"paiements",
-    customerCount:"Nombre de clients", pastAppointments:"Rendez-vous terminés", futureAppointments:"Rendez-vous planifiés", totalRevenueUntilToday:"Chiffre d’affaires total jusqu’à aujourd’hui", chosenServices:"Soins choisis", revenueByService:"Chiffre d’affaires par soin", chosenPaymentMethod:"Mode de paiement choisi", topCustomers:"Meilleurs clients", all:"Tous", noCustomerStats:"Aucune donnée client disponible pour le moment.", more:"Plus...", less:"Moins",
-    serviceNameRequired:"Indiquez un nom de service.", duplicateServiceTitle:"Nom de service en double", saveAnyway:"Enregistrer quand même", saveFailed:"Échec de l’enregistrement", duplicateServiceMessage:"Un service nommé \"{name}\" existe déjà.\n\nVoulez-vous quand même l’enregistrer ? Ce service sera enregistré sous \"{uniqueName}\".", chooseDate:"Choisir la date", chooseTime:"Choisir l’heure", chooseCustomer:"Choisir un client...", chooseService:"Choisir un service...", choosePaymentMethod:"Choisir un mode de paiement...", chooseConfirm:"Choisir"
   }
 };
 Object.keys(i18nMore).forEach(lang => Object.assign(i18n[lang], i18nMore[lang]));
 
 const i18nTodo = {
-  "nl-BE": { todo: "To Do", newTodo: "Nieuwe taak", editTodo: "Taak bewerken", todoTitle: "Titel", todoDescription: "Omschrijving", addBullet: "Bullet toevoegen", noTodos: "Nog geen taken.", markDone: "Afvinken", markOpen: "Terug openzetten", completed: "Afgewerkt", open: "Open" },
-  "en-GB": { todo: "To Do", newTodo: "New task", editTodo: "Edit task", todoTitle: "Title", todoDescription: "Description", addBullet: "Add bullet", noTodos: "No tasks yet.", markDone: "Mark done", markOpen: "Reopen", completed: "Done", open: "Open" },
-  "fr-FR": { todo: "To Do", newTodo: "Nouvelle tâche", editTodo: "Modifier la tâche", todoTitle: "Titre", todoDescription: "Description", addBullet: "Ajouter une puce", noTodos: "Aucune tâche pour le moment.", markDone: "Terminer", markOpen: "Rouvrir", completed: "Terminée", open: "Ouverte" }
+  "nl-BE": { todo: "To Do", newTodo: "Nieuwe taak", editTodo: "Taak bewerken", todoTitle: "Titel", todoDescription: "Omschrijving", addBullet: "Bullet toevoegen", noTodos: "Nog geen taken.", markDone: "Afvinken", markOpen: "Terug openzetten", completed: "Afgewerkt", open: "Open" }
 };
 Object.keys(i18nTodo).forEach(lang => Object.assign(i18n[lang], i18nTodo[lang]));
 
 const i18nCosts = {
-  "nl-BE": { costs: "Kosten", newCost: "Nieuwe kost", editCost: "Kost bewerken", costDescription: "Omschrijving", costDate: "Datum", costAmountInclVat: "Bedrag incl. btw", vat: "Btw", standardCost: "Standaardkost", noCosts: "Nog geen kosten.", saveAsStandardCostQuestion: "Wil je deze kost opslaan als standaardkost zodat je ze later snel opnieuw kunt selecteren?", costSaved: "Kost opgeslagen.", costDeleted: "Kost verwijderd.", chooseStandardCost: "Zoek of kies een standaardkost...", totalInclVat: "Totaal incl. btw", totalExclVat: "Totaal excl. btw", standardCosts: "Standaardkosten", noStandardCosts: "Nog geen standaardkosten.", editStandardCost: "Standaardkost aanpassen", deleteStandardCostConfirm: "Deze standaardkost verwijderen?" },
-  "en-GB": { costs: "Costs", newCost: "New cost", editCost: "Edit cost", costDescription: "Description", costDate: "Date", costAmountInclVat: "Amount incl. VAT", vat: "VAT", standardCost: "Standard cost", noCosts: "No costs yet.", saveAsStandardCostQuestion: "Do you want to save this cost as a standard cost so you can quickly select it again later?", costSaved: "Cost saved.", costDeleted: "Cost deleted.", chooseStandardCost: "Search or choose a standard cost...", totalInclVat: "Total incl. VAT", totalExclVat: "Total excl. VAT", standardCosts: "Standard costs", noStandardCosts: "No standard costs yet.", editStandardCost: "Edit standard cost", deleteStandardCostConfirm: "Delete this standard cost?" },
-  "fr-FR": { costs: "Frais", newCost: "Nouveau frais", editCost: "Modifier le frais", costDescription: "Description", costDate: "Date", costAmountInclVat: "Montant TVAC", vat: "TVA", standardCost: "Frais standard", noCosts: "Aucun frais pour le moment.", saveAsStandardCostQuestion: "Voulez-vous enregistrer ce frais comme frais standard afin de pouvoir le sélectionner rapidement plus tard ?", costSaved: "Frais enregistré.", costDeleted: "Frais supprimé.", chooseStandardCost: "Rechercher ou choisir un frais standard...", totalInclVat: "Total TVAC", totalExclVat: "Total HTVA", standardCosts: "Frais standard", noStandardCosts: "Aucun frais standard pour le moment.", editStandardCost: "Modifier le frais standard", deleteStandardCostConfirm: "Supprimer ce frais standard ?" }
+  "nl-BE": { costs: "Kosten", newCost: "Nieuwe kost", editCost: "Kost bewerken", costDescription: "Omschrijving", costDate: "Datum", costAmountInclVat: "Bedrag incl. btw", vat: "Btw", standardCost: "Standaardkost", noCosts: "Nog geen kosten.", saveAsStandardCostQuestion: "Wil je deze kost opslaan als standaardkost zodat je ze later snel opnieuw kunt selecteren?", costSaved: "Kost opgeslagen.", costDeleted: "Kost verwijderd.", chooseStandardCost: "Zoek of kies een standaardkost...", totalInclVat: "Totaal incl. btw", totalExclVat: "Totaal excl. btw", standardCosts: "Standaardkosten", noStandardCosts: "Nog geen standaardkosten.", editStandardCost: "Standaardkost aanpassen", deleteStandardCostConfirm: "Deze standaardkost verwijderen?" }
 };
 Object.keys(i18nCosts).forEach(lang => Object.assign(i18n[lang], i18nCosts[lang]));
 
 const i18nSubscription = {
-  "nl-BE": { subscription: "Abonnement" },
-  "en-GB": { subscription: "Subscription" },
-  "fr-FR": { subscription: "Abonnement" }
+  "nl-BE": { subscription: "Abonnement" }
 };
 Object.keys(i18nSubscription).forEach(lang => Object.assign(i18n[lang], i18nSubscription[lang]));
 
@@ -164,42 +118,6 @@ const i18nSettingsComplete = {
     deletedAppointments: "Verwijderde afspraken", deletedAppointmentsSubtitle: "Bekijk en herstel afspraken die uit de agenda, omzet en statistieken verborgen zijn.", openDeletedAppointments: "Verwijderde afspraken openen",
     freeDays: "Vrije dagen", freeDaysHint: "Stel terugkerende vrije dagen, een vrije periode en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.", recurringFreeDays: "Terugkerende vrije dagen", repeatEvery: "Elke", weeksUnit: "week/weken", repeatWeekHint: "Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.", freePeriod: "Vrije periode", from: "Van", belgianHolidays: "Belgische feestdagen", belgianHolidaysHint: "Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.",
     filter: "Filter", deletedAppointmentsSearchPlaceholder: "Alle, klantnaam, dienst, datum, opmerking..."
-  },
-  "en-GB": {
-    settingsIntro: "Manage your planning, notifications, app preferences, payment details and calendar integration in one clear overview.",
-    planningSubtitle: "Default behaviour when creating and checking appointments.",
-    notificationsSubtitle: "Prepared for appointment reminders in the app.",
-    paymentDetailsQr: "QR-code payment details",
-    paymentDetailsSubtitle: "Details used for SEPA/bank QR codes for payments.",
-    beneficiaryName: "Beneficiary name", beneficiaryPlaceholder: "E.g. salon name", accountNumber: "Account number", paymentReference: "Payment reference",
-    paymentDetailsInfo: "These details are used to create a SEPA/bank QR code. Clients scan the QR code with their banking app.",
-    googleCalendar: "Google Calendar", googleCalendarSubtitle: "Synchronise NailBooker appointments via a personal calendar link.",
-    googleCalendarInfo: "Create a personal calendar link and add it once in Google Calendar via Other calendars → From URL. Google will then automatically retrieve the current NailBooker appointments.",
-    personalCalendarLink: "Personal calendar link", calendarLinkPlaceholder: "Create a calendar link first", createCopyLink: "Create/copy link", openGoogleCalendar: "Open Google Calendar", createNewLink: "Create new link",
-    calendarFeedStatusEmpty: "Create a personal calendar link first. You can then add it once in Google Calendar.",
-    calendarFeedStatusReady: "You can add this link once in Google Calendar via ‘From URL’. New changes in NailBooker will then appear automatically when Google refreshes the feed.",
-    calendarRefreshNote: "Note: Google Calendar does not refresh external calendar links immediately. Changes will usually appear automatically later.",
-    deletedAppointments: "Deleted appointments", deletedAppointmentsSubtitle: "View and restore appointments that are hidden from the agenda, revenue and statistics.", openDeletedAppointments: "Open deleted appointments",
-    freeDays: "Days off", freeDaysHint: "Set recurring days off, a holiday period and Belgian public holidays. These days are marked in grey, but regular and private appointments remain possible.", recurringFreeDays: "Recurring days off", repeatEvery: "Every", weeksUnit: "week(s)", repeatWeekHint: "For a 2, 3 or 4 week cycle, the cycle starts in the week in which you save this setting.", freePeriod: "Period off", from: "From", belgianHolidays: "Belgian public holidays", belgianHolidaysHint: "Automatically mark official Belgian public holidays as days off.",
-    filter: "Filter", deletedAppointmentsSearchPlaceholder: "All, client name, service, date, note..."
-  },
-  "fr-FR": {
-    settingsIntro: "Gérez votre planning, vos notifications, les préférences de l’application, les données de paiement et la synchronisation du calendrier dans un seul aperçu clair.",
-    planningSubtitle: "Comportement par défaut lors de la création et du contrôle des rendez-vous.",
-    notificationsSubtitle: "Prévu pour les rappels de rendez-vous dans l’application.",
-    paymentDetailsQr: "Données de paiement par QR code",
-    paymentDetailsSubtitle: "Données utilisées pour les QR codes SEPA/bancaires lors des paiements.",
-    beneficiaryName: "Nom du bénéficiaire", beneficiaryPlaceholder: "Ex. nom du salon", accountNumber: "Numéro de compte", paymentReference: "Communication",
-    paymentDetailsInfo: "Ces données sont utilisées pour créer un QR code SEPA/bancaire. Les clients scannent le QR code avec leur application bancaire.",
-    googleCalendar: "Google Agenda", googleCalendarSubtitle: "Synchronisez les rendez-vous NailBooker via un lien de calendrier personnel.",
-    googleCalendarInfo: "Créez un lien de calendrier personnel et ajoutez-le une seule fois dans Google Agenda via Autres agendas → À partir de l’URL. Google récupérera ensuite automatiquement les rendez-vous NailBooker actuels.",
-    personalCalendarLink: "Lien de calendrier personnel", calendarLinkPlaceholder: "Créez d’abord un lien de calendrier", createCopyLink: "Créer/copier le lien", openGoogleCalendar: "Ouvrir Google Agenda", createNewLink: "Créer un nouveau lien",
-    calendarFeedStatusEmpty: "Créez d’abord un lien de calendrier personnel. Vous pourrez ensuite l’ajouter une seule fois dans Google Agenda.",
-    calendarFeedStatusReady: "Vous pouvez ajouter ce lien une seule fois dans Google Agenda via « À partir de l’URL ». Les nouvelles modifications dans NailBooker apparaîtront ensuite automatiquement lorsque Google actualisera le flux.",
-    calendarRefreshNote: "Remarque : Google Agenda n’actualise pas immédiatement les liens de calendriers externes. Les modifications apparaissent généralement automatiquement plus tard.",
-    deletedAppointments: "Rendez-vous supprimés", deletedAppointmentsSubtitle: "Consultez et restaurez les rendez-vous masqués de l’agenda, du chiffre d’affaires et des statistiques.", openDeletedAppointments: "Ouvrir les rendez-vous supprimés",
-    freeDays: "Jours libres", freeDaysHint: "Définissez des jours libres récurrents, une période de congé et les jours fériés belges. Ces jours sont marqués en gris, mais les rendez-vous normaux et privés restent possibles.", recurringFreeDays: "Jours libres récurrents", repeatEvery: "Toutes les", weeksUnit: "semaine(s)", repeatWeekHint: "Pour un cycle de 2, 3 ou 4 semaines, le cycle commence pendant la semaine où vous enregistrez ce réglage.", freePeriod: "Période de congé", from: "Du", belgianHolidays: "Jours fériés belges", belgianHolidaysHint: "Marquer automatiquement les jours fériés légaux belges comme jours libres.",
-    filter: "Filtre", deletedAppointmentsSearchPlaceholder: "Tous, nom du client, service, date, remarque..."
   }
 };
 Object.keys(i18nSettingsComplete).forEach(lang => Object.assign(i18n[lang], i18nSettingsComplete[lang]));
@@ -208,7 +126,7 @@ Object.keys(i18nSettingsComplete).forEach(lang => Object.assign(i18n[lang], i18n
 let currentProfilePreferences = { language: DEFAULT_LANGUAGE, currency: DEFAULT_CURRENCY };
 
 function normalizeLanguage(code) {
-  return SUPPORTED_LANGUAGES.some(item => item.code === code) ? code : DEFAULT_LANGUAGE;
+  return DEFAULT_LANGUAGE;
 }
 
 function normalizeCurrency(code) {
@@ -216,7 +134,7 @@ function normalizeCurrency(code) {
 }
 
 function getCurrentLanguage() {
-  return normalizeLanguage(currentProfilePreferences.language || getData()?.settings?.language || DEFAULT_LANGUAGE);
+  return DEFAULT_LANGUAGE;
 }
 
 function getCurrentCurrency() {
@@ -224,8 +142,7 @@ function getCurrentCurrency() {
 }
 
 function t(key) {
-  const lang = getCurrentLanguage();
-  return i18n[lang]?.[key] || i18n[DEFAULT_LANGUAGE]?.[key] || key;
+  return i18n[DEFAULT_LANGUAGE]?.[key] || key;
 }
 
 function getCurrencyLabel(code) {
@@ -8225,8 +8142,13 @@ function shouldShowWelcomeGuide() {
 function setWelcomeGuideVisible(visible) {
   const overlay = document.getElementById("welcomeGuideOverlay");
   if (!overlay) return;
+  if (visible) {
+    const activeDialog = document.getElementById("deletedAppointmentsDialog");
+    if (activeDialog?.open && !activeDialog.contains(overlay)) activeDialog.appendChild(overlay);
+  }
   overlay.classList.toggle("hidden", !visible);
   overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+  if (!visible && overlay.parentElement?.id === "deletedAppointmentsDialog") document.body.appendChild(overlay);
   if (visible) {
     sessionStorage.setItem("nailbooker_welcome_guide_shown_this_session", "true");
   }
@@ -10611,9 +10533,8 @@ async function renderDeletedAppointmentsDialog() {
     const remarks = appointment.isPrivate ? (appointment.privateDetails || appointment.remarks || "") : (appointment.remarks || "");
     return `
       <article class="deleted-appointment-card" data-appointment-id="${htmlEscape(String(appointment.id))}">
-        <label class="deleted-appointment-select"><input type="checkbox" data-select-deleted-id="${htmlEscape(String(appointment.id))}" ${selectedDeletedAppointmentIds.has(String(appointment.id)) ? "checked" : ""} aria-label="Selecteer afspraak van ${htmlEscape(title)}" /></label>
         <div class="deleted-appointment-main">
-          <strong>${htmlEscape(title)}</strong>
+          <div class="deleted-appointment-name-row"><label class="deleted-appointment-select"><input type="checkbox" data-select-deleted-id="${htmlEscape(String(appointment.id))}" ${selectedDeletedAppointmentIds.has(String(appointment.id)) ? "checked" : ""} aria-label="Selecteer afspraak van ${htmlEscape(title)}" /></label><strong>${htmlEscape(title)}</strong></div>
           <span>${htmlEscape(formatLongDate(appointment.date))} · ${htmlEscape(appointment.time || "--:--")} · ${htmlEscape(serviceName)}</span>
           ${remarks ? `<p>${htmlEscape(remarks)}</p>` : '<p class="deleted-appointment-muted">Geen opmerkingen.</p>'}
           <small>Verwijderd op ${htmlEscape(appointment.deletedAt ? new Date(appointment.deletedAt).toLocaleString("nl-BE") : "onbekend")}</small>
@@ -10711,6 +10632,7 @@ async function permanentlyDeleteAppointments(ids) {
   // Pas NA bevestiging de overlay tonen; het venster blijft intussen open.
   await runWithGlobalActionBusy(async () => {
     const startedAt = Date.now();
+    await waitForBusyOverlayPaint();
     const user = await getCurrentUser();
     if (!user) return;
     const { error } = await supabaseClient
@@ -13192,6 +13114,17 @@ function setGlobalActionBusyVisible(visible) {
   }
 
   const overlay = getAppBusyOverlay();
+  // Een open native <dialog> staat in de browser-toplaag, boven iedere
+  // z-index van een overlay onder <body>. Plaats de overlay daarom tijdelijk
+  // IN het geopende venster met verwijderde afspraken.
+  if (overlay) {
+    const deletedDialog = document.getElementById("deletedAppointmentsDialog");
+    if (visible && deletedDialog?.open && overlay.parentElement !== deletedDialog) {
+      deletedDialog.appendChild(overlay);
+    } else if (!visible && overlay.parentElement === deletedDialog) {
+      document.body.appendChild(overlay);
+    }
+  }
 
   if (globalActionBusyHideTimer) {
     clearTimeout(globalActionBusyHideTimer);
