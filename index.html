@@ -22,10 +22,10 @@
   <link rel="manifest" href="manifest.webmanifest" />
 
   <!-- Icoon voor geïnstalleerde app op iPhone/iPad -->
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon-v3.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
   <!-- PWA / Android app-icoon -->
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v3.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
   <!-- Stijlen -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,6 @@
     href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
     rel="stylesheet"
   />
-
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
   <link rel="stylesheet" href="styles.css" />
@@ -95,7 +94,16 @@
           </span>
           <span id="headerUserName" class="header-account-name">log in</span>
         </button>
-<button id="headerTrialBadge" class="header-trial-badge hidden" type="button" aria-label="Abonnement bekijken" title="Abonnement bekijken">30</button>
+
+        <div id="headerLanguageMenu" class="header-language-menu">
+          <button id="headerLanguageBtn" class="header-language-btn" type="button" aria-label="Taal kiezen" aria-expanded="false">
+            <span id="headerLanguageCurrent">NL</span>
+          </button>
+          <div id="headerLanguageOverlay" class="header-language-overlay hidden" role="menu" aria-label="Taal kiezen"></div>
+          <div id="headerLanguageStatus" class="header-language-status hidden" aria-live="polite">Even geduld...</div>
+        </div>
+
+        <button id="headerTrialBadge" class="header-trial-badge hidden" type="button" aria-label="Abonnement bekijken" title="Abonnement bekijken">30</button>
       </div>
     </header>
 
@@ -1398,7 +1406,6 @@
         <label class="field-label" for="deletedAppointmentsSearch" data-i18n="filter">Filter</label>
         <input id="deletedAppointmentsSearch" class="field" type="search" autocomplete="off" placeholder="Alle, klantnaam, dienst, datum, opmerking..." data-i18n-placeholder="deletedAppointmentsSearchPlaceholder" />
         <p id="deletedAppointmentsCount" class="settings-info-text">-</p>
-        <div class="deleted-appointments-selection-bar"><span id="deletedAppointmentsSelectionCount">0 geselecteerd</span><button id="deleteSelectedAppointmentsBtn" type="button" class="btn btn-danger action-btn" disabled>Selectie definitief verwijderen (0)</button></div>
       </div>
       <div id="deletedAppointmentsList" class="deleted-appointments-list scroll-list"></div>
 
@@ -1662,7 +1669,13 @@
       </div>
 
       <section class="register-step active" data-register-step="1">
-        <p class="register-step-hint">Welkom bij NailBooker.</p>
+        <label class="field-label" for="registerLanguage" data-i18n="language">Taal</label>
+        <select id="registerLanguage" class="field">
+          <option value="nl-BE" selected>Nederlands</option>
+          <option value="en-GB">English</option>
+          <option value="fr-FR">Français</option>
+        </select>
+        <p class="register-step-hint" id="registerLanguageHint">De app wordt meteen in deze taal gezet.</p>
       </section>
 
       <section class="register-step" data-register-step="2">
@@ -1780,6 +1793,13 @@
       <select id="editTimezone" class="field" required>
         <option value="Europe/Brussels">Europe/Brussels</option>
         <option value="Europe/Amsterdam">Europe/Amsterdam</option>
+      </select>
+
+      <label class="field-label" for="editLanguage" data-i18n="language">Taal</label>
+      <select id="editLanguage" class="field">
+        <option value="nl-BE" selected>Nederlands</option>
+        <option value="en-GB">English</option>
+        <option value="fr-FR">Français</option>
       </select>
 
       <label class="field-label" for="editCurrency" data-i18n="currency">Valuta</label>
@@ -2002,12 +2022,8 @@
   </div>
 
   <div id="revenueActionBar" class="revenue-action-bar hidden" aria-label="Omzetacties">
-    <button id="revenueExportCsvBtn" class="client-action-btn revenue-action-btn-csv" type="button" aria-label="Genereer CSV-bestand">
-      <span class="client-action-icon revenue-action-export-label" aria-hidden="true">CSV</span>
-    </button>
-
-    <button id="revenueExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer stijlvol omzetrapport">
-      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">PDF</span>
+    <button id="revenueExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer kwartaaloverzicht daginkomsten">
+      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">Daginkomsten</span>
     </button>
   </div>
 

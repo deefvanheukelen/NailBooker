@@ -13214,3 +13214,21 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
   padding: 0 12px !important; color: var(--primary-dark) !important;
   font-size: 11px !important; white-space: nowrap;
 }
+
+/* Geen zwarte browser-focusrand bij automatisch geopende openstaande-afsprakenmelding. */
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn:focus,
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageConfirmBtn:focus-visible { outline: none !important; box-shadow: none !important; }
+#revenueExportReportBtn .revenue-action-report-label { font-size: 12px; letter-spacing: 0; white-space: nowrap; }
+#revenueExportReportBtn { width: auto; min-width: 112px; padding-inline: 12px; }
+.nb-quarter-dialog { border: 1px solid #ead4dd; border-radius: 12px; padding: 24px; color: #514750; max-width: min(92vw, 370px); width: 100%; }
+.nb-quarter-dialog::backdrop { background: rgba(30,20,28,.45); }
+.nb-quarter-dialog h3 { margin: 0 0 18px; color: #bc6d88; }
+.nb-quarter-dialog label { display: block; margin: 12px 0; }
+.nb-quarter-dialog select { display: block; width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #dcc8d1; border-radius: 7px; background: white; color: #514750; }
+.nb-quarter-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.nb-quarter-actions button { padding: 10px 14px; border-radius: 7px; border: 1px solid #ce9eae; background: white; color: #9e5570; cursor: pointer; }
+.nb-quarter-actions button[type=submit] { background: #bf7893; color: white; }
+
+/* Daginkomsten: gebruik de native keuzelijst zodat alle kwartalen zichtbaar zijn. */
+.nb-quarter-dialog select { appearance: auto !important; -webkit-appearance: menulist !important; min-height: 46px; }
+.nb-quarter-dialog { box-sizing: border-box; max-height: calc(100dvh - 32px); overflow-y: auto; }

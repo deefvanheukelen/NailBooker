@@ -6699,6 +6699,136 @@ function getRevenueReportData() {
   };
 }
 
+
+// Kwartaaloverzicht daginkomsten: onafhankelijk van de huidige omzetperiode.
+function openQuarterIncomeDialog() {
+  let dialog = document.getElementById('nbQuarterIncomeDialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'nbQuarterIncomeDialog';
+    dialog.className = 'nb-quarter-dialog';
+    dialog.innerHTML = `<form method="dialog" id="nbQuarterIncomeForm">
+      <h3>Daginkomsten</h3>
+      <label>Jaar<select id="nbIncomeYear" required></select></label>
+      <label>Kwartaal<select id="nbIncomeQuarter" required>
+        <option value="1">1e kwartaal (januari – maart)</option>
+        <option value="2">2e kwartaal (april – juni)</option>
+        <option value="3">3e kwartaal (juli – september)</option>
+        <option value="4">4e kwartaal (oktober – december)</option>
+      </select></label>
+      <div class="nb-quarter-actions"><button type="button" id="nbIncomeCancel">Annuleren</button><button type="submit">PDF genereren</button></div>
+    </form>`;
+    document.body.appendChild(dialog);
+    dialog.querySelector('#nbIncomeCancel').addEventListener('click', () => dialog.close());
+    dialog.querySelector('form').addEventListener('submit', event => {
+      event.preventDefault();
+      const year = Number(dialog.querySelector('#nbIncomeYear').value);
+      const quarter = Number(dialog.querySelector('#nbIncomeQuarter').value);
+      dialog.close();
+      generateQuarterIncomePdf(year, quarter);
+    });
+  }
+  const years = new Set();
+  getData().appointments.forEach(app => { const y = Number(String(app.date || '').slice(0, 4)); if (y >= 2000 && y <= 2100) years.add(y); });
+  const selector = dialog.querySelector('#nbIncomeYear');
+  selector.innerHTML = Array.from(years).sort((a,b) => b-a).map(y => `<option value="${y}">${y}</option>`).join('');
+  if (years.size) {
+    const today = new Date();
+    const currentQuarter = Math.floor(today.getMonth() / 3) + 1;
+    const previousQuarter = currentQuarter === 1 ? 4 : currentQuarter - 1;
+    const previousYear = today.getFullYear() - (currentQuarter === 1 ? 1 : 0);
+    selector.value = String(years.has(previousYear) ? previousYear : Math.max(...years));
+    dialog.querySelector('#nbIncomeQuarter').value = String(previousQuarter);
+  } else {
+    selector.innerHTML = '<option value="">Geen afspraken beschikbaar</option>';
+    dialog.querySelector('button[type=submit]').disabled = true;
+  }
+  if (years.size) dialog.querySelector('button[type=submit]').disabled = false;
+  dialog.showModal();
+}
+
+// Kleine zelfstandige PDF-generator (A4), zonder externe afhankelijkheden.
+function generateQuarterIncomePdf(year, quarter) {
+  const data = getData();
+  const start = `${year}-${String((quarter-1)*3+1).padStart(2,'0')}-01`;
+  const end = quarter === 4 ? `${year+1}-01-01` : `${year}-${String(quarter*3+1).padStart(2,'0')}-01`;
+  const daily = new Map();
+  data.appointments.filter(app => {
+    if (isPrivateAppointment(app) || String(app.status || '').toLowerCase() === 'no-show') return false;
+    if (app.date < start || app.date >= end) return false;
+    if (!SHOW_ANDERE && appointmentHasHiddenZTreatment(app, data.services)) return false;
+    if (!SHOW_ANDERE && appointmentHasHiddenPaymentMethod(app)) return false;
+    return !!app.paid;
+  }).forEach(app => {
+    const amount = Number(app.price || 0);
+    const previous = daily.get(app.date) || { count: 0, amount: 0 };
+    previous.count += 1;
+    previous.amount += Number.isFinite(amount) ? amount : 0;
+    daily.set(app.date, previous);
+  });
+  const money = n => Number(n).toLocaleString('nl-BE', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' EUR';
+  // Elke kalenderdag van het kwartaal hoort in het boekhoudingsoverzicht.
+  // Bestaande sluitingsregels worden hergebruikt (ook meerwekelijkse cycli).
+  const rows = [];
+  const settings = getSettings();
+  const cursor = new Date(`${start}T12:00:00`);
+  const endDate = new Date(`${end}T12:00:00`);
+  while (cursor < endDate) {
+    const date = formatDateInput(cursor);
+    const income = daily.get(date);
+    rows.push([date, income || null, !income && isFixedFreeDay(date, settings)]);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  const total = rows.reduce((sum,[,v]) => sum + (v?.amount || 0),0);
+  const count = rows.reduce((sum,[,v]) => sum + (v?.count || 0),0);
+  const pages = [];
+  let lines = [];
+  const add = (x,y,str,size=11,bold=false) => lines.push({x,y,str:String(str),size,bold});
+  const newPage = () => { if (lines.length) pages.push(lines); lines=[]; add(44,798,'NailBooker - Daginkomsten',17,true); add(44,775,`Kwartaal ${quarter} / ${year}`,12); add(44,753,'Datum',10,true); add(300,753,'Afspraken',10,true); add(420,753,'Inkomsten',10,true); };
+  newPage(); let y=733;
+  rows.forEach(([date,v,closed]) => {
+    if (y < 85) { newPage(); y=733; }
+    const [yr,mo,day] = date.split('-');
+    add(44,y,`${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][new Date(Number(yr), Number(mo)-1, Number(day)).getDay()]} ${day}/${mo}/${yr}`);
+    if (v) {
+      add(310,y,String(v.count));
+      add(420,y,money(v.amount));
+    } else {
+      add(300,y,closed ? 'Winkel gesloten' : 'Geen daginkomsten',10);
+    }
+    y-=19;
+  });
+  if (y < 105) { newPage(); y=733; }
+  y-=12; add(44,y,'TOTAAL KWARTAAL',12,true); add(310,y,String(count),12,true); add(420,y,money(total),12,true);
+  add(44,44,'Enkel betaalde afspraken; prive-afspraken en no-shows uitgesloten.',8);
+  pages.push(lines);
+  const ascii = s => String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e]/g,'?');
+  const esc = s => ascii(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+  const objects = [null];
+  const obj = value => { objects.push(value); return objects.length-1; };
+  const catalogId=obj(''); const pagesId=obj('');
+  const fontId=obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const boldId=obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  const pageIds=[];
+  pages.forEach((page,i) => {
+    page.push({x:460,y:44,str:`Pagina ${i+1} / ${pages.length}`,size:8,bold:false});
+    const stream = page.map(line => `BT /F${line.bold?2:1} ${line.size} Tf 1 0 0 1 ${line.x} ${line.y} Tm (${esc(line.str)}) Tj ET`).join('\n');
+    const streamId=obj(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    pageIds.push(obj(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R /F2 ${boldId} 0 R >> >> /Contents ${streamId} 0 R >>`));
+  });
+  objects[pagesId]=`<< /Type /Pages /Kids [${pageIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+  objects[catalogId]=`<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+  let pdf='%PDF-1.4\n'; const offsets=[0];
+  for(let i=1;i<objects.length;i++) { offsets.push(pdf.length); pdf+=`${i} 0 obj\n${objects[i]}\nendobj\n`; }
+  const xref=pdf.length;
+  pdf+=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for(let i=1;i<objects.length;i++) pdf+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;
+  pdf+=`trailer\n<< /Size ${objects.length} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
+  const link=document.createElement('a'); link.href=url; link.download=`daginkomsten_${year}_K${quarter}.pdf`; link.dataset.allowBusyDownload='true';
+  document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 function downloadRevenueStyledReport() {
   const report = getRevenueReportData();
   const createdAt = new Date().toLocaleString('nl-BE');
@@ -12313,7 +12443,7 @@ function registerEvents() {
 
   const revenueExportReportBtn = document.getElementById("revenueExportReportBtn");
   if (revenueExportReportBtn) {
-    revenueExportReportBtn.addEventListener("click", withActionLock(downloadRevenueStyledReport));
+    revenueExportReportBtn.addEventListener("click", openQuarterIncomeDialog);
   }
 
   const costsExportCsvBtn = document.getElementById("costsExportCsvBtn");
@@ -12934,7 +13064,7 @@ function enhanceAppSelect(select) {
     unwrapHiddenAppointmentPickerSelect(select);
     return;
   }
-  if (select.multiple) return;
+  if (select.multiple || select.id === 'nbIncomeYear' || select.id === 'nbIncomeQuarter') return;
 
   select.dataset.appSelectReady = 'true';
 
