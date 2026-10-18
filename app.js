@@ -43,6 +43,13 @@ function isHiddenPaymentMethodName(value) {
   return HIDDEN_PAYMENT_METHOD_NAMES.some(name => normalizeHiddenPaymentMethodName(name) === normalized);
 }
 
+function appointmentHasHiddenZTreatment(appointment, services) {
+  if (SHOW_ANDERE || !appointment || appointment.isPrivate) return false;
+  const service = (services || []).find(item => String(item.id) === String(appointment.serviceId));
+  const name = String(service?.name || appointment.serviceName || appointment.service_name || "").trim();
+  return /Z$/i.test(name);
+}
+
 function appointmentHasHiddenPaymentMethod(appointment) {
   if (!shouldHidePaymentMethodVariantData() || !appointment) return false;
   const names = [
@@ -919,7 +926,7 @@ function normalizeData(data) {
         recurrenceRule: appointment?.recurrenceRule || appointment?.recurrence_rule || "none"
       };
     })
-    .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment))
+    .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment) && !appointmentHasHiddenZTreatment(appointment, safe.services))
     : [];
 
   const todos = Array.isArray(safe.todos) ? safe.todos.map(todo => ({
@@ -1805,12 +1812,37 @@ function showPastUnpaidAgendaAlertIfNeeded() {
 
   pastUnpaidAgendaAlertOpen = true;
   pastUnpaidAgendaAlertShown = true;
-  appAlert(message, {
+  const dialogPromise = appAlert(message, {
     title: "Melding",
     variant: "warning",
     confirmText: "OK",
     presentationClass: "agenda-unpaid-message-dialog"
-  }).finally(() => {
+  });
+
+  // Extra actie uitsluitend in deze melding, zonder de algemene dialoog te wijzigen.
+  const dialog = document.getElementById("appMessageDialog");
+  const actions = document.getElementById("appMessageDialogActions");
+  const jumpBtn = document.createElement("button");
+  jumpBtn.type = "button";
+  jumpBtn.className = "btn btn-primary action-btn agenda-unpaid-jump-btn";
+  jumpBtn.textContent = "Ga naar afspraak";
+  jumpBtn.addEventListener("click", () => {
+    const targetDate = String(first.date || first.appointment_date || "").slice(0, 10);
+    if (!isDateInputValue(targetDate)) return;
+    // Eerst de melding sluiten; pas daarna de agenda verplaatsen.
+    document.getElementById("appMessageConfirmBtn")?.click();
+    state.selectedDate = targetDate;
+    const date = new Date(targetDate + "T00:00:00");
+    state.currentYear = date.getFullYear();
+    state.currentMonth = date.getMonth();
+    state.revenueSyncSelectedDateOnOpen = true;
+    renderCalendar();
+    renderAgendaList();
+  });
+  if (dialog?.open && actions) actions.prepend(jumpBtn);
+
+  dialogPromise.finally(() => {
+    jumpBtn.remove();
     pastUnpaidAgendaAlertOpen = false;
   });
 }
@@ -4718,6 +4750,11 @@ function renderClients() {
     return haystack.includes(q) || (compactQuery && phoneDigits.includes(compactQuery));
   });
 
+  if (!SHOW_ANDERE) {
+    const visibleCustomerIds = new Set(data.appointments.map(a => String(a.customerId)));
+    clients = clients.filter(c => visibleCustomerIds.has(String(c.id)));
+  }
+
   if (state.clientLetter) {
     clients = clients.filter(c => (c.firstName || "").toUpperCase().startsWith(state.clientLetter));
   }
@@ -7526,7 +7563,7 @@ function getStatisticsSummary(data = getData()) {
 
   return {
     appointmentCount: appointments.length,
-    customerCount: customers.length,
+    customerCount: SHOW_ANDERE ? customers.length : customers.filter(customer => appointments.some(app => String(app.customerId) === String(customer.id))).length,
     pastAppointmentCount: pastAppointments.length,
     futureAppointmentCount: futureAppointments.length,
     paidAppointmentCount: paidAppointments.length,

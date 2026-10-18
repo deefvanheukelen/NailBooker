@@ -13204,3 +13204,13 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 .deleted-appointment-name-row .deleted-appointment-select {padding:0;align-items:center;}
 .deleted-appointment-main {flex:1 1 auto;min-width:0;}
 #deletedAppointmentsDialog .app-busy-overlay {position:fixed;inset:0;z-index:2147483647;}
+
+/* Openstaande afspraken: geen logo, extra navigatieactie. */
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-badge { display: none !important; }
+#appMessageDialog.agenda-unpaid-message-dialog .app-message-head { left: 22px !important; }
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions { gap: 10px !important; }
+#appMessageDialog.agenda-unpaid-message-dialog #appMessageDialogActions .agenda-unpaid-jump-btn {
+  width: auto !important; min-width: 0 !important; max-width: none !important;
+  padding: 0 12px !important; color: var(--primary-dark) !important;
+  font-size: 11px !important; white-space: nowrap;
+}
