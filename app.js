@@ -10546,7 +10546,12 @@ async function deleteCurrentAppointment() {
   }
 }
 
+let selectedDeletedAppointmentIds = new Set();
+let deletedAppointmentsRenderVersion = 0;
+
 async function openDeletedAppointmentsDialog() {
+  selectedDeletedAppointmentIds.clear();
+  updateDeletedAppointmentsSelectionToolbar();
   const dialog = document.getElementById("deletedAppointmentsDialog");
   if (!dialog) return;
   const searchInput = document.getElementById("deletedAppointmentsSearch");
@@ -10577,7 +10582,12 @@ async function renderDeletedAppointmentsDialog() {
   if (!list) return;
   list.innerHTML = '<div class="deleted-appointments-empty">Even geduld...</div>';
 
+  const renderVersion = ++deletedAppointmentsRenderVersion;
   const deletedAppointments = await loadDeletedAppointmentsFromSupabase();
+  if (renderVersion !== deletedAppointmentsRenderVersion) return;
+  const availableIds = new Set(deletedAppointments.map(a => String(a.id)));
+  selectedDeletedAppointmentIds.forEach(id => { if (!availableIds.has(id)) selectedDeletedAppointmentIds.delete(id); });
+  updateDeletedAppointmentsSelectionToolbar();
   const query = String(document.getElementById("deletedAppointmentsSearch")?.value || "").trim().toLowerCase();
   const filtered = query
     ? deletedAppointments.filter(appointment => buildDeletedAppointmentSearchText(appointment).includes(query))
@@ -10601,6 +10611,7 @@ async function renderDeletedAppointmentsDialog() {
     const remarks = appointment.isPrivate ? (appointment.privateDetails || appointment.remarks || "") : (appointment.remarks || "");
     return `
       <article class="deleted-appointment-card" data-appointment-id="${htmlEscape(String(appointment.id))}">
+        <label class="deleted-appointment-select"><input type="checkbox" data-select-deleted-id="${htmlEscape(String(appointment.id))}" ${selectedDeletedAppointmentIds.has(String(appointment.id)) ? "checked" : ""} aria-label="Selecteer afspraak van ${htmlEscape(title)}" /></label>
         <div class="deleted-appointment-main">
           <strong>${htmlEscape(title)}</strong>
           <span>${htmlEscape(formatLongDate(appointment.date))} · ${htmlEscape(appointment.time || "--:--")} · ${htmlEscape(serviceName)}</span>
@@ -10613,6 +10624,15 @@ async function renderDeletedAppointmentsDialog() {
         </div>
       </article>`;
   }).join("");
+
+  list.querySelectorAll("[data-select-deleted-id]").forEach(input => {
+    input.addEventListener("change", () => {
+      const id = input.getAttribute("data-select-deleted-id");
+      if (input.checked) selectedDeletedAppointmentIds.add(id);
+      else selectedDeletedAppointmentIds.delete(id);
+      updateDeletedAppointmentsSelectionToolbar();
+    });
+  });
 
   list.querySelectorAll("[data-restore-appointment-id]").forEach(button => {
     button.addEventListener("click", async event => {
@@ -10658,11 +10678,29 @@ async function restoreDeletedAppointment(id) {
   await renderDeletedAppointmentsDialog();
 }
 
-async function permanentlyDeleteAppointment(id) {
-  if (!(await ensureDataWriteAccess())) return;
-  if (!id) return;
+function updateDeletedAppointmentsSelectionToolbar() {
+  const button = document.getElementById("deleteSelectedAppointmentsBtn");
+  const counter = document.getElementById("deletedAppointmentsSelectionCount");
+  const count = selectedDeletedAppointmentIds.size;
+  if (button) {
+    button.disabled = count === 0;
+    button.textContent = `Selectie definitief verwijderen (${count})`;
+  }
+  if (counter) counter.textContent = `${count} geselecteerd`;
+}
 
-  const confirmed = await appConfirm("Deze afspraak wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.", {
+async function permanentlyDeleteAppointment(id) {
+  await permanentlyDeleteAppointments([id]);
+}
+
+async function permanentlyDeleteAppointments(ids) {
+  if (!(await ensureDataWriteAccess())) return;
+  const uniqueIds = [...new Set(ids.map(Number).filter(Number.isFinite))];
+  if (!uniqueIds.length) return;
+  const multiple = uniqueIds.length > 1;
+  const confirmed = await appConfirm(multiple
+    ? `Deze ${uniqueIds.length} afspraken worden definitief verwijderd. Dit kan niet ongedaan gemaakt worden.`
+    : "Deze afspraak wordt definitief verwijderd. Dit kan niet ongedaan gemaakt worden.", {
     title: "Definitief verwijderen",
     confirmText: "Definitief verwijderen",
     cancelText: t("cancel"),
@@ -10670,24 +10708,28 @@ async function permanentlyDeleteAppointment(id) {
   });
   if (!confirmed) return;
 
-  const user = await getCurrentUser();
-  if (!user) return;
+  // Pas NA bevestiging de overlay tonen; het venster blijft intussen open.
+  await runWithGlobalActionBusy(async () => {
+    const startedAt = Date.now();
+    const user = await getCurrentUser();
+    if (!user) return;
+    const { error } = await supabaseClient
+      .from("appointments")
+      .delete()
+      .in("id", uniqueIds)
+      .eq("user_id", user.id)
+      .not("deleted_at", "is", null);
 
-  const { error } = await supabaseClient
-    .from("appointments")
-    .delete()
-    .eq("id", Number(id))
-    .eq("user_id", user.id)
-    .not("deleted_at", "is", null);
-
-  if (error) {
-    await appAlert("Afspraak definitief verwijderen mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
-    return;
-  }
-
-  await loadAllDataFromSupabase();
-  rerenderAll();
-  await renderDeletedAppointmentsDialog();
+    if (error) {
+      await appAlert("Afspraken definitief verwijderen mislukt: " + error.message, { title: "Verwijderen mislukt", variant: "danger" });
+      return;
+    }
+    uniqueIds.forEach(id => selectedDeletedAppointmentIds.delete(String(id)));
+    await loadAllDataFromSupabase();
+    rerenderAll();
+    await renderDeletedAppointmentsDialog();
+    await keepBusyOverlayVisibleSince(startedAt, 750);
+  });
 }
 
 async function deleteCurrentService() {
@@ -12171,6 +12213,7 @@ function registerEvents() {
   document.getElementById("deleteAppointmentBtn").addEventListener("click", withActionLock(deleteCurrentAppointment));
   document.getElementById("openDeletedAppointmentsBtn")?.addEventListener("click", openDeletedAppointmentsDialog);
   document.getElementById("deletedAppointmentsSearch")?.addEventListener("input", () => renderDeletedAppointmentsDialog());
+  document.getElementById("deleteSelectedAppointmentsBtn")?.addEventListener("click", () => permanentlyDeleteAppointments([...selectedDeletedAppointmentIds]));
 
   document.getElementById("clientForm").addEventListener("submit", withActionLock(saveClientFromForm));
 

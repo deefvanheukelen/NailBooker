@@ -13190,3 +13190,10 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
   }
 }
 
+
+/* Meervoudige selectie in Verwijderde afspraken */
+.deleted-appointments-selection-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.deleted-appointments-selection-bar .btn:disabled { opacity:.5; cursor:not-allowed; }
+.deleted-appointment-select { display:flex; align-items:flex-start; padding-top:3px; flex:0 0 auto; cursor:pointer; }
+.deleted-appointment-select input { width:20px; height:20px; accent-color:var(--primary, #008080); cursor:pointer; }
+.deleted-appointment-main { flex:1 1 auto; }
