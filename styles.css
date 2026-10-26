@@ -13574,3 +13574,208 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 #settingsScreen .settings-inline-select-row .app-select-button {
   width: 100%;
 }
+
+/* Betaalgegevens: compacte checkboxrij, in dezelfde stijl als de andere instellingen. */
+#settingsScreen .settings-payment-service-option {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 8px 0 12px; font-weight: 500; cursor: pointer;
+}
+#settingsScreen .settings-payment-service-option input[type="checkbox"] {
+  margin: 0; flex: 0 0 auto; accent-color: #d982a2;
+}
+
+/* Betaalgegevens: dezelfde checkboxafmetingen en opmaak als alle andere
+   instellingen; geen apart kader of achtergrond. */
+#settingsScreen .nb-settings-content .settings-payment-service-option {
+  display: flex !important; align-items: center !important;
+  justify-content: space-between !important; min-height: 38px;
+  padding: 6px 0 !important; margin: 5px 0 !important;
+  border: 0 !important; box-shadow: none !important; background: transparent !important;
+}
+#settingsScreen .nb-settings-content .settings-payment-service-option input[type="checkbox"] {
+  width: 22px !important; height: 22px !important;
+  flex: 0 0 22px !important; margin: 0 0 0 auto !important;
+  accent-color: var(--primary-dark);
+}
+
+/* Afspraak-acties: volledige klikbare rijen met icoon rechts (zonder tussenschot). */
+.appointment-action-list .appointment-action-icon-row,
+.appointment-action-list #appointmentActionFollowUpBtn { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.appointment-action-list .appointment-action-icon-row .app-action-nav-icon,
+.appointment-action-list #appointmentActionFollowUpBtn .app-action-nav-icon { width: 22px; height: 22px; flex: 0 0 22px; color: var(--primary-dark); }
+
+/* Afspraakmenu: lijniconen expliciet als contour tekenen.
+   Algemene SVG-regels mogen de pictogrammen niet als volle vlakken vullen. */
+.appointment-action-list .app-action-nav-icon {
+  display: block; width: 22px; height: 22px; flex: 0 0 22px;
+  fill: none !important; stroke: currentColor !important; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round; overflow: visible;
+}
+.appointment-action-list .app-action-nav-icon path,
+.appointment-action-list .app-action-nav-icon rect {
+  fill: none !important; stroke: currentColor !important;
+}
+
+/* NB afspraakmenu: originele gevulde iconen behouden; nieuwe iconen als heldere lijntekeningen.
+   Specifieke regels voorkomen dat de algemene .app-action-nav-icon path {fill:... !important}
+   of eerdere popup-regels de symbolen in blokjes veranderen. */
+.appointment-action-list .nb-menu-solid-icon,
+.appointment-action-list .appointment-action-customer-svg {
+  width:22px; height:22px; flex:0 0 22px; display:block;
+  fill:currentColor !important; stroke:none !important; color:var(--primary-dark);
+}
+.appointment-action-list .nb-menu-solid-icon path,
+.appointment-action-list .appointment-action-customer-svg path {
+  fill:currentColor !important; stroke:none !important;
+}
+.appointment-action-list .nb-menu-outline-icon {
+  width:22px; height:22px; flex:0 0 22px; display:block; overflow:visible;
+  fill:none !important; stroke:var(--primary-dark) !important;
+  stroke-width:1.8 !important; stroke-linecap:round; stroke-linejoin:round;
+}
+.appointment-action-list .nb-menu-outline-icon path,
+.appointment-action-list .nb-menu-outline-icon rect {
+  fill:none !important; stroke:var(--primary-dark) !important;
+  stroke-width:1.8 !important; stroke-linecap:round; stroke-linejoin:round;
+}
+
+/* Afspraakmenu – herkenbare pijlsymbolen (verplaatsen / vervolg).
+   De specifieke selectors isoleren deze SVG's van globale icon-CSS. */
+.appointment-action-list .nb-menu-pictogram {
+  display:block; width:26px; height:24px; flex:0 0 26px; overflow:visible;
+  fill:none !important; stroke:var(--primary-dark) !important;
+  stroke-width:1.8 !important; stroke-linecap:round; stroke-linejoin:round;
+}
+.appointment-action-list .nb-menu-pictogram rect,
+.appointment-action-list .nb-menu-pictogram path:not(.nb-arrow-fill) {
+  fill:none !important; stroke:var(--primary-dark) !important; stroke-width:1.8 !important;
+}
+.appointment-action-list .nb-menu-pictogram .nb-arrow-fill {
+  fill:var(--primary-dark) !important; stroke:none !important;
+}
+/* Verwijderen: origineel pictogram, iets groter dan voorheen. */
+.appointment-action-list .appointment-action-delete-svg {
+  width:25px !important; height:25px !important; flex:0 0 25px !important;
+}
+
+/* Afspraakmenu: alle actie-iconen delen hetzelfde verticale middelpunt.
+   De pijlen zijn iets kleiner; bij Verplaatsen staat de pijl verder van de kalender. */
+.appointment-action-list .appointment-action-icon-row,
+.appointment-action-list #appointmentActionFollowUpBtn,
+.appointment-action-list .appointment-action-customer-btn {
+  align-items: center !important;
+}
+.appointment-action-list .nb-menu-pictogram {
+  width: 26px; height: 24px; flex: 0 0 26px;
+  align-self: center; vertical-align: middle;
+}
+.appointment-action-list .appointment-action-delete-svg,
+.appointment-action-list .appointment-action-customer-svg {
+  align-self: center; vertical-align: middle;
+}
+
+/* ============================================================
+   26-10-2026 — Instellingen: gelijke afstand tussen alle secties.
+   De kaart 'Verwijderde afspraken' staat buiten de grid; de
+   vroegere extra marge maakte de tussenruimte onnodig groot.
+   ============================================================ */
+#settingsScreen .settings-deleted-appointments-card {
+  margin-top: 9px;
+}
+
+/* ============================================================
+   26-10-2026 — Algemene app-meldingen: titel + tekst verticaal
+   in het midden van het beschikbare scherm. De actieknoppen
+   blijven onderaan. Speciale agenda-meldingen met eigen
+   compacte vormgeving worden bewust uitgesloten.
+   ============================================================ */
+#appMessageDialog:not(.agenda-unpaid-message-dialog) > .app-message-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+#appMessageDialog:not(.agenda-unpaid-message-dialog) .app-message-badge {
+  flex: 0 0 auto;
+}
+#appMessageDialog:not(.agenda-unpaid-message-dialog) .app-message-head,
+#appMessageDialog:not(.agenda-unpaid-message-dialog) .app-message-text {
+  flex: 0 0 auto;
+}
+/* Geen zwarte focusrechthoek op de OK-knop na het openen.
+   Bij toetsenbordnavigatie blijft een subtiele focusring bestaan. */
+#appMessageDialog #appMessageConfirmBtn:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+#appMessageDialog #appMessageConfirmBtn:focus-visible {
+  outline: 2px solid var(--primary-dark) !important;
+  outline-offset: 3px;
+}
+
+/* Afspraak verplaatsen / vervolgafspraak: geïntegreerde kalender in bestaande modal. */
+.appointment-inline-calendar { width: 100%; margin: 5px 0 16px; min-width: 0; }
+.appointment-inline-calendar .revenue-calendar-picker { width: 100%; }
+.appointment-inline-calendar .revenue-calendar-grid { gap: 4px; }
+.appointment-inline-calendar .revenue-calendar-day { min-width: 0; }
+
+/* Omzet: compacte periodekeuze D / W / M / K / J; overige schermen ongewijzigd. */
+.revenue-screen-shell .revenue-period-strip.app-control-card { grid-template-columns: repeat(5, minmax(0,1fr)) !important; gap: clamp(4px, 1.3cqw, 10px) !important; }
+.revenue-screen-shell .revenue-period-tile { display:flex !important; flex-direction:column !important; justify-content:center !important; align-items:center !important; gap:clamp(3px,1cqw,8px) !important; min-height:clamp(75px,20cqw,120px) !important; padding:clamp(5px,1.5cqw,12px) 2px !important; border-color:#e8acc0 !important; border-radius:clamp(12px,3cqw,22px) !important; box-shadow:none !important; }
+.revenue-screen-shell .revenue-period-icon { display:none !important; }
+.revenue-screen-shell .revenue-period-title { display:block !important; font-size:clamp(33px,10cqw,72px) !important; font-weight:400 !important; line-height:1 !important; color:#4c4c4c !important; letter-spacing:0 !important; }
+.revenue-screen-shell .revenue-period-sub, .revenue-screen-shell .revenue-period-year { font-size:clamp(12px,3.5cqw,22px) !important; font-weight:400 !important; line-height:1.1 !important; color:#4c4c4c !important; overflow-wrap:normal !important; hyphens:none !important; }
+.revenue-screen-shell .revenue-period-tile.active { background:#f7e8ee !important; border:2px solid #d99ab1 !important; box-shadow:none !important; }
+
+/* Omzet: definitieve compacte labels, zonder tekstoverloop. */
+.revenue-screen-shell .revenue-period-strip.app-control-card {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: clamp(4px, 1.3cqw, 10px) !important;
+}
+.revenue-screen-shell .revenue-period-tile {
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  gap: clamp(3px, 1cqw, 8px) !important;
+}
+.revenue-screen-shell .revenue-period-title {
+  font-size: clamp(28px, 9cqw, 72px) !important;
+  flex: 0 0 auto !important;
+  max-width: 100% !important;
+  line-height: 1 !important;
+}
+.revenue-screen-shell .revenue-period-sub,
+.revenue-screen-shell .revenue-period-year {
+  font-size: clamp(12px, 3.5cqw, 22px) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  line-height: 1.1 !important;
+}
+
+/* Omzet: vijf compacte periodeknoppen; andere schermen ongemoeid. */
+#revenueScreen .revenue-period-strip.app-control-card {grid-template-columns:repeat(5,minmax(0,1fr)) !important;gap:clamp(5px,1.3vw,11px)!important;}
+#revenueScreen .revenue-period-tile {display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;min-height:88px!important;padding:8px 2px!important;border:2px solid #e7afc4!important;border-radius:17px!important;text-align:center!important;box-sizing:border-box!important;}
+#revenueScreen .revenue-period-title {display:block!important;font-size:clamp(34px,9vw,66px)!important;font-weight:400!important;line-height:1!important;letter-spacing:0!important;white-space:nowrap!important;}
+#revenueScreen .revenue-period-sub,#revenueScreen .revenue-period-year {display:block!important;width:100%!important;font-size:clamp(13px,3.6vw,24px)!important;font-weight:400!important;line-height:1.15!important;white-space:nowrap!important;overflow-wrap:normal!important;}
+#revenueScreen .revenue-period-tile.active {background:#f8e7ee!important;border-color:#d68ba9!important;}
+#revenueScreen .revenue-period-tile.active .revenue-period-title {color:#3f3b42!important;}
+#revenueScreen .revenue-quarter-linechart {display:block;width:100%;height:220px;overflow:visible;}
+#revenueScreen .revenue-quarter-axis {display:flex;justify-content:space-between;margin-left:42px;font-size:12px;color:#666;}
+
+/* Omzet: toetsenbordfocus mag de actieve kwartaalstijl niet overschrijven. */
+#revenueScreen .revenue-period-tile:focus { outline: none !important; }
+#revenueScreen .revenue-period-tile:focus-visible { outline: 2px solid #b96e8d !important; outline-offset: 2px !important; }
+
+/* Omzet: kwartaalkeuze in hetzelfde bestaande keuzedialoogvenster. */
+#revenueWheelPickerDialog .revenue-quarter-picker {width:100%;padding:12px 8px 18px;box-sizing:border-box;}
+#revenueWheelPickerDialog .revenue-quarter-picker-year {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
+#revenueWheelPickerDialog .revenue-quarter-picker-year strong {font-size:22px;font-weight:600;}
+#revenueWheelPickerDialog .revenue-quarter-picker-year button {border:1px solid #e7afc4;border-radius:12px;background:white;color:#4b4b4b;font-size:28px;width:45px;height:42px;cursor:pointer;}
+#revenueWheelPickerDialog .revenue-quarter-picker-options {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
+#revenueWheelPickerDialog .revenue-quarter-picker-options button {border:2px solid #e7afc4;border-radius:14px;background:white;color:#4b4b4b;font-size:27px;min-height:62px;cursor:pointer;}
+#revenueWheelPickerDialog .revenue-quarter-picker-options button.selected {background:#f8e7ee;border-color:#d68ba9;}

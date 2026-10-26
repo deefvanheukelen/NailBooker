@@ -504,10 +504,12 @@ function updateStaticI18n() {
 
   renderServiceAlphabetFilter();
 
-  const revenuePeriodKeys = ["day", "week", "month", "year"];
-  document.querySelectorAll(".revenue-period-title").forEach((el, index) => {
-    const key = revenuePeriodKeys[index];
-    if (key) el.textContent = t(key);
+  // Omzetknoppen gebruiken vaste, taalneutrale initialen.
+  // Beperk dit expliciet tot Omzet; andere periodeknoppen blijven vertaald.
+  const revenueInitials = { revenueDayBtn: "D", revenueWeekBtn: "W", revenueMonthBtn: "M", revenueQuarterBtn: "K", revenueYearBtn: "J" };
+  Object.entries(revenueInitials).forEach(([id, letter]) => {
+    const title = document.getElementById(id)?.querySelector(".revenue-period-title");
+    if (title) title.textContent = letter;
   });
 
   const revenueAppointmentLabels = [
@@ -899,6 +901,7 @@ function getDefaultSettings() {
     paymentAccountNumber: "",
     paymentBic: "",
     paymentReferencePrefix: "",
+    paymentServiceAsReference: true,
     calendarFeedToken: ""
   };
 }
@@ -4954,20 +4957,21 @@ function formatRevenueDayChip(dateStr) {
 
 function formatRevenueDayTile(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  const day = new Intl.DateTimeFormat(getCurrentLanguage(), { weekday: "long" }).format(d);
-  return `${capitalizeFirst(day)}<br>${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatRevenueWeekTile(dateStr) {
-  const bounds = weekBounds(dateStr);
-  const start = new Date(bounds.start + "T00:00:00");
-  const end = new Date(bounds.end + "T00:00:00");
-  return `${String(start.getDate()).padStart(2, "0")}-${String(start.getMonth() + 1).padStart(2, "0")}-${start.getFullYear()}<br>${String(end.getDate()).padStart(2, "0")}-${String(end.getMonth() + 1).padStart(2, "0")}-${end.getFullYear()}`;
+  // ISO-weeknummer: maandag is de eerste dag, week 1 bevat 4 januari.
+  const d = new Date(dateStr + "T00:00:00");
+  const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7));
+  const first = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+  return String(Math.ceil((((utc - first) / 86400000) + 1) / 7));
 }
 
 function formatRevenueMonthTile(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  return `${capitalizeFirst(getMonthNameLong(d.getMonth()))}<br>${d.getFullYear()}`;
+  return new Intl.DateTimeFormat(getCurrentLanguage(), { month: "short" }).format(d).replace(/\.$/, "").toLowerCase();
 }
 
 function shiftRevenueDate(baseDateStr, mode, step) {
@@ -4975,6 +4979,11 @@ function shiftRevenueDate(baseDateStr, mode, step) {
 
   if (mode === "year") {
     d.setFullYear(d.getFullYear() + step);
+    return formatDateInput(d);
+  }
+
+  if (mode === "quarter") {
+    d.setMonth(d.getMonth() + step * 3);
     return formatDateInput(d);
   }
 
@@ -5053,6 +5062,9 @@ function setRevenuePeriod(type, dateStr) {
   const periodType = document.getElementById("revenuePeriodType");
   const dateInput = document.getElementById("revenueDate");
 
+  if (periodType && type === "quarter" && !Array.from(periodType.options).some(o => o.value === "quarter")) {
+    periodType.add(new Option("Kwartaal", "quarter"));
+  }
   if (periodType) periodType.value = type;
   if (dateInput) dateInput.value = safeDate;
 
@@ -5188,6 +5200,8 @@ function syncRevenuePeriodChips() {
   const anchor = document.getElementById("revenueDate").value || todayStr;
   const anchorDate = new Date(anchor + "T00:00:00");
 
+  const quarterBtn = document.getElementById("revenueQuarterBtn");
+  const quarterLabel = document.getElementById("revenueQuarterLabel");
   const yearBtn = document.getElementById("revenueYearBtn");
   const monthBtn = document.getElementById("revenueMonthBtn");
   const weekBtn = document.getElementById("revenueWeekBtn");
@@ -5198,6 +5212,8 @@ function syncRevenuePeriodChips() {
   const weekLabel = document.getElementById("revenueWeekLabel");
   const dayLabel = document.getElementById("revenueDayLabel");
 
+  if (quarterLabel) quarterLabel.textContent = String(Math.floor(anchorDate.getMonth() / 3) + 1);
+  if (quarterBtn) quarterBtn.classList.toggle("active", type === "quarter");
   if (yearLabel) yearLabel.textContent = String(anchorDate.getFullYear());
   if (monthLabel) monthLabel.innerHTML = formatRevenueMonthTile(anchor);
   if (weekLabel) weekLabel.innerHTML = formatRevenueWeekTile(anchor);
@@ -5223,6 +5239,12 @@ function revenueFilteredAppointments() {
   } else if (type === "month") {
     const prefix = anchor.slice(0, 7);
     filtered = filtered.filter(a => a.date.startsWith(prefix));
+  } else if (type === "quarter") {
+    const year = anchor.slice(0, 4);
+    const quarter = Math.floor((Number(anchor.slice(5, 7)) - 1) / 3);
+    const start = `${year}-${String(quarter * 3 + 1).padStart(2, "0")}-01`;
+    const end = quarter === 3 ? `${Number(year) + 1}-01-01` : `${year}-${String(quarter * 3 + 4).padStart(2, "0")}-01`;
+    filtered = filtered.filter(a => a.date >= start && a.date < end);
   } else if (type === "year") {
     const prefix = anchor.slice(0, 4);
     filtered = filtered.filter(a => a.date.startsWith(prefix));
@@ -5510,6 +5532,47 @@ function syncFollowUpDisplays() {
   if (timeBtn && timeInput) timeBtn.textContent = formatAppointmentTimeLabel(timeInput.value);
 }
 
+// De bestaande kalendercomponent wordt rechtstreeks in beide afspraakvensters getoond.
+// De maandnavigatie en swipe-animaties gebruiken dezelfde logica als de normale datumkiezer.
+function renderInlineAppointmentCalendar(prefix, year = null, monthIndex = null) {
+  const input = document.getElementById(`${prefix}Date`);
+  const wrap = document.getElementById(`${prefix}InlineCalendar`);
+  if (!input || !wrap) return;
+  const selected = input.value || state.selectedDate || todayStr;
+  const anchor = new Date(selected + "T00:00:00");
+  const y = year ?? anchor.getFullYear();
+  const m = monthIndex ?? anchor.getMonth();
+  const prevAttr = "data-inline-calendar-prev";
+  const nextAttr = "data-inline-calendar-next";
+  const datasetName = "inlineAppointmentDay";
+  wrap.innerHTML = buildSharedCalendarPickerHtml({
+    mode: "day", year: y, monthIndex: m, selectedDateStr: selected,
+    datasetName, prevAttr, nextAttr
+  });
+  const picker = wrap.querySelector(".revenue-calendar-picker");
+  const navigate = delta => {
+    const next = new Date(y, m + delta, 1);
+    renderInlineAppointmentCalendar(prefix, next.getFullYear(), next.getMonth());
+  };
+  picker?.querySelector(`[${prevAttr}]`)?.addEventListener("click", () => navigate(-1));
+  picker?.querySelector(`[${nextAttr}]`)?.addEventListener("click", () => navigate(1));
+  attachCalendarPickerSwipe(picker, navigate, delta => buildCalendarPickerSwipePreviewHtml({
+    mode: "day", year: y, monthIndex: m, delta, selectedDateStr: selected,
+    datasetName, prevAttr, nextAttr
+  }));
+  picker?.querySelectorAll(`[data-${datasetName}]`).forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.getAttribute(`data-${datasetName}`);
+      if (!value) return;
+      input.value = value;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      // Bij een dag uit de aangrenzende maand volgt de zichtbare kalender die maand.
+      const chosen = new Date(value + "T00:00:00");
+      renderInlineAppointmentCalendar(prefix, chosen.getFullYear(), chosen.getMonth());
+    });
+  });
+}
+
 function openFollowUpAppointmentDialog(sourceId) {
   const data = getData();
   const app = data.appointments.find(a => String(a.id) === String(sourceId));
@@ -5523,6 +5586,7 @@ function openFollowUpAppointmentDialog(sourceId) {
   const info = document.getElementById("followUpAppointmentInfo");
   if (info) info.textContent = `${customer ? fullName(customer) : "Klant"}${service ? ` · ${service.name}` : ""}`;
   syncFollowUpDisplays();
+  renderInlineAppointmentCalendar("followUpAppointment");
   document.getElementById("followUpAppointmentDialog")?.showModal();
 }
 
@@ -5585,6 +5649,68 @@ async function saveFollowUpAppointmentFromForm(event) {
   closeDialog("followUpAppointmentDialog");
   state.selectedDate = payload.date;
   const picked = new Date(payload.date + "T00:00:00");
+  state.currentYear = picked.getFullYear();
+  state.currentMonth = picked.getMonth();
+  rerenderAll();
+}
+
+// De bestaande afspraak wordt bijgewerkt (geen kopie). Alle overige velden blijven behouden.
+function syncMoveAppointmentDisplays() {
+  const date = document.getElementById("moveAppointmentDate");
+  const time = document.getElementById("moveAppointmentTime");
+  // De datum wordt nu rechtstreeks in de kalender gekozen; de vroegere datumknop bestaat niet meer.
+  const dateDisplay = document.getElementById("moveAppointmentDateDisplayBtn");
+  if (dateDisplay) dateDisplay.textContent = formatAppointmentDateLabel(date.value);
+  document.getElementById("moveAppointmentTimeDisplayBtn").textContent = formatAppointmentTimeLabel(time.value);
+}
+function openMoveAppointmentDialog(id) {
+  const appointment = getData().appointments.find(a => String(a.id) === String(id));
+  if (!appointment || isPrivateAppointment(appointment)) return;
+  closeAppointmentActionPopover();
+  document.getElementById("moveAppointmentId").value = appointment.id;
+  document.getElementById("moveAppointmentDate").value = appointment.date;
+  document.getElementById("moveAppointmentTime").value = appointment.time;
+  syncMoveAppointmentDisplays();
+  renderInlineAppointmentCalendar("moveAppointment");
+  document.getElementById("moveAppointmentDialog").showModal();
+}
+async function saveMoveAppointmentFromForm(event) {
+  event.preventDefault();
+  if (!(await ensureDataWriteAccess())) return;
+  const id = document.getElementById("moveAppointmentId").value;
+  const data = getData();
+  const appointment = data.appointments.find(a => String(a.id) === String(id));
+  if (!appointment) return;
+  const date = document.getElementById("moveAppointmentDate").value;
+  const time = document.getElementById("moveAppointmentTime").value;
+  if (!date || !time) return;
+  if (date === appointment.date && time === appointment.time) { closeDialog("moveAppointmentDialog"); return; }
+  // De bestaande waarschuwing voor overlappende afspraken wordt hergebruikt.
+  const settings = getSettings();
+  const updated = { ...appointment, date, time };
+  if (settings.overlapWarningsEnabled) {
+    const overlap = findAppointmentOverlap(updated, data.appointments, settings.defaultBreakMinutes, id);
+    if (overlap) {
+      const ok = await appConfirm(buildOverlapMessage(updated, overlap, data.appointments, settings.defaultBreakMinutes, id), { title: "Overlap gedetecteerd", confirmText: t("save"), cancelText: t("cancel"), variant: "warning" });
+      if (!ok) return;
+    }
+  }
+  const user = await getCurrentUser();
+  if (user) {
+    // Alleen deze twee kolommen updaten: prijs, status, klant, betaling enz. blijven ongewijzigd.
+    const { error } = await supabaseClient.from("appointments")
+      .update({ appointment_date: date, appointment_time: time })
+      .eq("id", Number(id)).eq("user_id", user.id);
+    if (error) { await appAlert("Afspraak verplaatsen mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" }); return; }
+    await loadAllDataFromSupabase();
+  } else {
+    appointment.date = date;
+    appointment.time = time;
+    saveData(data);
+  }
+  closeDialog("moveAppointmentDialog");
+  state.selectedDate = date;
+  const picked = new Date(date + "T00:00:00");
   state.currentYear = picked.getFullYear();
   state.currentMonth = picked.getMonth();
   rerenderAll();
@@ -6189,6 +6315,39 @@ function renderRevenueMonthPicker(year, selectedMonthIndex = new Date((revenuePi
   });
 }
 
+function renderRevenueQuarterPicker(year) {
+  const columnsWrap = document.getElementById("revenueWheelColumns");
+  if (!columnsWrap) return;
+  const anchor = revenuePickerState.selected.date || getRevenuePickerAnchorDate();
+  const currentQuarter = Math.floor((Number(anchor.slice(5, 7)) - 1) / 3) + 1;
+  columnsWrap.className = "revenue-wheel-columns revenue-calendar-mode";
+  columnsWrap.innerHTML = `<div class="revenue-quarter-picker">
+    <div class="revenue-quarter-picker-year">
+      <button type="button" data-quarter-year="-1" aria-label="Vorig jaar">‹</button>
+      <strong>${year}</strong>
+      <button type="button" data-quarter-year="1" aria-label="Volgend jaar">›</button>
+    </div>
+    <div class="revenue-quarter-picker-options">${[1,2,3,4].map(q =>
+      `<button type="button" data-quarter="${q}" class="${q === currentQuarter && Number(anchor.slice(0,4)) === year ? 'selected' : ''}">${q}</button>`
+    ).join("")}</div>
+  </div>`;
+  columnsWrap.querySelectorAll("[data-quarter-year]").forEach(button => {
+    button.addEventListener("click", () => {
+      const nextYear = year + Number(button.dataset.quarterYear);
+      const selectedQuarter = Math.floor((Number((revenuePickerState.selected.date || getRevenuePickerAnchorDate()).slice(5,7)) - 1) / 3);
+      revenuePickerState.selected.date = `${nextYear}-${String(selectedQuarter * 3 + 1).padStart(2,"0")}-01`;
+      renderRevenueQuarterPicker(nextYear);
+    });
+  });
+  columnsWrap.querySelectorAll("[data-quarter]").forEach(button => {
+    button.addEventListener("click", () => {
+      const quarter = Number(button.dataset.quarter);
+      revenuePickerState.selected.date = `${year}-${String((quarter - 1) * 3 + 1).padStart(2,"0")}-01`;
+      columnsWrap.querySelectorAll("[data-quarter]").forEach(el => el.classList.toggle("selected", el === button));
+    });
+  });
+}
+
 function openRevenueWheelPicker(mode, target = "revenue") {
   const dialog = document.getElementById("revenueWheelPickerDialog");
   const title = document.getElementById("revenueWheelPickerTitle");
@@ -6216,6 +6375,9 @@ function openRevenueWheelPicker(mode, target = "revenue") {
   } else if (mode === "week") {
     title.textContent = "Kies week";
     renderRevenueCalendarPicker("week", selectedYear, selectedMonthIndex, anchor);
+  } else if (mode === "quarter") {
+    title.textContent = "Kies kwartaal";
+    renderRevenueQuarterPicker(selectedYear);
   } else if (mode === "month") {
     title.textContent = "Kies maand";
     renderRevenueMonthPicker(selectedYear, selectedMonthIndex);
@@ -6264,6 +6426,11 @@ function applyRevenueWheelPickerSelection() {
     return;
   }
 
+  if (revenuePickerState.mode === "quarter") {
+    setRevenuePickerPeriod("quarter", revenuePickerState.selected.date || anchor);
+    return;
+  }
+
   if (revenuePickerState.mode === "month") {
     const selectedDate = new Date((revenuePickerState.selected.date || anchor) + "T00:00:00");
     setRevenuePickerPeriod("month", formatDateInput(selectedDate));
@@ -6303,6 +6470,16 @@ function openRevenueDayPicker() {
 
 
 function buildRevenueChartData(filtered, type, anchor) {
+  if (type === "quarter") {
+    const quarterStart = Math.floor((Number(anchor.slice(5, 7)) - 1) / 3) * 3;
+    return Array.from({length: 3}, (_, index) => {
+      const monthIndex = quarterStart + index;
+      const prefix = `${anchor.slice(0, 4)}-${String(monthIndex + 1).padStart(2, "0")}`;
+      const items = filtered.filter(a => a.date.startsWith(prefix));
+      return { label: getMonthNameLong(monthIndex).slice(0, 3), paid: items.filter(a => a.paid).reduce((sum,a) => sum + Number(a.price || 0),0), unpaid: items.filter(a => !a.paid).reduce((sum,a) => sum + Number(a.price || 0),0) };
+    });
+  }
+
   if (type === "year") {
     return Array.from({ length: 12 }, (_, index) => {
       const month = String(index + 1).padStart(2, "0");
@@ -6363,7 +6540,7 @@ function renderRevenueChart(filtered, type, anchor) {
 
   const chartData = buildRevenueChartData(filtered, type, anchor);
   const visibleData = chartData.filter(item => Number(item.paid || 0) > 0 || Number(item.unpaid || 0) > 0);
-  const useFullPeriodWidth = ["week", "month", "year"].includes(type);
+  const useFullPeriodWidth = ["week", "month", "quarter", "year"].includes(type);
   const dataToRender = useFullPeriodWidth ? chartData : (visibleData.length ? visibleData : chartData);
   const renderedBarCount = Math.max(dataToRender.length, 1);
   const maxValue = Math.max(...dataToRender.map(item => Number(item.paid || 0) + Number(item.unpaid || 0)), 0);
@@ -6374,7 +6551,7 @@ function renderRevenueChart(filtered, type, anchor) {
   const columnWidth = useFullPeriodWidth
     ? Math.max(7, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * chartGap) - 16) / renderedBarCount))
     : Math.max(34, Math.min(92, Math.floor((chartAvailableWidth - ((renderedBarCount - 1) * chartGap) - 16) / renderedBarCount)));
-  const maxStackWidth = type === "week" ? 28 : type === "year" ? 18 : type === "month" ? 10 : 46;
+  const maxStackWidth = type === "quarter" ? 46 : type === "week" ? 28 : type === "year" ? 18 : type === "month" ? 10 : 46;
   const barGroupWidth = Math.max(4, Math.min(maxStackWidth, Math.round(columnWidth * 0.72)));
   const singleBarWidth = Math.max(3, Math.min(barGroupWidth, Math.round(barGroupWidth * 0.82)));
   const splitBarWidth = Math.max(3, Math.floor((barGroupWidth - 2) / 2));
@@ -6473,6 +6650,7 @@ function getRevenueExportTitle() {
   const type = document.getElementById("revenuePeriodType")?.value || 'day';
   const anchor = document.getElementById("revenueDate")?.value || todayStr;
 
+  if (type === 'quarter') return `omzet_${anchor.slice(0,4)}_K${Math.floor((Number(anchor.slice(5,7))-1)/3)+1}`;
   if (type === 'year') return `omzet_${anchor.slice(0, 4)}`;
   if (type === 'month') return `omzet_${anchor.slice(0, 7)}`;
   if (type === 'week') {
@@ -6554,7 +6732,7 @@ function downloadRevenueCsv() {
     let key = app.date || '';
     let label = app.date || '';
 
-    if (periodType === 'year') {
+    if (periodType === 'year' || periodType === 'quarter') {
       key = String(app.date || '').slice(0, 7);
       const monthNumber = Number(key.slice(5, 7));
       label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
@@ -6573,14 +6751,14 @@ function downloadRevenueCsv() {
   });
 
   const periodOverviewTitle =
-    periodType === 'year' ? 'TOTALEN PER MAAND' :
+    (periodType === 'year' || periodType === 'quarter') ? 'TOTALEN PER MAAND' :
     periodType === 'month' ? 'TOTALEN PER DAG' :
     periodType === 'week' ? 'TOTALEN PER DAG' :
     'TOTALEN PER AFSPRAAKMOMENT';
 
   rows.push([periodOverviewTitle]);
   rows.push([
-    periodType === 'year' ? 'Maand' : (periodType === 'month' || periodType === 'week') ? 'Datum' : 'Tijd',
+    (periodType === 'year' || periodType === 'quarter') ? 'Maand' : (periodType === 'month' || periodType === 'week') ? 'Datum' : 'Tijd',
     'Aantal afspraken',
     'Totaal',
     'Betaald',
@@ -6678,7 +6856,7 @@ function getRevenueReportData() {
     let key = app.date || '';
     let label = app.date || '';
 
-    if (periodType === 'year') {
+    if (periodType === 'year' || periodType === 'quarter') {
       key = String(app.date || '').slice(0, 7);
       const monthNumber = Number(key.slice(5, 7));
       label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
@@ -6697,13 +6875,13 @@ function getRevenueReportData() {
   });
 
   const periodTitle =
-    periodType === 'year' ? 'Totalen per maand' :
+    (periodType === 'year' || periodType === 'quarter') ? 'Totalen per maand' :
     periodType === 'month' ? 'Totalen per dag' :
     periodType === 'week' ? 'Totalen per dag' :
     'Totalen per afspraakmoment';
 
   const periodColumnTitle =
-    periodType === 'year' ? 'Maand' :
+    (periodType === 'year' || periodType === 'quarter') ? 'Maand' :
     (periodType === 'month' || periodType === 'week') ? 'Datum' :
     'Tijd';
 
@@ -6717,6 +6895,7 @@ function getRevenueReportData() {
     const d = new Date(periodDate + 'T00:00:00');
     reportTitle = `Omzetrapport · ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
   }
+  if (periodType === 'quarter') reportTitle = `Omzetrapport · kwartaal ${Math.floor((Number(periodDate.slice(5,7))-1)/3)+1} ${periodDate.slice(0,4)}`;
   if (periodType === 'year') reportTitle = `Omzetrapport · ${periodDate.slice(0, 4)}`;
 
   return {
@@ -7358,7 +7537,7 @@ function getCostsReportData() {
     let key = cost.date || '';
     let label = cost.date || '';
 
-    if (periodType === 'year') {
+    if (periodType === 'year' || periodType === 'quarter') {
       key = String(cost.date || '').slice(0, 7);
       const monthNumber = Number(key.slice(5, 7));
       label = monthNumber ? `${getMonthNameLong(monthNumber - 1)} ${key.slice(0, 4)}` : key;
@@ -7378,12 +7557,12 @@ function getCostsReportData() {
   });
 
   const periodTitle =
-    periodType === 'year' ? 'Totalen per maand' :
+    (periodType === 'year' || periodType === 'quarter') ? 'Totalen per maand' :
     periodType === 'month' ? 'Totalen per dag' :
     periodType === 'week' ? 'Totalen per dag' :
     'Totalen per kost';
 
-  const periodColumnTitle = periodType === 'year' ? 'Maand' : periodType === 'day' ? 'Kost' : 'Datum';
+  const periodColumnTitle = (periodType === 'year' || periodType === 'quarter') ? 'Maand' : periodType === 'day' ? 'Kost' : 'Datum';
 
   let reportTitle = 'Kostenrapport';
   if (periodType === 'day') reportTitle = `Kostenrapport · ${formatLongDate(periodDate)}`;
@@ -7602,7 +7781,7 @@ function renderRevenue() {
   renderRevenueFilters();
   syncRevenuePeriodChips();
 
-  const renderSignature = getRevenueRenderSignature();
+  const renderSignature = `${document.getElementById("revenuePeriodType")?.value || ""}|${getRevenueRenderSignature()}`;
   const chartWrapForSignature = document.getElementById("revenueChart");
   const chartHasVisibleBars = Boolean(
     chartWrapForSignature?.querySelector(
@@ -7613,7 +7792,7 @@ function renderRevenue() {
   // Alleen overslaan als de bestaande grafiek effectief zichtbare staven bevat.
   // Na accountwissel / data-herlaad kan de signature gelijk lijken terwijl de grafiek
   // nog leeg opgebouwd werd; dan moet Omzet opnieuw renderen.
-  if (renderSignature && state.revenueLastRenderSignature === renderSignature && chartHasVisibleBars) {
+  if (document.getElementById("revenuePeriodType")?.value !== "quarter" && renderSignature && state.revenueLastRenderSignature === renderSignature && chartHasVisibleBars) {
     return;
   }
   state.revenueLastRenderSignature = renderSignature;
@@ -7634,6 +7813,7 @@ function renderRevenue() {
     const d = new Date(anchor + "T00:00:00");
     title = `${t("revenue")} ${getMonthNameLong(d.getMonth())} ${d.getFullYear()}`;
   }
+  if (type === "quarter") title = `${t("revenue")} · kwartaal ${Math.floor((Number(anchor.slice(5,7))-1)/3)+1} ${anchor.slice(0,4)}`;
   if (type === "year") title = `${t("revenue")} ${anchor.slice(0, 4)}`;
 
   const titleEl = document.getElementById("revenueTitle");
@@ -8157,7 +8337,8 @@ function getSettingsFormSnapshot() {
     "settingsCurrency",
     "settingsPaymentBeneficiaryName",
     "settingsPaymentAccountNumber",
-    "settingsPaymentReferencePrefix"
+    "settingsPaymentReferencePrefix",
+    "settingsPaymentServiceAsReference"
   ];
 
   const snapshot = ids.reduce((acc, id) => {
@@ -8251,6 +8432,29 @@ function setupSettingsDirtyTracking() {
   });
 }
 
+/* Salonnaam komt uit profiles.salon_name (niet uit de lokale instellingen).
+   Haal deze asynchroon op als er nog geen eigen begunstigde is ingesteld.
+   Vul nooit een veld aan dat de gebruiker ondertussen zelf heeft bewerkt. */
+let pendingSettingsSalonName = null;
+function fillDefaultPaymentBeneficiary(input, settings) {
+  if (!input || String(settings.paymentBeneficiaryName || "").trim()) return;
+  const localName = String(getData()?.profile?.salonName || "").trim();
+  if (localName && !input.value.trim()) input.value = localName;
+  if (pendingSettingsSalonName) return;
+  pendingSettingsSalonName = getCurrentProfile()
+    .then(profile => {
+      const salonName = String(profile?.salon_name || "").trim();
+      if (!salonName) return;
+      // Geen overschrijving bij eigen invoer, focus of schermwissel.
+      if (document.activeElement === input || state.currentScreen !== "settingsScreen") return;
+      if (String(getSettings().paymentBeneficiaryName || "").trim()) return;
+      if (input.dataset.beneficiaryEdited === "true") return;
+      if (!input.value.trim() || input.value.trim() === localName) input.value = salonName;
+    })
+    .catch(error => console.warn("Salonnaam ophalen mislukt:", error))
+    .finally(() => { pendingSettingsSalonName = null; });
+}
+
 function renderSettings() {
   hardenPaymentAutocompleteFields();
   const settings = getSettings();
@@ -8292,9 +8496,19 @@ function renderSettings() {
   if (belgianHolidaysToggle) belgianHolidaysToggle.checked = Boolean(settings.belgianHolidaysEnabled);
   if (agendaFabMenuToggle) agendaFabMenuToggle.checked = settings.agendaFabMenuEnabled !== false;
   if (tipsToggle) tipsToggle.checked = settings.showTipsOnOpen !== false;
-  if (paymentBeneficiaryNameInput) paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || "";
+  // Gebruik de geregistreerde salonnaam alleen als er nog geen eigen begunstigde is opgeslagen.
+  if (paymentBeneficiaryNameInput) {
+    paymentBeneficiaryNameInput.value = settings.paymentBeneficiaryName || getData()?.profile?.salonName || "";
+    if (!paymentBeneficiaryNameInput.dataset.beneficiaryEditListener) {
+      paymentBeneficiaryNameInput.addEventListener("input", () => { paymentBeneficiaryNameInput.dataset.beneficiaryEdited = "true"; });
+      paymentBeneficiaryNameInput.dataset.beneficiaryEditListener = "true";
+    }
+    fillDefaultPaymentBeneficiary(paymentBeneficiaryNameInput, settings);
+  }
   if (paymentAccountNumberInput) paymentAccountNumberInput.value = settings.paymentAccountNumber || "";
   if (paymentReferencePrefixInput) paymentReferencePrefixInput.value = settings.paymentReferencePrefix || "";
+  const serviceAsReferenceInput = document.getElementById("settingsPaymentServiceAsReference");
+  if (serviceAsReferenceInput) serviceAsReferenceInput.checked = settings.paymentServiceAsReference !== false;
 
   refreshAppSelect(reminderSelect);
   refreshAppSelect(languageSelect);
@@ -8427,7 +8641,7 @@ async function loadSettingsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, free_weekdays, free_week_interval, free_week_anchor_date, free_period_start, free_period_end, belgian_holidays_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, calendar_feed_token")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, free_weekdays, free_week_interval, free_week_anchor_date, free_period_start, free_period_end, belgian_holidays_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, payment_service_as_reference, calendar_feed_token")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -8455,6 +8669,7 @@ async function loadSettingsFromSupabase() {
     paymentAccountNumber: await loadSecurePaymentAccountNumber(),
     paymentBic: "",
     paymentReferencePrefix: normalizePaymentReferencePrefix(data?.payment_reference_prefix),
+    paymentServiceAsReference: data?.payment_service_as_reference !== false,
     calendarFeedToken: String(data?.calendar_feed_token || "")
   };
 }
@@ -8493,6 +8708,7 @@ async function saveSettingsFromForm(event) {
     paymentAccountNumber: normalizeBankAccountNumber(document.getElementById("settingsPaymentAccountNumber")?.value || ""),
     paymentBic: "",
     paymentReferencePrefix: String(document.getElementById("settingsPaymentReferencePrefix")?.value || "").trim(),
+    paymentServiceAsReference: Boolean(document.getElementById("settingsPaymentServiceAsReference")?.checked),
     calendarFeedToken: getSettings().calendarFeedToken || ""
   };
 
@@ -8515,6 +8731,14 @@ async function saveSettingsFromForm(event) {
       paymentAccountNumberInput.focus();
       paymentAccountNumberInput.select?.();
     }
+    return;
+  }
+
+  // EPC SEPA QR: ongestructureerde mededeling maximaal 140 tekens;
+  // enkel tekens uit de EPC-basisletters/cijfers en toegelaten leestekens.
+  if (settings.paymentReferencePrefix.length > 140 || !/^[A-Za-z0-9 /\-?:().,'+]*$/.test(settings.paymentReferencePrefix)) {
+    await appAlert("De mededeling mag maximaal 140 tekens bevatten en alleen letters, cijfers, spaties en / - ? : ( ) . , ' + gebruiken.", { title: "Ongeldige mededeling", variant: "warning" });
+    document.getElementById("settingsPaymentReferencePrefix")?.focus();
     return;
   }
 
@@ -8555,6 +8779,7 @@ async function saveSettingsFromForm(event) {
     currency: settings.currency,
     payment_beneficiary_name: settings.paymentBeneficiaryName || null,
     payment_reference_prefix: settings.paymentReferencePrefix || null,
+    payment_service_as_reference: settings.paymentServiceAsReference !== false,
     calendar_feed_token: settings.calendarFeedToken || null,
     updated_at: new Date().toISOString()
   };
@@ -9498,6 +9723,7 @@ function openAppointmentActionPopover(id, anchorEl = null) {
   const detailsBtn = document.getElementById("appointmentActionDetailsBtn");
   const deleteBtn = document.getElementById("appointmentActionDeleteBtn");
   const followUpBtn = document.getElementById("appointmentActionFollowUpBtn");
+  const moveBtn = document.getElementById("appointmentActionMoveBtn");
   const customerBtn = document.getElementById("appointmentActionCustomerBtn");
   const customer = customerById(data, app.customerId);
 
@@ -9521,6 +9747,8 @@ function openAppointmentActionPopover(id, anchorEl = null) {
       closeAppointmentActionPopover();
     };
   }
+
+  if (moveBtn) moveBtn.onclick = event => { event.stopPropagation(); openMoveAppointmentDialog(id); };
 
   if (followUpBtn) {
     followUpBtn.onclick = event => {
@@ -9665,12 +9893,20 @@ function isValidBankAccountNumber(value) {
   return remainder === 1;
 }
 
-function buildPaymentReference(app, data = getData()) {
-  const settings = getSettings();
+// EPC-QR gebruikt maximaal 140 tekens. Bij ingeschakelde optie staat de
+// dienstnaam eerst, gevolgd door de vrij ingevoerde extra mededeling.
+function buildPaymentReference(app, data = getData(), settings = getSettings()) {
   const service = serviceById(data, app?.serviceId);
-  const treatmentName = service?.name || app?.serviceName || "behandeling";
-  const prefix = String(settings.paymentReferencePrefix || "").trim();
-  return (prefix ? `${prefix} - ${treatmentName}` : treatmentName).slice(0, 140);
+  const treatmentName = String(service?.name || app?.serviceName || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 /\-?:().,' +]/g, " ").trim();
+  const extra = String(settings.paymentReferencePrefix || "").trim();
+  const parts = [settings.paymentServiceAsReference !== false ? treatmentName : "", extra].filter(Boolean);
+  // Voorkom dat een te lange dienstnaam de eigen mededeling wegdrukt.
+  const separator = " - ";
+  if (parts.length === 2 && parts.join(separator).length > 140) {
+    const maxServiceLength = Math.max(0, 140 - extra.length - separator.length);
+    return `${treatmentName.slice(0, maxServiceLength)}${maxServiceLength ? separator : ""}${extra}`.slice(0, 140);
+  }
+  return parts.join(separator).slice(0, 140);
 }
 
 function buildEpcQrPayload(app, data = getData()) {
@@ -12346,11 +12582,15 @@ function registerEvents() {
   });
   document.getElementById("appointmentPrivateRepeat")?.addEventListener("change", updatePrivateRepeatWeeklyLabel);
   document.getElementById("appointmentTime")?.addEventListener("change", syncAppointmentDateTimeDisplays);
-  document.getElementById("followUpAppointmentDateDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("date", "followUpAppointmentDate"));
   document.getElementById("followUpAppointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "followUpAppointmentTime"));
   document.getElementById("followUpAppointmentDate")?.addEventListener("change", syncFollowUpDisplays);
   document.getElementById("followUpAppointmentTime")?.addEventListener("change", syncFollowUpDisplays);
   document.getElementById("followUpAppointmentForm")?.addEventListener("submit", withActionLock(saveFollowUpAppointmentFromForm));
+  // Zelfde datum-/tijdkiezer en opslagbeveiliging als bij vervolgafspraken.
+  document.getElementById("moveAppointmentTimeDisplayBtn")?.addEventListener("click", () => openAppointmentWheelPicker("time", "moveAppointmentTime"));
+  document.getElementById("moveAppointmentDate")?.addEventListener("change", syncMoveAppointmentDisplays);
+  document.getElementById("moveAppointmentTime")?.addEventListener("change", syncMoveAppointmentDisplays);
+  document.getElementById("moveAppointmentForm")?.addEventListener("submit", withActionLock(saveMoveAppointmentFromForm));
 
   const appointmentWheelPickerForm = document.getElementById("appointmentWheelPickerForm");
   if (appointmentWheelPickerForm) {
@@ -12476,6 +12716,25 @@ function registerEvents() {
     });
   };
 
+  // Kwartaal gebruikt exact dezelfde periodeselectie als de overige omzetknoppen.
+  // De optie expliciet borgen voor oudere HTML/PWA caches.
+  const quarterSelect = document.getElementById("revenuePeriodType");
+  if (quarterSelect && !Array.from(quarterSelect.options).some(option => option.value === "quarter")) {
+    quarterSelect.add(new Option("Kwartaal", "quarter"), quarterSelect.options.length - 1);
+  }
+  const quarterButton = document.getElementById("revenueQuarterBtn");
+  if (quarterButton && !quarterButton.dataset.quarterClickReady) {
+    quarterButton.dataset.quarterClickReady = "1";
+    quarterButton.addEventListener("click", event => {
+      if (quarterButton.dataset.revenueSwipeSuppressClick === "1") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const selector = document.getElementById("revenuePeriodType");
+      if (selector?.value === "quarter") openRevenueWheelPicker("quarter");
+      else setRevenuePeriod("quarter", document.getElementById("revenueDate")?.value || todayStr);
+    }, true);
+  }
+  attachRevenuePeriodSwipe(quarterButton, "quarter");
   attachRevenuePeriodButton("revenueYearBtn", "year", () => openRevenueWheelPicker("year"));
   attachRevenuePeriodButton("revenueMonthBtn", "month", () => openRevenueWheelPicker("month"));
   attachRevenuePeriodButton("revenueWeekBtn", "week", () => openRevenueWheelPicker("week"));
@@ -15062,6 +15321,30 @@ function setupIntegratedAdminEvents() {
       observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
     });
     window.addEventListener('resize', scheduleUpdate, { passive: true });
+
+    // Instellingen kunnen korter worden zonder scroll-event (bv. accordion
+    // dichtklappen). Controleer daarom ook wanneer de inhoud verandert.
+    // De bestaande scroll-drempel en fade-in/fade-out CSS blijven behouden.
+    const contentObserver = new MutationObserver(scheduleUpdate);
+    main.querySelectorAll('.screen').forEach(screen => {
+      contentObserver.observe(screen, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'open', 'hidden']
+      });
+    });
+
+    // Bij uitklap-animaties kan de hoogte pas NA de DOM-wijziging afnemen.
+    // ResizeObserver detecteert dit ook als er geen nieuwe scroll plaatsvindt.
+    if (typeof ResizeObserver !== 'undefined') {
+      const sizeObserver = new ResizeObserver(scheduleUpdate);
+      main.querySelectorAll('.screen').forEach(screen => {
+        sizeObserver.observe(screen);
+        screen.querySelectorAll('.settings-scroll, .scroll-list, details, .settings-accordion-content, .settings-section-content').forEach(el => sizeObserver.observe(el));
+      });
+    }
+    main.addEventListener('transitionend', scheduleUpdate, { passive: true });
     update();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true });
