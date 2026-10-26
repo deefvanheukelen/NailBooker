@@ -13232,3 +13232,345 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 /* Daginkomsten: gebruik de native keuzelijst zodat alle kwartalen zichtbaar zijn. */
 .nb-quarter-dialog select { appearance: auto !important; -webkit-appearance: menulist !important; min-height: 46px; }
 .nb-quarter-dialog { box-sizing: border-box; max-height: calc(100dvh - 32px); overflow-y: auto; }
+
+/* =========================================================
+   Beheerlijsten: beginletter in dezelfde ronde badge als Topklanten.
+   Alleen klanten, diensten en betaalwijzen krijgen deze opmaak.
+   De bestaande kaarten, hover-effecten en klikacties blijven intact.
+========================================================= */
+.management-list-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.management-initial {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(180deg, #e6b1c3 0%, #d98ea7 100%);
+  color: #fff;
+  border: 1px solid rgba(185, 109, 135, 0.24);
+  box-shadow: 0 3px 8px rgba(185, 109, 135, 0.16);
+}
+.management-list-text {
+  display: block;
+  min-width: 0;
+  flex: 1;
+}
+.management-list-text .client-name,
+.management-list-text .meta {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* ==============================================================
+   FIX beheerlijsten: badges expliciet als flex-item op één rij.
+   Door de hogere specificiteit winnen deze regels van oudere
+   kaart-/knopstijlen, ook op smalle smartphones.
+   ============================================================== */
+#clientsList .client-card > button,
+#servicesList .service-card > button,
+#paymentMethodsList .payment-method-card > button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+#clientsList .management-list-content,
+#servicesList .management-list-content,
+#paymentMethodsList .management-list-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+#clientsList .management-initial,
+#servicesList .management-initial,
+#paymentMethodsList .management-initial {
+  display: inline-flex;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #e6b1c3, #d98ea7);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 8px rgba(185,109,135,.16);
+}
+#clientsList .management-list-text,
+#servicesList .management-list-text,
+#paymentMethodsList .management-list-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ==============================================================
+   Beheerlijsten: cirkel uitlijnen op de eerste tekstregel (naam).
+   align-items:flex-start voorkomt centreren tegenover een tweede
+   regel (gsm, aantal afspraken, duur of prijs).
+   De kleine bovenmarge centreert de 28px cirkel optisch op de naam.
+   ============================================================== */
+#clientsList .management-list-content,
+#servicesList .management-list-content,
+#paymentMethodsList .management-list-content {
+  align-items: flex-start;
+}
+#clientsList .management-initial,
+#servicesList .management-initial,
+#paymentMethodsList .management-initial {
+  align-self: flex-start;
+  margin-top: 0;
+  /* De achtergrond komt uit de letterklasse hieronder. */
+  background: var(--management-letter-bg, linear-gradient(180deg,#e6b1c3,#d98ea7));
+  border-color: rgba(70, 50, 75, .10);
+}
+/* Elke letter heeft een eigen, herkenbare maar zachte tint.
+   De tint blijft overal gelijk: bv. A bij klanten = A bij diensten. */
+.management-letter-a { --management-letter-bg: linear-gradient(180deg, #d987a5 0%, #d987a5 100%); }
+.management-letter-b { --management-letter-bg: linear-gradient(180deg, #b88bd1 0%, #b88bd1 100%); }
+.management-letter-c { --management-letter-bg: linear-gradient(180deg, #80a9d6 0%, #80a9d6 100%); }
+.management-letter-d { --management-letter-bg: linear-gradient(180deg, #75b6ae 0%, #75b6ae 100%); }
+.management-letter-e { --management-letter-bg: linear-gradient(180deg, #d5a36d 0%, #d5a36d 100%); }
+.management-letter-f { --management-letter-bg: linear-gradient(180deg, #a28fd5 0%, #a28fd5 100%); }
+.management-letter-g { --management-letter-bg: linear-gradient(180deg, #75a7a1 0%, #75a7a1 100%); }
+.management-letter-h { --management-letter-bg: linear-gradient(180deg, #cc8ba7 0%, #cc8ba7 100%); }
+.management-letter-i { --management-letter-bg: linear-gradient(180deg, #8ca6cc 0%, #8ca6cc 100%); }
+.management-letter-j { --management-letter-bg: linear-gradient(180deg, #b4a16f 0%, #b4a16f 100%); }
+.management-letter-k { --management-letter-bg: linear-gradient(180deg, #83b89b 0%, #83b89b 100%); }
+.management-letter-l { --management-letter-bg: linear-gradient(180deg, #c18e8f 0%, #c18e8f 100%); }
+.management-letter-m { --management-letter-bg: linear-gradient(180deg, #8d9bd1 0%, #8d9bd1 100%); }
+.management-letter-n { --management-letter-bg: linear-gradient(180deg, #b58ab9 0%, #b58ab9 100%); }
+.management-letter-o { --management-letter-bg: linear-gradient(180deg, #7bb5c4 0%, #7bb5c4 100%); }
+.management-letter-p { --management-letter-bg: linear-gradient(180deg, #d09c81 0%, #d09c81 100%); }
+.management-letter-q { --management-letter-bg: linear-gradient(180deg, #a3aa77 0%, #a3aa77 100%); }
+.management-letter-r { --management-letter-bg: linear-gradient(180deg, #a184c5 0%, #a184c5 100%); }
+.management-letter-s { --management-letter-bg: linear-gradient(180deg, #d18fa0 0%, #d18fa0 100%); }
+.management-letter-t { --management-letter-bg: linear-gradient(180deg, #7fa6bd 0%, #7fa6bd 100%); }
+.management-letter-u { --management-letter-bg: linear-gradient(180deg, #9fb779 0%, #9fb779 100%); }
+.management-letter-v { --management-letter-bg: linear-gradient(180deg, #c18fae 0%, #c18fae 100%); }
+.management-letter-w { --management-letter-bg: linear-gradient(180deg, #86b5a5 0%, #86b5a5 100%); }
+.management-letter-x { --management-letter-bg: linear-gradient(180deg, #bd9c77 0%, #bd9c77 100%); }
+.management-letter-y { --management-letter-bg: linear-gradient(180deg, #9c9cce 0%, #9c9cce 100%); }
+.management-letter-z { --management-letter-bg: linear-gradient(180deg, #d39b8a 0%, #d39b8a 100%); }
+
+/* =========================================================
+   SCROLL-TO-TOP — alle schermen, zonder bestaande scroll-layout te wijzigen.
+   Opacity/visibility verzorgen de fade; pointer-events voorkomen onzichtbare clicks.
+========================================================= */
+.app-shell { position: relative; }
+.nb-scroll-top {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--bottom-nav-height, 80px) + 18px + env(safe-area-inset-bottom, 0px));
+  z-index: 80;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(184, 109, 135, .18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--primary, #d991ab);
+  box-shadow: 0 5px 16px rgba(156, 81, 111, .23);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity .22s ease, transform .22s ease, visibility .22s;
+}
+.nb-scroll-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.nb-scroll-top:active { background: var(--primary-dark, #b86d87); }
+.nb-scroll-top:focus-visible { outline: 3px solid var(--primary-dark); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .nb-scroll-top { transition: none; }
+}
+
+/* =============================================================
+   Instellingen 2026: rustig, compact en zonder draaiende iconen.
+   Alleen #settingsScreen: overige schermen (incl. avatars en scroll-to-top)
+   blijven volledig ongewijzigd.
+   ============================================================= */
+#settingsScreen .settings-hero-compact { padding: 8px 12px; margin-bottom: 10px; }
+#settingsScreen .settings-hero-compact p { margin: 0; font-size: .82rem; line-height: 1.35; }
+#settingsScreen .settings-section-grid { gap: 9px; }
+#settingsScreen .settings-section-card { padding: 0 !important; overflow: hidden; }
+#settingsScreen .nb-settings-toggle {
+  display: flex; align-items: center; gap: 11px; cursor: pointer;
+  padding: 12px 14px; margin: 0; min-height: 56px;
+  user-select: none; transition: background-color .18s ease;
+}
+#settingsScreen .nb-settings-toggle:hover { background: rgba(218, 126, 159, .055); }
+#settingsScreen .nb-settings-toggle:focus-visible { outline: 2px solid #c97c9c; outline-offset: -3px; }
+#settingsScreen .nb-settings-toggle > div { flex: 1; min-width: 0; }
+#settingsScreen .nb-settings-toggle .detail-label { font-weight: 650; }
+#settingsScreen .nb-settings-toggle p { margin: 2px 0 0; font-size: .75rem; line-height: 1.3; opacity: .72; }
+/* Statisch chevron; geen rotatie, geen draaiende pijlen. */
+#settingsScreen .nb-settings-toggle::after {
+  content: ''; display: block; flex: none; width: 8px; height: 8px;
+  border-right: 1.7px solid #b87592; border-bottom: 1.7px solid #b87592;
+  transform: rotate(45deg); margin: -4px 3px 0 7px;
+}
+#settingsScreen .nb-settings-open > .nb-settings-toggle::after { transform: rotate(225deg); margin-top: 4px; }
+#settingsScreen .nb-settings-content { padding: 4px 14px 15px; border-top: 1px solid rgba(194, 135, 158, .15); }
+#settingsScreen .nb-settings-content[hidden] { display: none !important; }
+#settingsScreen .nb-settings-content .settings-info-text { font-size: .78rem; line-height: 1.4; }
+#settingsScreen .nb-settings-content .field-label { margin-top: 9px; }
+#settingsScreen .nb-settings-content .settings-switch-row { margin-block: 7px; }
+@media (max-width: 600px) {
+  #settingsScreen .nb-settings-toggle { padding: 11px 12px; }
+  #settingsScreen .nb-settings-content { padding: 4px 12px 13px; }
+}
+
+/* Instellingen: compacte bediening; alleen dit scherm.
+   De statusbadge blijft zichtbaar zonder de verwijderde introductiekaart. */
+#settingsScreen #settingsDirtyBadge:not(.hidden) { display: inline-flex; margin: 0 0 8px; }
+#settingsScreen .nb-settings-toggle p { display: none; }
+#settingsScreen .nb-settings-toggle { min-height: 48px; padding-block: 10px; }
+#settingsScreen .nb-settings-content { padding-top: 2px; padding-bottom: 11px; }
+#settingsScreen .nb-settings-content .field-label { margin-top: 7px; }
+#settingsScreen .nb-settings-content .settings-switch-row { margin-block: 5px; }
+#settingsScreen .nb-settings-content .settings-info-text { margin-block: 5px; }
+
+/* APP-VOORKEUREN: Tabmenu-checkbox zonder omringend kader.
+   Uitsluitend dit veld; overige schakelaars behouden hun bestaande stijl. */
+#settingsScreen .settings-tabmenu-checkbox {
+  display: inline-flex; width: auto; min-height: 0;
+  padding: 0; margin: 5px 0 2px; border: 0; border-radius: 0; background: transparent;
+}
+#settingsScreen .settings-tabmenu-checkbox input[type="checkbox"] {
+  width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--primary);
+}
+
+/* ============================================================
+   INSTELLINGEN > PLANNING — compact zoals aangeleverd voorbeeld.
+   Alleen deze velden wijzigen; overige instellingen blijven intact.
+   ============================================================ */
+#settingsScreen .settings-break-minutes-row {
+  display: flex; align-items: center; gap: 12px; margin: 6px 0 13px;
+}
+#settingsScreen .settings-break-minutes-row #settingsDefaultBreakMinutes {
+  width: 80px; max-width: 80px; flex: 0 0 80px; text-align: center;
+}
+#settingsScreen .settings-break-minutes-row > span {
+  font-size: 14px; color: var(--text); font-weight: 500;
+}
+/* De checkbox komt links, zonder de omkaderde switch-rij. */
+#settingsScreen .settings-planning-checkbox {
+  display: flex; flex-direction: row-reverse; justify-content: flex-end;
+  align-items: center; gap: 12px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; padding: 8px 0;
+}
+#settingsScreen .settings-planning-checkbox > span { display: block; }
+#settingsScreen .settings-planning-checkbox input[type="checkbox"] {
+  width: 22px; height: 22px; flex: 0 0 22px; margin: 0;
+  accent-color: var(--primary);
+}
+
+/* =============================================================
+   INSTELLINGEN — checkboxen rechts en vrije dropdowns (26-10-2026)
+   Beperkt tot #settingsScreen; andere schermen blijven ongewijzigd.
+   ============================================================= */
+/* De inhoud van uitklapbare kaarten mag dropdownmenu's niet afsnijden.
+   De gesloten panelen blijven via [hidden] verborgen. */
+#settingsScreen .settings-section-card { overflow: visible !important; position: relative; }
+#settingsScreen .nb-settings-content { overflow: visible !important; }
+/* Een open keuzelijst krijgt voorrang op de kaarten die eronder staan. */
+#settingsScreen .settings-section-card:has(.app-select-wrap.is-open) { z-index: 30; }
+#settingsScreen .app-select-wrap.is-open { z-index: 40; }
+#settingsScreen .app-select-wrap.is-open .app-select-options { z-index: 50; }
+
+/* Alle gewone checkbox-rijen op Instellingen: label links, vakje rechts,
+   zonder achtergrond, omlijning of omkaderde tegel. */
+#settingsScreen .nb-settings-content .settings-switch-row:not(.settings-free-day-chip) {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 0 !important;
+  margin: 5px 0 !important;
+  gap: 12px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+#settingsScreen .nb-settings-content .settings-switch-row > span,
+#settingsScreen .nb-settings-content .settings-switch-row > strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+#settingsScreen .nb-settings-content .settings-switch-row input[type="checkbox"] {
+  flex: 0 0 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  margin: 0 0 0 auto !important;
+  accent-color: var(--primary-dark);
+}
+/* Tabmenu had een apart label boven de checkbox: plaats het label
+   op dezelfde regel zonder het bestaande input-id te veranderen. */
+#settingsScreen .settings-tabmenu-checkbox { display: flex !important; }
+
+/* =============================================================
+   INSTELLINGEN — compacte keuzerijen en iets meer bovenruimte.
+   Beperkt tot Instellingen: andere pagina's blijven ongewijzigd.
+   De originele select-elementen en hun id's blijven behouden,
+   zodat de bestaande app.js en Supabase-opslag blijven werken.
+   ============================================================= */
+#settingsScreen .nb-settings-content {
+  padding-top: 12px !important;
+}
+@media (max-width: 600px) {
+  #settingsScreen .nb-settings-content { padding-top: 11px !important; }
+}
+#settingsScreen .nb-settings-content .settings-inline-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin: 5px 0;
+}
+#settingsScreen .settings-inline-select-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 !important;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 650;
+  line-height: 1.3;
+}
+/* Native select of de door app.js aangemaakte keuzelijst rechts. */
+#settingsScreen .settings-inline-select-row > select.field,
+#settingsScreen .settings-inline-select-row > .app-select-wrap {
+  flex: 0 1 168px;
+  width: 168px;
+  max-width: 48%;
+  min-width: 112px;
+  margin: 0;
+}
+#settingsScreen .settings-inline-select-row .app-select-button {
+  width: 100%;
+}

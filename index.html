@@ -36,7 +36,7 @@
   />
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20261026-planning1" />
 
   <title>NailBooker</title>
 </head>
@@ -399,207 +399,181 @@
       <section id="settingsScreen" class="screen">
         <section class="settings-page">
           <div class="settings-scroll">
-            <form id="settingsForm" class="settings-card settings-card-modern" method="dialog" autocomplete="off" data-form-type="other">
-              <div class="settings-hero settings-hero-compact">
-                <p data-i18n="settingsIntro">Beheer je planning, meldingen, app-voorkeuren, betaalgegevens en kalenderkoppeling op één overzichtelijke plaats.</p>
-                <span id="settingsDirtyBadge" class="settings-dirty-badge hidden">Niet opgeslagen</span>
-              </div>
+<form autocomplete="off" class="settings-card settings-card-modern" data-form-type="other" id="settingsForm" method="dialog"><span class="settings-dirty-badge hidden" id="settingsDirtyBadge">Niet opgeslagen</span>
 
-              <div class="settings-section-grid">
-                <section class="settings-section-card">
-                  <div class="settings-section-head">
-                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.1-1.64a.5.5 0 0 0 .12-.64l-1.98-3.43a.5.5 0 0 0-.61-.22l-2.47 1a7.26 7.26 0 0 0-1.7-.98l-.38-2.63A.5.5 0 0 0 14.02 2h-4.04a.5.5 0 0 0-.49.42L9.11 5.1a7.26 7.26 0 0 0-1.7.98l-2.47-1a.5.5 0 0 0-.61.22L2.35 8.74a.5.5 0 0 0 .12.64l2.1 1.64c-.05.32-.07.65-.07.98s.02.66.07.98l-2.1 1.64a.5.5 0 0 0-.12.64l1.98 3.43a.5.5 0 0 0 .61.22l2.47-1c.52.4 1.09.73 1.7.98l.38 2.63a.5.5 0 0 0 .49.42h4.04a.5.5 0 0 0 .49-.42l.38-2.63c.61-.25 1.18-.58 1.7-.98l2.47 1a.5.5 0 0 0 .61-.22l1.98-3.43a.5.5 0 0 0-.12-.64l-2.1-1.64ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg></span>
-                    <div>
-                      <div class="detail-label" data-i18n="appPreferences">App-voorkeuren</div>
-                      <p>Valuta en app-voorkeuren voor nieuwe gegevens.</p>
-                    </div>
-                  </div>
+<div class="settings-section-grid">
+<section class="settings-section-card">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.1-1.64a.5.5 0 0 0 .12-.64l-1.98-3.43a.5.5 0 0 0-.61-.22l-2.47 1a7.26 7.26 0 0 0-1.7-.98l-.38-2.63A.5.5 0 0 0 14.02 2h-4.04a.5.5 0 0 0-.49.42L9.11 5.1a7.26 7.26 0 0 0-1.7.98l-2.47-1a.5.5 0 0 0-.61.22L2.35 8.74a.5.5 0 0 0 .12.64l2.1 1.64c-.05.32-.07.65-.07.98s.02.66.07.98l-2.1 1.64a.5.5 0 0 0-.12.64l1.98 3.43a.5.5 0 0 0 .61.22l2.47-1c.52.4 1.09.73 1.7.98l.38 2.63a.5.5 0 0 0 .49.42h4.04a.5.5 0 0 0 .49-.42l.38-2.63c.61-.25 1.18-.58 1.7-.98l2.47 1a.5.5 0 0 0 .61-.22l1.98-3.43a.5.5 0 0 0-.12-.64l-2.1-1.64ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="appPreferences">App-voorkeuren</div>
 
+</div>
+</div>
+<!-- Compacte rij: de bestaande valutakeuze behoudt haar id en werking. -->
+<div class="settings-inline-select-row settings-currency-row">
+<label class="settings-inline-select-label" data-i18n="currency" for="settingsCurrency">Valuta</label>
+<select class="field" id="settingsCurrency"></select>
+</div>
+<label class="settings-switch-row settings-tabmenu-checkbox" for="settingsAgendaFabMenuEnabled">
+<span><strong>Tabmenu</strong></span>
 
-                  <label class="field-label" for="settingsCurrency" data-i18n="currency">Valuta</label>
-                  <select id="settingsCurrency" class="field"></select>
-                  <p class="settings-info-text" data-i18n="currencyChangeWarning">Nieuwe afspraken gebruiken voortaan deze valuta. Bestaande afspraken en omzet blijven in hun oorspronkelijke munteenheid staan en worden niet omgerekend.</p>
+<input id="settingsAgendaFabMenuEnabled" type="checkbox"/>
+</label>
+</section>
+<section class="settings-section-card">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 7.4083331 7.4083333"><path d="M2.39.08c-.14.001-.25.114-.255.254v.527h-.63c-.5 0-.906.407-.906.906V6.32c0 .498.407.904.906.904h4.63c.498 0 .906-.406.906-.904V1.767c0-.498-.408-.906-.906-.906h-.596V.336A.254.254 0 0 0 5.283.082a.254.254 0 0 0-.254.254v.525H2.644V.336A.254.254 0 0 0 2.39.082ZM1.504 1.207h.63v.252a.254.254 0 1 0 .51 0v-.252h2.385v.252a.254.254 0 1 0 .51 0v-.252h.595c.313 0 .561.247.561.56v.205H.944v-.205c0-.313.247-.56.56-.56Zm-.56 1.221h5.751v3.893c0 .313-.248.558-.561.558h-4.63c-.313 0-.56-.245-.56-.558Z"></path><path d="M5.04 3.06a.33.33 0 0 0-.26.13L3.44 5.03l-.53-.55a.328.328 0 0 0-.463.457l1.07 1.11 1.792-2.47a.328.328 0 0 0-.273-.518Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="planning" data-settings-title="planning">Planning</div>
 
-                  <label class="field-label" for="settingsAgendaFabMenuEnabled" data-i18n="enableAgendaFabMenu">Tab-menu activeren</label>
-                  <label class="settings-switch-row" for="settingsAgendaFabMenuEnabled">
-                    <span>
-                      <small data-i18n="enableAgendaFabMenuHint">Toon rond de + knop snelle knoppen voor afspraak, klant, dienst en betaalwijze.</small>
-                    </span>
-                    <input id="settingsAgendaFabMenuEnabled" type="checkbox" />
-                  </label>
-                </section>
+</div>
+</div>
+<label class="field-label" for="settingsDefaultBreakMinutes">Standaard pauze tussen 2 afspraken</label>
+<div class="settings-break-minutes-row">
+  <input class="field" id="settingsDefaultBreakMinutes" min="0" step="1" type="number"/>
+  <span data-i18n="minutesUnit">minuten</span>
+</div>
+<label class="settings-switch-row settings-planning-checkbox" for="settingsOverlapWarningsEnabled">
+<span>
+<strong>Waarschuw bij overlappingen</strong>
 
-                <section class="settings-section-card">
-                  <div class="settings-section-head">
-                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 7.4083331 7.4083333" aria-hidden="true" focusable="false"><path d="M2.39.08c-.14.001-.25.114-.255.254v.527h-.63c-.5 0-.906.407-.906.906V6.32c0 .498.407.904.906.904h4.63c.498 0 .906-.406.906-.904V1.767c0-.498-.408-.906-.906-.906h-.596V.336A.254.254 0 0 0 5.283.082a.254.254 0 0 0-.254.254v.525H2.644V.336A.254.254 0 0 0 2.39.082ZM1.504 1.207h.63v.252a.254.254 0 1 0 .51 0v-.252h2.385v.252a.254.254 0 1 0 .51 0v-.252h.595c.313 0 .561.247.561.56v.205H.944v-.205c0-.313.247-.56.56-.56Zm-.56 1.221h5.751v3.893c0 .313-.248.558-.561.558h-4.63c-.313 0-.56-.245-.56-.558Z"/><path d="M5.04 3.06a.33.33 0 0 0-.26.13L3.44 5.03l-.53-.55a.328.328 0 0 0-.463.457l1.07 1.11 1.792-2.47a.328.328 0 0 0-.273-.518Z"/></svg></span>
-                    <div>
-                      <div class="detail-label" data-settings-title="planning" data-i18n="planning">Planning</div>
-                      <p data-i18n="planningSubtitle">Standaardgedrag bij het maken en controleren van afspraken.</p>
-                    </div>
-                  </div>
+</span>
+<input id="settingsOverlapWarningsEnabled" type="checkbox"/>
+</label>
+<div class="settings-free-days">
+<div class="field-label" data-i18n="freeDays">Vrije dagen</div>
 
-                  <label class="field-label" for="settingsDefaultBreakMinutes">Standaard pauze tussen 2 afspraken (min)</label>
-                  <input id="settingsDefaultBreakMinutes" class="field" type="number" min="0" step="1" />
+<div class="settings-free-days-subgroup">
+<div class="settings-free-days-subtitle" data-i18n="recurringFreeDays">Terugkerende vrije dagen</div>
+<div aria-label="Terugkerende vrije dagen" class="settings-free-days-grid" role="group">
+<label class="settings-free-day-chip"><input data-free-weekday="1" type="checkbox"/><span>Ma</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="2" type="checkbox"/><span>Di</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="3" type="checkbox"/><span>Wo</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="4" type="checkbox"/><span>Do</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="5" type="checkbox"/><span>Vr</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="6" type="checkbox"/><span>Za</span></label>
+<label class="settings-free-day-chip"><input data-free-weekday="0" type="checkbox"/><span>Zo</span></label>
+</div>
+<label class="settings-free-days-inline" for="settingsFreeWeekInterval">
+<span data-i18n="repeatEvery">Elke</span>
+<select class="field settings-free-week-interval" id="settingsFreeWeekInterval">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+</select>
+<span data-i18n="weeksUnit">week/weken</span>
+</label>
 
-                  <label class="settings-switch-row" for="settingsOverlapWarningsEnabled">
-                    <span>
-                      <strong>Overlapwaarschuwingen</strong>
-                      <small>Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.</small>
-                    </span>
-                    <input id="settingsOverlapWarningsEnabled" type="checkbox" />
-                  </label>
+</div>
+<div class="settings-free-days-subgroup">
+<div class="settings-free-days-subtitle" data-i18n="freePeriod">Vrije periode</div>
+<div class="settings-free-period-grid">
+<label class="settings-free-period-field">
+<span class="field-label" data-i18n="from">Van</span>
+<input aria-hidden="true" class="field appointment-native-picker-input" id="settingsFreePeriodStart" tabindex="-1" type="date"/>
+<button aria-label="Begindatum kiezen" class="field appointment-picker-display" id="settingsFreePeriodStartDisplayBtn" type="button">Kies datum</button>
+</label>
+<label class="settings-free-period-field">
+<span class="field-label" data-i18n="until">Tot</span>
+<input aria-hidden="true" class="field appointment-native-picker-input" id="settingsFreePeriodEnd" tabindex="-1" type="date"/>
+<button aria-label="Einddatum kiezen" class="field appointment-picker-display" id="settingsFreePeriodEndDisplayBtn" type="button">Kies datum</button>
+</label>
+</div>
+</div>
+<div class="settings-free-days-subgroup settings-free-holidays-row">
+<label class="settings-switch-row settings-planning-checkbox" for="settingsBelgianHolidaysEnabled">
+<span>
+<strong>Belgische feestdagen</strong>
 
-                  <div class="settings-free-days">
-                    <div class="field-label" data-i18n="freeDays">Vrije dagen</div>
-                    <p class="settings-info-text settings-free-days-hint" data-i18n="freeDaysHint">Stel terugkerende vrije dagen, een vrije periode en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.</p>
+</span>
+<input id="settingsBelgianHolidaysEnabled" type="checkbox"/>
+</label>
+</div>
+</div>
+</section>
+<section class="settings-section-card">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 24 24"><path d="M12 22a2.4 2.4 0 0 0 2.35-1.9h-4.7A2.4 2.4 0 0 0 12 22Zm7.2-5.35-1.35-1.8V10a5.86 5.86 0 0 0-4.45-5.7V3a1.4 1.4 0 1 0-2.8 0v1.3A5.86 5.86 0 0 0 6.15 10v4.85l-1.35 1.8A1.25 1.25 0 0 0 5.8 18.65h12.4a1.25 1.25 0 0 0 1-2Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="notifications">Meldingen</div>
 
-                    <div class="settings-free-days-subgroup">
-                      <div class="settings-free-days-subtitle" data-i18n="recurringFreeDays">Terugkerende vrije dagen</div>
-                      <div class="settings-free-days-grid" role="group" aria-label="Terugkerende vrije dagen">
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="1" /><span>Ma</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="2" /><span>Di</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="3" /><span>Wo</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="4" /><span>Do</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="5" /><span>Vr</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="6" /><span>Za</span></label>
-                        <label class="settings-free-day-chip"><input type="checkbox" data-free-weekday="0" /><span>Zo</span></label>
-                      </div>
-                      <label class="settings-free-days-inline" for="settingsFreeWeekInterval">
-                        <span data-i18n="repeatEvery">Elke</span>
-                        <select id="settingsFreeWeekInterval" class="field settings-free-week-interval">
-                          <option value="1">1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                        </select>
-                        <span data-i18n="weeksUnit">week/weken</span>
-                      </label>
-                      <p class="settings-info-text settings-free-days-note" data-i18n="repeatWeekHint">Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.</p>
-                    </div>
+</div>
+</div>
+<label class="settings-switch-row" for="settingsNotificationsEnabled">
+<span>
+<strong>Meldingen</strong>
 
-                    <div class="settings-free-days-subgroup">
-                      <div class="settings-free-days-subtitle" data-i18n="freePeriod">Vrije periode</div>
-                      <div class="settings-free-period-grid">
-                        <label class="settings-free-period-field">
-                          <span class="field-label" data-i18n="from">Van</span>
-                          <input id="settingsFreePeriodStart" class="field appointment-native-picker-input" type="date" tabindex="-1" aria-hidden="true" />
-                          <button id="settingsFreePeriodStartDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Begindatum kiezen">Kies datum</button>
-                        </label>
-                        <label class="settings-free-period-field">
-                          <span class="field-label" data-i18n="until">Tot</span>
-                          <input id="settingsFreePeriodEnd" class="field appointment-native-picker-input" type="date" tabindex="-1" aria-hidden="true" />
-                          <button id="settingsFreePeriodEndDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Einddatum kiezen">Kies datum</button>
-                        </label>
-                      </div>
-                    </div>
+</span>
+<input id="settingsNotificationsEnabled" type="checkbox"/>
+</label>
+<!-- De herinneringskeuze staat op dezelfde lijn als de meldingen-schakelaar. -->
+<div class="settings-inline-select-row settings-reminder-row" id="settingsReminderWrap">
+<label class="settings-inline-select-label" for="settingsReminderMinutes">Herinnering voor afspraak</label>
+<select class="field" id="settingsReminderMinutes">
+<option value="5">5 minuten</option>
+<option value="10">10 minuten</option>
+<option value="15">15 minuten</option>
+<option value="30">30 minuten</option>
+<option value="60">1 uur</option>
+<option value="1440">24 uur</option>
+</select>
+</div>
+</section>
+<section class="settings-section-card">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon settings-section-icon-qr"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 24 24"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm4 0h2v4h-4v-2h2v-2Zm-6 4h2v4h-2v-4Zm4 2h2v2h-2v-2Zm2-2h2v2h-2v-2Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="paymentDetailsQr" data-settings-title="paymentDetailsQr">Betaalgegevens QR-code</div>
 
-                    <div class="settings-free-days-subgroup settings-free-holidays-row">
-                      <label class="settings-switch-row" for="settingsBelgianHolidaysEnabled">
-                        <span>
-                          <strong data-i18n="belgianHolidays">Belgische feestdagen</strong>
-                          <small data-i18n="belgianHolidaysHint">Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.</small>
-                        </span>
-                        <input id="settingsBelgianHolidaysEnabled" type="checkbox" />
-                      </label>
-                    </div>
-                  </div>
-                </section>
+</div>
+</div>
+<label class="field-label" data-i18n="beneficiaryName" for="settingsPaymentBeneficiaryName">Naam begunstigde</label>
+<input autocomplete="organization" class="field" data-i18n-placeholder="beneficiaryPlaceholder" id="settingsPaymentBeneficiaryName" placeholder="Bijv. Salonnaam" type="text"/>
+<label class="field-label" data-i18n="accountNumber" for="settingsPaymentAccountNumber">Rekeningnummer</label>
+<textarea autocapitalize="characters" autocomplete="off" autocorrect="off" class="field settings-account-number-field" data-1p-ignore="true" data-form-type="other" data-lpignore="true" id="settingsPaymentAccountNumber" inputmode="text" placeholder="BE.. .... .... ...." rows="1" spellcheck="false"></textarea>
+<label class="field-label" data-i18n="paymentReference" for="settingsPaymentReferencePrefix">Mededeling</label>
+<input autocomplete="off" class="field" id="settingsPaymentReferencePrefix" inputmode="text" maxlength="140" pattern="[A-Za-z0-9 /\-?:().,'+]*" placeholder="" title="Gebruik alleen letters, cijfers, spaties en deze tekens: / - ? : ( ) . , ' +" type="text"/>
 
-                <section class="settings-section-card">
-                  <div class="settings-section-head">
-                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22a2.4 2.4 0 0 0 2.35-1.9h-4.7A2.4 2.4 0 0 0 12 22Zm7.2-5.35-1.35-1.8V10a5.86 5.86 0 0 0-4.45-5.7V3a1.4 1.4 0 1 0-2.8 0v1.3A5.86 5.86 0 0 0 6.15 10v4.85l-1.35 1.8A1.25 1.25 0 0 0 5.8 18.65h12.4a1.25 1.25 0 0 0 1-2Z"/></svg></span>
-                    <div>
-                      <div class="detail-label" data-i18n="notifications">Meldingen</div>
-                      <p data-i18n="notificationsSubtitle">Voorbereid voor afspraakherinneringen in de app.</p>
-                    </div>
-                  </div>
+</section>
+<section class="settings-section-card settings-section-card-wide">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H6V3a1 1 0 0 1 1-1ZM4 9v9.5c0 .28.22.5.5.5h15a.5.5 0 0 0 .5-.5V9H4Zm11.2 2.6a1 1 0 0 1 1.4 1.43l-4.5 4.4a1 1 0 0 1-1.4 0l-2.25-2.2a1 1 0 1 1 1.4-1.43l1.55 1.52 3.8-3.72Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="googleCalendar" data-settings-title="googleCalendar">Google kalender</div>
 
-                  <label class="settings-switch-row" for="settingsNotificationsEnabled">
-                    <span>
-                      <strong data-i18n="enableNotifications">Meldingen inschakelen</strong>
-                      <small data-i18n="enableNotificationsHint">Voorbereid voor afspraakherinneringen in de app.</small>
-                    </span>
-                    <input id="settingsNotificationsEnabled" type="checkbox" />
-                  </label>
+</div>
+</div>
 
-                  <div id="settingsReminderWrap">
-                    <label class="field-label" for="settingsReminderMinutes" data-i18n="reminderBefore">Herinnering vóór afspraak</label>
-                    <select id="settingsReminderMinutes" class="field">
-                      <option value="5">5 minuten</option>
-                      <option value="10">10 minuten</option>
-                      <option value="15">15 minuten</option>
-                      <option value="30">30 minuten</option>
-                      <option value="60">1 uur</option>
-                      <option value="1440">24 uur</option>
-                    </select>
-                  </div>
-                </section>
+<label class="field-label" data-i18n="personalCalendarLink" for="calendarFeedUrl">Persoonlijke kalenderlink</label>
+<div class="calendar-feed-row">
+<input class="field calendar-feed-url-field" data-i18n-placeholder="calendarLinkPlaceholder" id="calendarFeedUrl" placeholder="Maak eerst een kalenderlink" readonly="" type="text"/>
+<button class="btn btn-secondary action-btn" data-i18n="createCopyLink" id="copyCalendarFeedUrlBtn" type="button">Maak/kopieer link</button>
+</div>
+<div class="calendar-feed-actions">
+<button class="btn btn-secondary action-btn" data-i18n="openGoogleCalendar" id="openGoogleCalendarSubscribeBtn" type="button">Open Google Calendar</button>
+<button class="text-link-btn calendar-feed-reset-btn" data-i18n="createNewLink" id="regenerateCalendarFeedUrlBtn" type="button">Nieuwe link maken</button>
+</div>
+<p class="settings-info-text" data-i18n="calendarFeedStatusEmpty" id="calendarFeedStatus">Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.</p>
 
-                <section class="settings-section-card">
-                  <div class="settings-section-head">
-                    <span class="settings-section-icon settings-section-icon-qr" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm4 0h2v4h-4v-2h2v-2Zm-6 4h2v4h-2v-4Zm4 2h2v2h-2v-2Zm2-2h2v2h-2v-2Z"/></svg></span>
-                    <div>
-                      <div class="detail-label" data-settings-title="paymentDetailsQr" data-i18n="paymentDetailsQr">Betaalgegevens QR-code</div>
-                      <p data-i18n="paymentDetailsSubtitle">Gegevens voor SEPA/bank-QR-codes bij betalingen.</p>
-                    </div>
-                  </div>
+</section>
+</div>
+<section class="settings-section-card settings-section-card-wide settings-deleted-appointments-card">
+<div class="settings-section-head">
+<span aria-hidden="true" class="settings-section-icon"><svg aria-hidden="true" class="settings-svg-icon" focusable="false" viewbox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-.8 11.1A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-2-1.9L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"></path></svg></span>
+<div>
+<div class="detail-label" data-i18n="deletedAppointments">Verwijderde afspraken</div>
 
-                  <label class="field-label" for="settingsPaymentBeneficiaryName" data-i18n="beneficiaryName">Naam begunstigde</label>
-                  <input id="settingsPaymentBeneficiaryName" class="field" type="text" autocomplete="organization" placeholder="Bijv. Salonnaam" data-i18n-placeholder="beneficiaryPlaceholder" />
-
-                  <label class="field-label" for="settingsPaymentAccountNumber" data-i18n="accountNumber">Rekeningnummer</label>
-                  <textarea id="settingsPaymentAccountNumber" class="field settings-account-number-field" rows="1" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" placeholder="BE.. .... .... ...."></textarea>
-
-
-                  <label class="field-label" for="settingsPaymentReferencePrefix" data-i18n="paymentReference">Mededeling</label>
-                  <input id="settingsPaymentReferencePrefix" class="field" type="text" autocomplete="off" inputmode="text" maxlength="140" pattern="[A-Za-z0-9 /\-?:().,'+]*" title="Gebruik alleen letters, cijfers, spaties en deze tekens: / - ? : ( ) . , ' +" placeholder="" />
-
-                  <p class="settings-info-text" data-i18n="paymentDetailsInfo">Deze gegevens worden gebruikt om een SEPA/bank-QR-code te maken. Klanten scannen de QR met hun bankapp.</p>
-                </section>
-
-                <section class="settings-section-card settings-section-card-wide">
-                  <div class="settings-section-head">
-                    <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H6V3a1 1 0 0 1 1-1ZM4 9v9.5c0 .28.22.5.5.5h15a.5.5 0 0 0 .5-.5V9H4Zm11.2 2.6a1 1 0 0 1 1.4 1.43l-4.5 4.4a1 1 0 0 1-1.4 0l-2.25-2.2a1 1 0 1 1 1.4-1.43l1.55 1.52 3.8-3.72Z"/></svg></span>
-                    <div>
-                      <div class="detail-label" data-settings-title="googleCalendar" data-i18n="googleCalendar">Google kalender</div>
-                      <p data-i18n="googleCalendarSubtitle">Synchroniseer NailBooker-afspraken via een persoonlijke kalenderlink.</p>
-                    </div>
-                  </div>
-
-                  <p class="settings-info-text" data-i18n="googleCalendarInfo">Maak een persoonlijke kalenderlink en voeg die één keer toe in Google Calendar via Andere agenda’s → Via URL. Google haalt daarna automatisch de actuele NailBooker-afspraken op.</p>
-
-                  <label class="field-label" for="calendarFeedUrl" data-i18n="personalCalendarLink">Persoonlijke kalenderlink</label>
-                  <div class="calendar-feed-row">
-                    <input id="calendarFeedUrl" class="field calendar-feed-url-field" type="text" readonly placeholder="Maak eerst een kalenderlink" data-i18n-placeholder="calendarLinkPlaceholder" />
-                    <button id="copyCalendarFeedUrlBtn" class="btn btn-secondary action-btn" type="button" data-i18n="createCopyLink">Maak/kopieer link</button>
-                  </div>
-
-                  <div class="calendar-feed-actions">
-                    <button id="openGoogleCalendarSubscribeBtn" class="btn btn-secondary action-btn" type="button" data-i18n="openGoogleCalendar">Open Google Calendar</button>
-                    <button id="regenerateCalendarFeedUrlBtn" class="text-link-btn calendar-feed-reset-btn" type="button" data-i18n="createNewLink">Nieuwe link maken</button>
-                  </div>
-
-                  <p id="calendarFeedStatus" class="settings-info-text" data-i18n="calendarFeedStatusEmpty">Maak eerst een persoonlijke kalenderlink. Daarna kun je die één keer toevoegen in Google Calendar.</p>
-                  <p class="settings-info-text" data-i18n="calendarRefreshNote">Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.</p>
-                </section>
-              </div>
-
-              <section class="settings-section-card settings-section-card-wide settings-deleted-appointments-card">
-                <div class="settings-section-head">
-                  <span class="settings-section-icon" aria-hidden="true"><svg class="settings-svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-.8 11.1A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-2-1.9L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/></svg></span>
-                  <div>
-                    <div class="detail-label" data-i18n="deletedAppointments">Verwijderde afspraken</div>
-                    <p data-i18n="deletedAppointmentsSubtitle">Bekijk en herstel afspraken die uit de agenda, omzet en statistieken verborgen zijn.</p>
-                  </div>
-                </div>
-                <button id="openDeletedAppointmentsBtn" class="btn btn-secondary action-btn" type="button" data-i18n="openDeletedAppointments">Verwijderde afspraken openen</button>
-              </section>
-
-              <div class="settings-actions settings-actions-sticky">
-                <span id="settingsSaveHint" class="settings-save-hint">Instellingen worden per gebruiker bewaard.</span>
-                <button id="settingsSaveBtn" class="btn btn-primary action-btn" type="button" data-i18n="saveSettings">Instellingen opslaan</button>
-              </div>
-            </form>
+</div>
+</div>
+<button class="btn btn-secondary action-btn" data-i18n="openDeletedAppointments" id="openDeletedAppointmentsBtn" type="button">Verwijderde afspraken openen</button>
+</section>
+<div class="settings-actions settings-actions-sticky">
+<span class="settings-save-hint" id="settingsSaveHint">Instellingen worden per gebruiker bewaard.</span>
+<button class="btn btn-primary action-btn" data-i18n="saveSettings" id="settingsSaveBtn" type="button">Instellingen opslaan</button>
+</div>
+</form>
           </div>
         </section>
       </section>
@@ -1976,7 +1950,7 @@
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20261026-planning1"></script>
 
 <script>
   const bottomNav = document.querySelector('.bottom-nav');
@@ -2099,9 +2073,62 @@
     </section>
   </div>
 
+  <!-- Zwevende terug-naar-bovenknop: buiten de schermen zodat hij op elke pagina werkt. -->
+  <button id="nbScrollTopBtn" class="nb-scroll-top" type="button"
+          aria-label="Terug naar boven" title="Terug naar boven" tabindex="-1" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m5 14 7-7 7 7"/>
+    </svg>
+  </button>
+
   <div id="adminToast" class="admin-toast hidden" role="status" aria-live="polite"></div>
 
 
+
+<script>
+/* NailBooker instellingen: compacte, toegankelijke secties.
+   Deze code verandert GEEN veld-ID, opslag, event-handler of bestaande app-logica.
+   De inhoud wordt enkel verborgen/getoond; alle instellingen blijven in de DOM. */
+(function () {
+  function initSettingsSections() {
+    const screen = document.getElementById('settingsScreen');
+    if (!screen) return;
+    const cards = screen.querySelectorAll('.settings-section-card');
+    cards.forEach((card, index) => {
+      const header = card.querySelector(':scope > .settings-section-head');
+      if (!header || header.dataset.nbAccordionReady) return;
+      header.dataset.nbAccordionReady = '1';
+      header.classList.add('nb-settings-toggle');
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      const content = document.createElement('div');
+      content.className = 'nb-settings-content';
+      content.id = 'nb-settings-panel-' + index;
+      while (header.nextSibling) content.appendChild(header.nextSibling);
+      card.appendChild(content);
+      header.setAttribute('aria-controls', content.id);
+      const setOpen = (open) => {
+        card.classList.toggle('nb-settings-open', open);
+        header.setAttribute('aria-expanded', String(open));
+        content.hidden = !open;
+      };
+      setOpen(false);
+      header.addEventListener('click', (event) => {
+        if (event.target.closest('a, button, input, select, textarea')) return;
+        setOpen(!card.classList.contains('nb-settings-open'));
+      });
+      header.addEventListener('keydown', (event) => {
+        if (event.target !== header || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        setOpen(!card.classList.contains('nb-settings-open'));
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSettingsSections);
+  else initSettingsSections();
+})();
+</script>
 </body>
 
 </html>

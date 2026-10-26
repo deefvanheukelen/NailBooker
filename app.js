@@ -440,7 +440,8 @@ function updateStaticI18n() {
 
   const selectorMap = [
     ["#jumpToTodayBtn", "today"],
-    ['label[for="settingsDefaultBreakMinutes"]', "defaultBreak"],
+    // Planning: het minutenlabel staat apart naast het compacte invoerveld.
+    // De vertaalde omschrijving wordt hieronder zonder "(min)" toegepast.
     ['label[for="settingsReminderMinutes"]', "reminderBefore"],
     ['label[for="loginEmail"]', "email"],
     ['label[for="loginPassword"]', "password"],
@@ -596,6 +597,10 @@ function updateStaticI18n() {
   document.querySelectorAll('#appointmentForm button[type="submit"], #clientForm button[type="submit"], #serviceForm button[type="submit"], #paymentMethodForm button[type="submit"], #passwordForm button[type="submit"], #editProfileForm button[type="submit"]').forEach(btn => {
     btn.textContent = t("save");
   });
+
+  // Planning: eenheden niet herhalen in de titel van het minutenveld.
+  const breakLabel = document.querySelector('label[for="settingsDefaultBreakMinutes"]');
+  if (breakLabel) breakLabel.textContent = t("defaultBreak").replace(/\s*\(min\.?\)\s*$/i, "");
 
   const overlapLabel = document.querySelector('label[for="settingsOverlapWarningsEnabled"]');
   if (overlapLabel) {
@@ -3581,10 +3586,15 @@ function openAgendaFabMenu() {
   fab.setAttribute("aria-expanded", "true");
 }
 
-async function toggleAgendaFabMenu(event) {
+function toggleAgendaFabMenu(event) {
   event?.stopPropagation?.();
   if (isAuthLocked()) return;
-  if (!(await ensureDataWriteAccess())) return;
+
+  // Het openen van het snelmenu is uitsluitend een visuele handeling.
+  // Hier GEEN ensureDataWriteAccess() aanroepen: die functie doet o.a.
+  // Supabase-verzoeken (profiel + abonnementscontrole) en vertraagt de animatie.
+  // De controle blijft behouden in runAgendaFabAction(), dus vóór een gebruiker
+  // daadwerkelijk een nieuwe afspraak, klant, dienst of betaalwijze kan maken.
   const menu = ensureAgendaFabMenu();
   if (!menu) return;
   if (menu.classList.contains("open")) closeAgendaFabMenu();
@@ -4738,6 +4748,23 @@ function renderAlphabetFilter() {
   });
 }
 
+/**
+ * Geeft een veilige beginletter voor de ronde avatar in de beheerlijsten.
+ * De tekst wordt als HTML ge-escaped om namen met speciale tekens veilig te tonen.
+ */
+function managementInitial(name) {
+  const first = Array.from(String(name || "").trim())[0] || "?";
+  return escapeHtml(first.toLocaleUpperCase(getCurrentLanguage() || "nl-BE"));
+}
+
+// Eén vaste kleurklasse per beginletter, identiek in Klanten, Diensten en Betaalwijzen.
+// Alleen A-Z wordt gebruikt als CSS-klasse; andere tekens krijgen een neutrale kleur.
+function managementInitialColorClass(name) {
+  const letter = Array.from(String(name || "").trim())[0] || "";
+  const upper = letter.toUpperCase();
+  return /^[A-Z]$/.test(upper) ? `management-letter-${upper.toLowerCase()}` : "management-letter-other";
+}
+
 function renderClients() {
   const data = getData();
   const q = document.getElementById("clientSearch").value.trim().toLowerCase();
@@ -4776,8 +4803,13 @@ function renderClients() {
 
     card.innerHTML = `
       <button type="button" data-id="${client.id}">
-        <div class="client-name">${escapeHtml(fullName(client) || "Naamloos")}</div>
-        <div class="meta">${escapeHtml(phone || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</div>
+        <span class="management-list-content">
+          <span class="management-initial ${managementInitialColorClass(fullName(client))}" aria-hidden="true">${managementInitial(fullName(client))}</span>
+          <span class="management-list-text">
+            <span class="client-name">${escapeHtml(fullName(client) || "Naamloos")}</span>
+            <span class="meta">${escapeHtml(phone || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</span>
+          </span>
+        </span>
       </button>
     `;
 
@@ -4875,8 +4907,13 @@ function renderServices() {
 
       card.innerHTML = `
         <button type="button" data-id="${service.id}">
-          <div class="client-name">${escapeHtml(service.name || "Naamloze dienst")}</div>
-          <div class="meta">${service.duration} min · ${euro(service.price)}${isInactive ? ` · ${t("inactive")}` : ""}</div>
+          <span class="management-list-content">
+            <span class="management-initial ${managementInitialColorClass(service.name)}" aria-hidden="true">${managementInitial(service.name)}</span>
+            <span class="management-list-text">
+              <span class="client-name">${escapeHtml(service.name || "Naamloze dienst")}</span>
+              <span class="meta">${service.duration} min · ${euro(service.price)}${isInactive ? ` · ${t("inactive")}` : ""}</span>
+            </span>
+          </span>
         </button>
       `;
 
@@ -9817,7 +9854,10 @@ function renderPaymentMethods() {
   const list = document.getElementById("paymentMethodsList");
   if (!list) return;
 
-  const methods = getPaymentMethods(data);
+  // Alleen de weergave alfabetisch sorteren; de opgeslagen volgorde blijft behouden.
+  const methods = [...getPaymentMethods(data)].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), "nl-BE", { sensitivity: "base" })
+  );
   if (!methods.length) {
     list.innerHTML = `<div class="empty-state">${t("noPaymentMethods")}</div>`;
     return;
@@ -9830,8 +9870,13 @@ function renderPaymentMethods() {
     card.className = "service-card payment-method-card";
     card.innerHTML = `
       <button type="button" data-id="${method.id}">
-        <div class="client-name">${method.name}</div>
-        <div class="meta">${usageCount} ${usageCount === 1 ? t("paymentSingular") : t("paymentPlural")}</div>
+        <span class="management-list-content">
+          <span class="management-initial ${managementInitialColorClass(method.name)}" aria-hidden="true">${managementInitial(method.name)}</span>
+          <span class="management-list-text">
+            <span class="client-name">${escapeHtml(method.name)}</span>
+            <span class="meta">${usageCount} ${usageCount === 1 ? t("paymentSingular") : t("paymentPlural")}</span>
+          </span>
+        </span>
       </button>
     `;
     card.querySelector("button").addEventListener("click", () => openEditPaymentMethodDialog(method.id));
@@ -12221,12 +12266,35 @@ function registerEvents() {
     saveData(data);
     rerenderAll();
   });
-  document.getElementById("settingsCurrency")?.addEventListener("change", event => {
-    currentProfilePreferences.currency = normalizeCurrency(event.target.value);
-    const data = getData();
-    data.settings = { ...getSettings(), language: getCurrentLanguage(), currency: currentProfilePreferences.currency };
-    saveData(data);
-    rerenderAll();
+  // Valuta wijzigen: toon eerst een bevestiging in de bestaande NailBooker-dialogstijl.
+  // Annuleren herstelt de vorige keuze, zonder instellingen of bedragen te wijzigen.
+  // Een guard voorkomt dat meerdere dialogen tegelijk geopend worden.
+  let settingsCurrencyConfirmationPending = false;
+  document.getElementById("settingsCurrency")?.addEventListener("change", async event => {
+    const select = event.currentTarget;
+    const previousCurrency = getCurrentCurrency();
+    const nextCurrency = normalizeCurrency(select.value);
+    if (settingsCurrencyConfirmationPending || nextCurrency === previousCurrency) return;
+    settingsCurrencyConfirmationPending = true;
+    try {
+      const confirmed = await appConfirm(
+        "Nieuw gemaakte afspraken gebruiken deze valuta; bestaande bedragen worden niet omgerekend.",
+        { title: "Valuta wijzigen", confirmText: "OK", cancelText: "Annuleren" }
+      );
+      if (!confirmed) {
+        select.value = previousCurrency;
+        refreshAppSelect(select);
+        updateSettingsDirtyState();
+        return;
+      }
+      currentProfilePreferences.currency = nextCurrency;
+      const data = getData();
+      data.settings = { ...getSettings(), language: getCurrentLanguage(), currency: nextCurrency };
+      saveData(data);
+      rerenderAll();
+    } finally {
+      settingsCurrencyConfirmationPending = false;
+    }
   });
   document.getElementById("settingsShowTipsOnOpen")?.addEventListener("change", event => {
     setTipsOnOpenPreference(event.target.checked !== false);
@@ -12716,28 +12784,46 @@ async function loadServicesFromSupabase() {
   }));
 }
 
+/*
+ * Afspraken worden in pagina's opgehaald.
+ * Supabase-projecten kunnen een limiet per query hanteren (vaak 1.000 rijen).
+ * Zonder paginering verdwijnen oudere of toekomstige afspraken stilzwijgend.
+ *
+ * LET OP: omzet, statistieken, herhalingen en meldingen gebruiken momenteel
+ * dezelfde volledige afsprakenlijst. Daarom hier NIET zomaar filteren op
+ * kalendermaand: dat zou bestaande functies onjuist maken. Een echte
+ * maandcache vereist eerst afzonderlijke periodequeries voor die schermen.
+ */
 async function loadAppointmentsFromSupabase() {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  const { data, error } = await supabaseClient
-    .from("appointments")
-    .select("*")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .order("appointment_date", { ascending: true })
-    .order("appointment_time", { ascending: true });
+  const pageSize = 500;
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabaseClient
+      .from("appointments")
+      .select("*")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("appointment_date", { ascending: true })
+      .order("appointment_time", { ascending: true })
+      .order("id", { ascending: true }) // Stabiele volgorde bij gelijke datum/uur.
+      .range(offset, offset + pageSize - 1);
 
-  if (error) {
-    console.error("Fout bij laden afspraken:", error.message);
-    return [];
+    if (error) {
+      console.error("Fout bij laden afspraken:", error.message);
+      // Geen onvolledige lijst opslaan: de aanroeper behoudt de vorige data.
+      throw error;
+    }
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) break;
   }
 
-  return (data || [])
+  return rows
     .map(mapSupabaseAppointmentRow)
     .filter(appointment => !appointmentHasHiddenPaymentMethod(appointment));
 }
-
 
 function mapSupabaseAppointmentRow(a) {
   const rawRemarks = String(a.appointment_remarks || a.remarks || "").trim();
@@ -12835,29 +12921,44 @@ async function loadCostsFromSupabase() {
   }));
 }
 
+/*
+ * Eén gedeelde laadactie voor gelijktijdige aanroepen. Zo starten twee
+ * schermen die kort na elkaar verversen geen dubbele volledige downloads.
+ * De wachttijd is voortaan ongeveer die van de traagste onafhankelijke query
+ * in plaats van de som van alle querytijden.
+ *
+ * Bij fouten blijft de bestaande lokale data bewaard. De promise wordt
+ * na afloop vrijgegeven zodat een volgende poging opnieuw kan laden.
+ */
+let pendingFullDataLoad = null;
 async function loadAllDataFromSupabase() {
-  const customers = await loadCustomersFromSupabase();
-  const services = await loadServicesFromSupabase();
-  const paymentMethods = await loadPaymentMethodsFromSupabase();
-  const appointments = await loadAppointmentsFromSupabase();
-  const todos = await loadTodosFromSupabase();
-  const standardCosts = await loadStandardCostsFromSupabase();
-  const costs = await loadCostsFromSupabase();
-  const settings = await loadSettingsFromSupabase();
+  if (pendingFullDataLoad) return pendingFullDataLoad;
 
-  saveData({
-    customers,
-    services,
-    paymentMethods,
-    appointments,
-    todos,
-    standardCosts,
-    costs,
-    settings
-  });
+  pendingFullDataLoad = (async () => {
+    const [customers, services, paymentMethods, appointments, todos,
+      standardCosts, costs, settings] = await Promise.all([
+      loadCustomersFromSupabase(),
+      loadServicesFromSupabase(),
+      loadPaymentMethodsFromSupabase(),
+      loadAppointmentsFromSupabase(),
+      loadTodosFromSupabase(),
+      loadStandardCostsFromSupabase(),
+      loadCostsFromSupabase(),
+      loadSettingsFromSupabase()
+    ]);
 
-  state.revenueLastRenderSignature = "";
-  await syncNotificationState();
+    // Slechts één schrijfactie nadat alle datasets beschikbaar zijn.
+    saveData({ customers, services, paymentMethods, appointments, todos,
+      standardCosts, costs, settings });
+    state.revenueLastRenderSignature = "";
+    await syncNotificationState();
+  })();
+
+  try {
+    return await pendingFullDataLoad;
+  } finally {
+    pendingFullDataLoad = null;
+  }
 }
 
 /* =========================
@@ -14890,4 +14991,79 @@ function setupIntegratedAdminEvents() {
       loadAdminUsers(false);
     }
   };
+})();
+
+
+/* =========================================================
+   SCROLL-TO-TOP (NailBooker)
+   De app scrollt niet via window, maar via meerdere interne containers
+   (.scroll-list, .settings-scroll, enz.). Daarom detecteren we de werkelijk
+   gescrollde container, zonder de bestaande pagina-opbouw te veranderen.
+========================================================= */
+(function initNbScrollToTop() {
+  function setup() {
+    const button = document.getElementById('nbScrollTopBtn');
+    const shell = document.querySelector('.app-shell');
+    const main = document.querySelector('.main-layout');
+    if (!button || !shell || !main) return;
+
+    let currentScroller = null;
+    let frame = 0;
+    const threshold = 12; // Ook bij een kleine scrollbeweging zichtbaar.
+
+    function activeScreen() { return main.querySelector('.screen.active'); }
+    function isScrollable(el) {
+      if (!(el instanceof HTMLElement)) return false;
+      const overflow = getComputedStyle(el).overflowY;
+      return /auto|scroll|overlay/.test(overflow) && el.scrollHeight > el.clientHeight + 2;
+    }
+    function findScroller() {
+      const screen = activeScreen();
+      if (!screen) return null;
+      // Bij schermwissel: neem de container die al gescrold is, of de eerste
+      // scrollbare container. Pop-ups/dialogen worden bewust uitgesloten.
+      const nodes = [screen, ...screen.querySelectorAll('*')].filter(isScrollable);
+      return nodes.find(el => el.scrollTop > threshold) || nodes[0] || null;
+    }
+    function update() {
+      frame = 0;
+      const screen = activeScreen();
+      if (!currentScroller || !screen?.contains(currentScroller) || !isScrollable(currentScroller)) {
+        currentScroller = findScroller();
+      }
+      const visible = !!(currentScroller && currentScroller.scrollTop > threshold);
+      button.classList.toggle('is-visible', visible);
+      button.tabIndex = visible ? 0 : -1;
+      button.setAttribute('aria-hidden', String(!visible));
+    }
+    function scheduleUpdate() {
+      if (!frame) frame = requestAnimationFrame(update);
+    }
+    // Scroll-events van interne containers worden in capture-fase ontvangen.
+    main.addEventListener('scroll', event => {
+      const target = event.target;
+      const screen = activeScreen();
+      if (target instanceof HTMLElement && screen?.contains(target) && isScrollable(target)) {
+        currentScroller = target;
+        scheduleUpdate();
+      }
+    }, { capture: true, passive: true });
+
+    button.addEventListener('click', () => {
+      const scroller = currentScroller && activeScreen()?.contains(currentScroller)
+        ? currentScroller : findScroller();
+      if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // De bestaande navigatie wisselt de class 'active'; reset dan de verwijzing
+    // zodat nooit een container van de vorige pagina wordt gescrold.
+    const observer = new MutationObserver(() => { currentScroller = null; scheduleUpdate(); });
+    main.querySelectorAll('.screen').forEach(screen => {
+      observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
+    });
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    update();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true });
+  else setup();
 })();
