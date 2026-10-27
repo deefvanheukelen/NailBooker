@@ -13771,11 +13771,406 @@ dialog.modal.modal-small#appMessageDialog.agenda-unpaid-message-dialog {
 #revenueScreen .revenue-period-tile:focus { outline: none !important; }
 #revenueScreen .revenue-period-tile:focus-visible { outline: 2px solid #b96e8d !important; outline-offset: 2px !important; }
 
-/* Omzet: kwartaalkeuze in hetzelfde bestaande keuzedialoogvenster. */
-#revenueWheelPickerDialog .revenue-quarter-picker {width:100%;padding:12px 8px 18px;box-sizing:border-box;}
-#revenueWheelPickerDialog .revenue-quarter-picker-year {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
-#revenueWheelPickerDialog .revenue-quarter-picker-year strong {font-size:22px;font-weight:600;}
-#revenueWheelPickerDialog .revenue-quarter-picker-year button {border:1px solid #e7afc4;border-radius:12px;background:white;color:#4b4b4b;font-size:28px;width:45px;height:42px;cursor:pointer;}
-#revenueWheelPickerDialog .revenue-quarter-picker-options {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
-#revenueWheelPickerDialog .revenue-quarter-picker-options button {border:2px solid #e7afc4;border-radius:14px;background:white;color:#4b4b4b;font-size:27px;min-height:62px;cursor:pointer;}
-#revenueWheelPickerDialog .revenue-quarter-picker-options button.selected {background:#f8e7ee;border-color:#d68ba9;}
+/* Daginkomsten: alleen het nieuwe periodevenster. */
+.nb-income-dialog { width: min(92vw, 420px); max-width: 420px; }
+.nb-income-dialog .nb-income-hint { margin: -7px 0 18px; color: #806b75; font-size: 13px; }
+.nb-income-dialog label[hidden] { display: none !important; }
+.nb-income-dialog input[type="date"] { display: block; box-sizing: border-box; width: 100%; min-height: 46px; padding: 10px; margin-top: 5px; border: 1px solid #dcc8d1; border-radius: 7px; background: #fff; color: #514750; font: inherit; }
+.nb-income-dialog .nb-quarter-actions button[type="submit"] { background: #bf7893; color: #fff; }
+
+/* Daginkomsten: fullscreen pagina (uitsluitend dit venster). */
+#nbQuarterIncomeDialog.nb-income-dialog {
+  position: fixed !important; inset: 0 !important;
+  width: 100vw !important; max-width: none !important;
+  height: 100vh !important; height: 100dvh !important;
+  max-height: none !important; margin: 0 !important;
+  padding: 0 !important; border: 0 !important; border-radius: 0 !important;
+  background: #fff !important; overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+#nbQuarterIncomeDialog.nb-income-dialog::backdrop { background: transparent; }
+#nbQuarterIncomeDialog.nb-income-dialog[open] { display: block !important; }
+#nbQuarterIncomeForm { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+#nbQuarterIncomeDialog .nb-income-header {
+  flex: none; display: flex; align-items: center; gap: 14px;
+  padding: max(14px, env(safe-area-inset-top)) 18px 14px;
+  min-height: 64px; box-sizing: border-box;
+  background: linear-gradient(180deg,#faeaf0,#fff5f8);
+  border-bottom: 1px solid #f0dbe3;
+}
+#nbQuarterIncomeDialog .nb-income-header h3 { margin: 0; font-size: 19px; font-weight: 600; color: #b96583; }
+#nbQuarterIncomeDialog .nb-income-back {
+  width: 36px; height: 36px; flex: none; border-radius: 50%;
+  border: 1px solid #edc9d6; background: white; color: #b96583;
+  font-size: 30px; line-height: 26px; cursor: pointer;
+}
+#nbQuarterIncomeDialog .nb-income-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 24px clamp(18px,5vw,40px); width: 100%; max-width: 620px;
+  box-sizing: border-box; margin: 0 auto;
+}
+#nbQuarterIncomeDialog .nb-income-intro h4 { font-size: 18px; margin: 0 0 8px; color: #b96583; }
+#nbQuarterIncomeDialog .nb-income-hint { margin: 0 0 28px; line-height: 1.5; }
+#nbQuarterIncomeDialog .nb-income-body label {
+  display: block; margin: 0 0 22px; font-size: 14px; font-weight: 600; color: #6b5962;
+}
+#nbQuarterIncomeDialog .nb-income-body select,
+#nbQuarterIncomeDialog .nb-income-body input[type="date"] {
+  display: block; width: 100%; min-height: 52px; margin-top: 9px;
+  padding: 12px 14px; box-sizing: border-box; border-radius: 12px;
+  border: 1px solid #e6bbcb; background: #fffafb;
+  color: #50474c; font-size: 16px; font-weight: 400;
+}
+#nbQuarterIncomeDialog .nb-income-body label[hidden] { display: none !important; }
+#nbQuarterIncomeDialog .nb-quarter-actions {
+  flex: none; margin: 0; padding: 14px 18px max(18px, env(safe-area-inset-bottom));
+  display: flex; justify-content: center; gap: 12px;
+  background: #fff; border-top: 1px solid #f1e2e7;
+}
+#nbQuarterIncomeDialog .nb-quarter-actions button { min-height: 48px; border-radius: 24px; padding: 10px 22px; font-size: 14px; }
+#nbQuarterIncomeDialog .nb-quarter-actions button[type="submit"] { background: #c77996; color: white; border-color: #c77996; font-weight: 600; }
+
+/* Daginkomsten: extra afstand tussen veldtitel en keuzelijst. */
+#nbQuarterIncomeDialog .nb-income-body select,
+#nbQuarterIncomeDialog .nb-income-body input[type="date"] { margin-top: 15px; }
+
+/* Daginkomsten: uniforme afstand, identieke app-keuzelijsten en geen startfocus. */
+#nbQuarterIncomeDialog .nb-income-body label { margin-bottom: 22px !important; }
+#nbQuarterIncomeDialog .nb-income-body label > .app-select-wrap { display: block; width: 100%; margin-top: 12px !important; }
+#nbQuarterIncomeDialog .nb-income-body label > select { margin-top: 12px !important; }
+#nbQuarterIncomeDialog .nb-income-body label > input[type="date"] { margin-top: 12px !important; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap .app-select-button {
+  display:flex; align-items:center; justify-content:space-between; width:100%; min-height:52px;
+  box-sizing:border-box; padding:12px 14px; border:1px solid #e6bbcb; border-radius:12px;
+  background:#fffafb; color:#50474c; font-size:16px; font-weight:400; font-family:inherit; text-align:left;
+}
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap .app-select-value { font-size:16px; font-weight:400; font-family:inherit; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap .app-select-arrow { flex:none; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap select { margin:0 !important; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap .app-select-options { z-index:30; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-wrap.is-open { position:relative; z-index:35; }
+#nbQuarterIncomeDialog .nb-income-body .app-select-button:focus:not(:focus-visible),
+#nbQuarterIncomeDialog .nb-income-back:focus:not(:focus-visible) { outline:none !important; box-shadow:none !important; }
+
+/* Herbruikbare schermbrede actiebalk voor bevestigen/annuleren.
+   Gebruik op andere pagina's: .nb-action-footer met .nb-footer-action
+   en .nb-footer-cancel of .nb-footer-confirm. */
+.nb-action-footer {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0; padding: 0; align-items: stretch;
+  border-top: 1px solid #f0e2e8; background: #fff;
+}
+.nb-action-footer .nb-footer-action {
+  appearance: none; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; min-width: 0; min-height: 76px;
+  padding: 12px 8px max(12px, env(safe-area-inset-bottom));
+  margin: 0; border: 0; border-radius: 0; box-shadow: none;
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: filter .15s ease;
+}
+.nb-action-footer .nb-footer-action:hover { filter: brightness(.98); }
+.nb-action-footer .nb-footer-action:focus:not(:focus-visible) { outline: none; }
+.nb-action-footer .nb-footer-action:focus-visible { outline: 2px solid #b86c8d; outline-offset: -3px; }
+.nb-action-footer .nb-footer-cancel { background: #fae8ef; color: #c46e8e; }
+.nb-action-footer .nb-footer-confirm { background: #ddf4e5; color: #2e9d64; }
+.nb-action-footer .nb-footer-icon { font-size: 18px; line-height: 1; }
+/* Daginkomsten: voorrang op oudere, specifieke footerknopregels. */
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer {
+  display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  justify-content: stretch; gap: 0; padding: 0;
+}
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer .nb-footer-action,
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer button[type="submit"] {
+  min-height: 76px; border: 0; border-radius: 0; margin: 0;
+  padding: 12px 8px max(12px, env(safe-area-inset-bottom));
+  background: #ddf4e5; color: #2e9d64; font-weight: 500;
+}
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer .nb-footer-cancel {
+  background: #fae8ef; color: #c46e8e;
+}
+
+/* Daginkomsten: sluitknop rechts in de titelbalk; uniforme SVG-iconen in de footer. */
+#nbQuarterIncomeDialog .nb-income-header { position: relative; }
+#nbQuarterIncomeDialog .nb-income-header .nb-income-close {
+  margin-left: auto; flex: none; width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid #edc9d6; border-radius: 50%; background: #fff;
+  color: #b96583; cursor: pointer;
+}
+#nbQuarterIncomeDialog .nb-income-close:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+#nbQuarterIncomeDialog .nb-action-footer .nb-footer-icon {
+  display: inline-flex; align-items: center; justify-content: center; height: 24px;
+}
+#nbQuarterIncomeDialog .nb-action-footer .nb-footer-icon svg { display: block; }
+
+/* Daginkomsten: inhoudspagina onder de bestaande app-header, geen fullscreen overlay. */
+#nbQuarterIncomeDialog.nb-income-dialog {
+  inset: var(--nb-income-top, 70px) auto 0 0 !important;
+  top: var(--nb-income-top, 70px) !important;
+  height: calc(100dvh - var(--nb-income-top, 70px)) !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  z-index: 19 !important; /* echte app-header blijft erboven */
+}
+#nbQuarterIncomeDialog .nb-income-body { padding-top: 24px; }
+#nbQuarterIncomeDialog .nb-income-intro { position: relative; padding-right: 42px; }
+#nbQuarterIncomeDialog .nb-income-intro .nb-income-close {
+  position: absolute; top: -8px; right: -4px;
+  margin: 0; border: 0; background: transparent; box-shadow: none;
+  color: #c77997; width: 38px; height: 38px;
+  font-size: 27px; font-weight: 300; line-height: 1;
+}
+#nbQuarterIncomeDialog .nb-income-intro .nb-income-close:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+/* Daginkomsten: volledig afdekkende inhoudspagina, met de originele header erboven. */
+body.nb-income-page-open .topbar { z-index: 102 !important; }
+#nbQuarterIncomeDialog.nb-income-dialog { z-index: 101 !important; background: #fff !important; opacity: 1 !important; }
+#nbQuarterIncomeDialog .nb-income-body { background: #fff; }
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer { position: relative; z-index: 2; }
+/* Kwartaalkeuze: vormgeving van de jaar- en kwartaalknoppen. */
+#revenueWheelPickerDialog .revenue-quarter-picker { display: grid; gap: 18px; width: 100%; padding: 12px 4px 20px; box-sizing: border-box; }
+#revenueWheelPickerDialog .revenue-quarter-picker-year { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 12px; }
+#revenueWheelPickerDialog .revenue-quarter-picker-year strong { text-align: center; font-size: 20px; color: #b96583; font-weight: 600; }
+#revenueWheelPickerDialog .revenue-quarter-picker-year button { width: 42px; height: 42px; border: 1px solid #edc7d6; border-radius: 12px; background: #fff8fa; color: #bc6d8b; font: inherit; font-size: 25px; cursor: pointer; }
+#revenueWheelPickerDialog .revenue-quarter-picker-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+#revenueWheelPickerDialog .revenue-quarter-picker-options button { min-width: 0; height: 58px; border: 1px solid #e8b6c8; border-radius: 12px; background: #fffafb; color: #594b52; font: inherit; font-size: 19px; cursor: pointer; }
+#revenueWheelPickerDialog .revenue-quarter-picker-options button.selected { background: #f8e5ed; border-color: #c97797; color: #ae5e7d; font-weight: 700; }
+#revenueWheelPickerDialog .revenue-quarter-picker button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+/* ============================================================
+   UNIFORME ACTIEKNOPPEN — herbruikbaar in de volledige app.
+   Alleen expliciete actieknoppen; gewone navigatie/keuze blijft intact.
+   ============================================================ */
+:root {
+  --nb-action-negative-bg: #fae8ef;
+  --nb-action-negative-fg: #bf718e;
+  --nb-action-positive-bg: #ddf4e5;
+  --nb-action-positive-fg: #2e9d64;
+}
+button.app-action-nav-btn.nb-action-negative,
+.modal-actions button.app-action-nav-btn.nb-action-negative,
+.right-actions button.app-action-nav-btn.nb-action-negative {
+  background: var(--nb-action-negative-bg) !important;
+  color: var(--nb-action-negative-fg) !important;
+}
+button.app-action-nav-btn.nb-action-positive,
+.modal-actions button.app-action-nav-btn.nb-action-positive,
+.right-actions button.app-action-nav-btn.nb-action-positive {
+  background: var(--nb-action-positive-bg) !important;
+  color: var(--nb-action-positive-fg) !important;
+}
+button.app-action-nav-btn.nb-action-negative:hover,
+button.app-action-nav-btn.nb-action-positive:hover {
+  filter: brightness(.975);
+  transform: none;
+}
+button.app-action-nav-btn.nb-action-negative:active,
+button.app-action-nav-btn.nb-action-positive:active { transform: none; }
+button.app-action-nav-btn.nb-action-negative:focus:not(:focus-visible),
+button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
+  outline: none !important; box-shadow: none !important;
+}
+.modal-actions:has(> .app-action-nav-btn),
+.modal-actions:has(> .right-actions .app-action-nav-btn) {
+  display: flex; gap: 0 !important; padding: 0 !important;
+  background: #fff; overflow: hidden;
+}
+.modal-actions:has(> .app-action-nav-btn) > .app-action-nav-btn,
+.modal-actions:has(> .right-actions .app-action-nav-btn) > .app-action-nav-btn,
+.modal-actions:has(> .right-actions .app-action-nav-btn) > .right-actions,
+.modal-actions:has(> .right-actions .app-action-nav-btn) > .right-actions > .app-action-nav-btn {
+  flex: 1 1 0 !important; min-width: 0; margin: 0 !important;
+}
+.modal-actions .app-action-nav-btn {
+  border-radius: 0 !important; min-height: 76px;
+}
+.modal-actions .app-action-nav-btn.hidden { display: none !important; }
+
+/* Actieknoppen: uniforme kleine tussenruimte, ook bij drie acties. */
+:root { --nb-action-gap: 4px; }
+.modal-actions:has(.app-action-nav-btn) {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: var(--nb-action-gap) !important;
+  padding: 0 !important;
+}
+.modal-actions:has(.app-action-nav-btn) > .app-action-nav-btn,
+.modal-actions:has(.app-action-nav-btn) > .right-actions {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.modal-actions:has(.app-action-nav-btn) > .right-actions {
+  display: flex !important;
+  gap: var(--nb-action-gap) !important;
+  align-items: stretch !important;
+}
+.modal-actions:has(.app-action-nav-btn) > .right-actions > .app-action-nav-btn {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.modal-actions:has(.app-action-nav-btn) .app-action-nav-btn {
+  min-height: 76px;
+  border-radius: 0 !important;
+}
+/* Daginkomsten gebruikt dezelfde minimale tussenruimte. */
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer {
+  gap: var(--nb-action-gap) !important;
+}
+
+/* Afspraak bewerken: drie gelijkwaardige actieknoppen.
+   De geneste .right-actions mag geen halve breedte opeisen. */
+.modal-actions:has(> .right-actions > .app-action-nav-btn) {
+  display: flex !important;
+  gap: var(--nb-action-gap, 4px) !important;
+}
+.modal-actions:has(> .right-actions > .app-action-nav-btn) > .right-actions {
+  display: contents !important;
+}
+.modal-actions:has(> .right-actions > .app-action-nav-btn) > .app-action-nav-btn,
+.modal-actions:has(> .right-actions > .app-action-nav-btn) > .right-actions > .app-action-nav-btn {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+/* Klantdetails: oranje bewerkactie en scroll-to-top binnen het modalvenster. */
+.client-detail-edit-btn.nb-action-edit {
+  background: #fff0dd !important;
+  color: #bf7c35 !important;
+  border: 1px solid #f2d6b1 !important;
+  border-radius: 12px !important;
+  padding: 10px 18px !important;
+  min-width: 106px;
+}
+.client-detail-edit-btn.nb-action-edit .app-action-nav-icon { fill: currentColor !important; }
+.client-detail-dialog { position: fixed; }
+.client-detail-dialog .client-detail-scroll-top {
+  position: absolute;
+  right: 18px;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+}
+
+/* NB7: statistiektegels schalen op de werkelijke beschikbare breedte, ook in desktop-emulatie. */
+#statisticsOverview .statistics-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+#statisticsOverview .statistics-kpi { min-width: 0; aspect-ratio: auto; min-height: 82px; overflow: hidden; }
+#statisticsOverview .statistics-kpi strong { max-width: 100%; overflow-wrap: anywhere; font-size: clamp(10px, 1.65vw, 14px); }
+#statisticsOverview .statistics-kpi-label { overflow-wrap: anywhere; }
+@container (max-width: 430px) { #statisticsOverview .statistics-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#statisticsOverview .statistics-kpi-grid { container-type: inline-size; }
+@media (max-width: 650px) { #statisticsOverview .statistics-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Overzicht van niet-afgeronde afspraken, boven de Agenda en onder de bestaande header. */
+#pastUnpaidOverviewDialog.past-unpaid-overview-dialog {
+  position: fixed; inset: 0; top: var(--header-height, 64px); bottom: 0;
+  margin: 0; padding: 0; border: 0; width: 100%; max-width: none;
+  height: calc(100dvh - var(--header-height, 64px)); max-height: none;
+  background: white; box-shadow: none; overflow: hidden;
+}
+#pastUnpaidOverviewDialog::backdrop { background: transparent; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-card { height: 100%; display: flex; flex-direction: column; padding: 16px 18px 12px; box-sizing: border-box; background: #fff; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#pastUnpaidOverviewDialog h2 { color: #bf6b8a; font-size: 16px; margin: 0; }
+#pastUnpaidOverviewDialog .past-unpaid-close { background: none; border: 0; color: #c77b98; font-size: 30px; line-height: 1; cursor: pointer; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-scroll { overflow-y: auto; flex: 1; min-height: 0; padding-bottom: 16px; }
+#pastUnpaidOverviewDialog .past-unpaid-intro { padding: 14px 12px; border: 1px solid #f0e1e7; font-size: 13px; line-height: 1.5; }
+#pastUnpaidOverviewDialog .past-unpaid-date { color: #bf6b8a; font-size: 13px; margin: 22px 0 7px; }
+#pastUnpaidOverviewDialog .past-unpaid-row { cursor: pointer; display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 8px; padding: 10px 2px; border-bottom: 1px solid #f0e5e9; }
+#pastUnpaidOverviewDialog .past-unpaid-description { min-width: 0; }
+#pastUnpaidOverviewDialog .past-unpaid-row .main-name { font-size: 12px; }
+#pastUnpaidOverviewDialog .past-unpaid-row .meta { font-size: 11px; }
+#pastUnpaidOverviewDialog .past-unpaid-row .price-chip { align-self: center; }
+
+/* Openstaande afspraken: scrollvlak tot de onderrand, scrollbalk aan schermrand. */
+#pastUnpaidOverviewDialog.past-unpaid-overview-dialog { overflow: hidden !important; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-card { padding: 16px 0 0 !important; position: relative; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-heading { padding: 0 18px 8px; flex: 0 0 auto; }
+#pastUnpaidOverviewDialog .past-unpaid-overview-scroll {
+  padding: 0 18px 85px !important;
+  box-sizing: border-box; overflow-y: auto !important; overflow-x: hidden;
+  min-height: 0; flex: 1 1 auto; overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+#pastUnpaidOverviewDialog .past-unpaid-scrolltop {
+  position: absolute !important; right: 18px; bottom: 20px;
+  z-index: 20; pointer-events: none;
+}
+#pastUnpaidOverviewDialog .past-unpaid-scrolltop.is-visible { pointer-events: auto; }
+#pastUnpaidOverviewDialog #appointmentActionPopover,
+#pastUnpaidOverviewDialog #paymentPopover,
+#pastUnpaidOverviewDialog #paymentQrPopover { z-index: 1000 !important; }
+
+/* Niet-afgeronde afspraken: terug-naar-bovenknop en betaalpijl. */
+#pastUnpaidOverviewDialog .past-unpaid-scrolltop { bottom: 76px !important; right: 18px !important; }
+#pastUnpaidOverviewDialog #paymentPopover .payment-popover-card::after { right: var(--nb-payment-arrow-right, 18px) !important; }
+
+/* Niet-afgeronde afspraken: klikruimte na de laatste afspraak. */
+#pastUnpaidOverviewDialog .past-unpaid-appointments { padding-bottom: 34px; }
+/* Identieke sluitknop als in het afspraakactiemenu. */
+#pastUnpaidOverviewDialog .past-unpaid-close {
+  appearance: none; border: 0; border-radius: 0; background: transparent;
+  color: #c77b98; font: inherit; font-size: 27px; font-weight: 300;
+  line-height: 1; padding: 4px 7px; margin: 0; width: auto; height: auto;
+  box-shadow: none; cursor: pointer;
+}
+#pastUnpaidOverviewDialog .past-unpaid-close:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+/* Sluitknop exact dezelfde component als het afspraakactiemenu. */
+#pastUnpaidOverviewDialog .past-unpaid-close.icon-btn { font-size: 26px; font-weight: normal; padding: 4px 6px; line-height: 1; border: none; background: none; color: var(--primary-dark); width: auto; height: auto; border-radius: 0; }
+
+/* Statistieken: duidelijk leesbare, gecentreerde KPI-waarden.
+   Containerbreedte in plaats van viewportbreedte (werkt ook in desktop-emulator). */
+#statisticsOverview { container-type: inline-size; }
+#statisticsOverview .statistics-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#statisticsOverview .statistics-kpi {
+  min-width: 0;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+}
+#statisticsOverview .statistics-kpi-label { text-align: center; width: 100%; }
+#statisticsOverview .statistics-kpi strong {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: clamp(17px, 2.4vw, 24px);
+  line-height: 1.2;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+  letter-spacing: -0.025em;
+}
+@container (max-width: 570px) {
+  #statisticsOverview .statistics-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #statisticsOverview .statistics-kpi strong { font-size: clamp(17px, 4.2vw, 23px); }
+}
+@container (max-width: 320px) {
+  #statisticsOverview .statistics-kpi strong { font-size: clamp(15px, 5vw, 19px); }
+}
+
+/* Instellingen: verwijder de extra bovenmarge van de laatste kaart; de grid-gap bepaalt overal de afstand. */
+#settingsScreen .settings-section-grid > .settings-deleted-appointments-card { margin-top: 0 !important; }
+
+/* Instellingen: alle kaarten gebruiken uitsluitend de grid-gap (9px).
+   Verwijderde afspraken had nog een extra margin-top van 9px. */
+#settingsScreen .settings-section-grid .settings-deleted-appointments-card {
+  margin-top: 0 !important;
+}
+
+/* Correcte DOM-structuur: Verwijderde afspraken staat NAAST de grid,
+   niet erin. Daarom werkten de vorige selectors niet. */
+#settingsScreen .settings-section-grid + .settings-deleted-appointments-card {
+  margin-top: 9px !important;
+}
+
+/* Alle zes instellingenkaarten staan nu in dezelfde grid. */
+#settingsScreen .settings-section-grid > .settings-deleted-appointments-card { margin-top: 0 !important; }

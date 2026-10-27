@@ -1802,56 +1802,116 @@ function getPastUnpaidAppointments(data = getData()) {
 let pastUnpaidAgendaAlertOpen = false;
 let pastUnpaidAgendaAlertShown = false;
 
+function ensurePastUnpaidOverviewDialog() {
+  let dialog = document.getElementById("pastUnpaidOverviewDialog");
+  if (dialog) return dialog;
+  dialog = document.createElement("dialog");
+  dialog.id = "pastUnpaidOverviewDialog";
+  dialog.className = "modal past-unpaid-overview-dialog";
+  dialog.innerHTML = `<div class="past-unpaid-overview-card">
+    <div class="past-unpaid-overview-heading">
+      <h2>Melding niet afgeronde afspraken</h2>
+      <button type="button" class="icon-btn payment-popover-close past-unpaid-close" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="past-unpaid-overview-scroll">
+      <p class="past-unpaid-intro"></p>
+      <div class="past-unpaid-appointments"></div>
+    </div>
+    <button type="button" class="nb-scroll-top past-unpaid-scrolltop" aria-label="Terug naar boven" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
+  </div>`;
+  document.body.appendChild(dialog);
+  const scroller = dialog.querySelector(".past-unpaid-overview-scroll");
+  const scrollTopButton = dialog.querySelector(".past-unpaid-scrolltop");
+  scroller.addEventListener("scroll", () => scrollTopButton.classList.toggle("is-visible", scroller.scrollTop > 120), { passive: true });
+  scrollTopButton.addEventListener("click", () => scroller.scrollTo({ top: 0, behavior: "smooth" }));
+  dialog.querySelector(".past-unpaid-close").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("cancel", () => { pastUnpaidAgendaAlertOpen = false; });
+  dialog.addEventListener("focusin", () => {
+    if (!dialog.open) return;
+    clearTimeout(dialog._refreshTimer);
+    dialog._refreshTimer = setTimeout(() => {
+      if (dialog.open && document.getElementById("appointmentActionPopover")?.classList.contains("hidden")) renderPastUnpaidOverview();
+    }, 150);
+  });
+  dialog.addEventListener("close", () => {
+    if (dialog._previousScreenTitle !== undefined) {
+      const title = document.getElementById("screenTitle");
+      if (title) title.textContent = dialog._previousScreenTitle;
+      delete dialog._previousScreenTitle;
+    }
+    pastUnpaidAgendaAlertOpen = false;
+    closeAppointmentActionPopover();
+    restoreFloatingPopoversToBody();
+  });
+  // Bij terugkeer uit een bewerk-/betaalvenster het overzicht vernieuwen.
+  document.querySelectorAll("#appointmentDialog, #paymentDialog").forEach(child => {
+    child.addEventListener("close", () => { if (dialog.open) renderPastUnpaidOverview(); });
+  });
+  return dialog;
+}
+
+function renderPastUnpaidOverview() {
+  const dialog = document.getElementById("pastUnpaidOverviewDialog");
+  if (!dialog?.open) return;
+  const data = getData();
+  const appointments = getPastUnpaidAppointments(data);
+  dialog.querySelector(".past-unpaid-intro").textContent = appointments.length
+    ? `Er zijn ${appointments.length} afspraken in het verleden die niet afgewerkt werden. Verwerk ze om de boekhouding in orde te houden.`
+    : "Alle eerdere afspraken zijn verwerkt.";
+  const wrap = dialog.querySelector(".past-unpaid-appointments");
+  wrap.replaceChildren();
+  let previousDate = "";
+  appointments.forEach(app => {
+    const date = String(app.date || app.appointment_date || "").slice(0, 10);
+    if (date !== previousDate) {
+      const title = document.createElement("h3");
+      title.className = "past-unpaid-date";
+      title.textContent = formatLongDate(date);
+      wrap.appendChild(title);
+      previousDate = date;
+    }
+    const customer = customerById(data, app.customerId);
+    const service = serviceById(data, app.serviceId);
+    const row = document.createElement("div");
+    row.className = "appointment-row past-unpaid-row";
+    row.setAttribute("role", "button");
+    row.tabIndex = 0;
+    row.innerHTML = `<div class="time-block"><div class="time">${htmlEscape(app.time || "")}</div>
+      <div class="time-end">${htmlEscape(getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes))}</div></div>
+      <div class="past-unpaid-description"><div class="main-name">${htmlEscape(customer ? fullName(customer) : "Onbekende klant")}</div>
+      <div class="meta">${htmlEscape(service?.name || "-")}</div></div>
+      <button class="price-chip" type="button">${euro(app.price, app.currency)}</button>`;
+    const openActions = () => {
+      // Popover binnen het modale overzicht houden (niet terug naar Agenda).
+      const popover = document.getElementById("appointmentActionPopover");
+      if (popover && popover.parentElement !== dialog) dialog.appendChild(popover);
+      openAppointmentActionPopover(app.sourceAppointmentId || app.id, row);
+    };
+    row.addEventListener("click", e => { if (!e.target.closest(".price-chip")) openActions(); });
+    row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openActions(); } });
+    row.querySelector(".price-chip").addEventListener("click", e => {
+      e.stopPropagation();
+      const paymentPopover = document.getElementById("paymentPopover");
+      if (paymentPopover && paymentPopover.parentElement !== dialog) dialog.appendChild(paymentPopover);
+      openPaymentDialog(app.sourceAppointmentId || app.id, e.currentTarget);
+    });
+    wrap.appendChild(row);
+  });
+}
+
 function showPastUnpaidAgendaAlertIfNeeded() {
   if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") return;
-
-  const data = getData();
-  const unpaidAppointments = getPastUnpaidAppointments(data);
-  if (!unpaidAppointments.length) return;
-
-  const count = unpaidAppointments.length;
-  const first = unpaidAppointments[0];
-  const customer = first ? customerById(data, first.customerId) : null;
-  const customerName = customer ? fullName(customer) : "Onbekende klant";
-  const firstLine = first
-    ? `Oudste openstaande afspraak:\n${formatCompactDayMonth(first.date)}${first.time ? ` om ${first.time}` : ""} (${customerName})`
-    : "";
-  const message = `Er zijn ${count} niet afgeronde afspraken in het verleden.\n\n${firstLine}`;
-
+  if (!getPastUnpaidAppointments().length) return;
   pastUnpaidAgendaAlertOpen = true;
   pastUnpaidAgendaAlertShown = true;
-  const dialogPromise = appAlert(message, {
-    title: "Melding",
-    variant: "warning",
-    confirmText: "OK",
-    presentationClass: "agenda-unpaid-message-dialog"
-  });
-
-  // Extra actie uitsluitend in deze melding, zonder de algemene dialoog te wijzigen.
-  const dialog = document.getElementById("appMessageDialog");
-  const actions = document.getElementById("appMessageDialogActions");
-  const jumpBtn = document.createElement("button");
-  jumpBtn.type = "button";
-  jumpBtn.className = "btn btn-primary action-btn agenda-unpaid-jump-btn";
-  jumpBtn.textContent = "Ga naar afspraak";
-  jumpBtn.addEventListener("click", () => {
-    const targetDate = String(first.date || first.appointment_date || "").slice(0, 10);
-    if (!isDateInputValue(targetDate)) return;
-    // Eerst de melding sluiten; pas daarna de agenda verplaatsen.
-    document.getElementById("appMessageConfirmBtn")?.click();
-    state.selectedDate = targetDate;
-    const date = new Date(targetDate + "T00:00:00");
-    state.currentYear = date.getFullYear();
-    state.currentMonth = date.getMonth();
-    state.revenueSyncSelectedDateOnOpen = true;
-    renderCalendar();
-    renderAgendaList();
-  });
-  if (dialog?.open && actions) actions.prepend(jumpBtn);
-
-  dialogPromise.finally(() => {
-    jumpBtn.remove();
-    pastUnpaidAgendaAlertOpen = false;
+  const dialog = ensurePastUnpaidOverviewDialog();
+  const title = document.getElementById("screenTitle");
+  dialog._previousScreenTitle = title?.textContent || "Agenda";
+  openStyledDialog(dialog);
+  if (title) title.textContent = "NailBooker";
+  renderPastUnpaidOverview();
+  requestAnimationFrame(() => {
+    if (dialog.open && dialog.contains(document.activeElement)) document.activeElement.blur();
   });
 }
 
@@ -6399,6 +6459,9 @@ function openRevenueWheelPicker(mode, target = "revenue") {
     dialog.setAttribute("open", "open");
   }
 
+  requestAnimationFrame(() => {
+    if (dialog.open && dialog.contains(document.activeElement)) document.activeElement.blur();
+  });
   if (mode === "year") {
     const centerActiveRevenuePickerValues = (behavior = "auto") => {
       Object.entries(revenuePickerState.selected).forEach(([key, value]) => {
@@ -6916,133 +6979,216 @@ function getRevenueReportData() {
 }
 
 
-// Kwartaaloverzicht daginkomsten: onafhankelijk van de huidige omzetperiode.
+// Daginkomsten: periodekeuze en boekhoudkundig dagoverzicht.
 function openQuarterIncomeDialog() {
   let dialog = document.getElementById('nbQuarterIncomeDialog');
   if (!dialog) {
     dialog = document.createElement('dialog');
     dialog.id = 'nbQuarterIncomeDialog';
-    dialog.className = 'nb-quarter-dialog';
+    dialog.className = 'nb-quarter-dialog nb-income-dialog';
     dialog.innerHTML = `<form method="dialog" id="nbQuarterIncomeForm">
-      <h3>Daginkomsten</h3>
-      <label>Jaar<select id="nbIncomeYear" required></select></label>
-      <label>Kwartaal<select id="nbIncomeQuarter" required>
-        <option value="1">1e kwartaal (januari – maart)</option>
-        <option value="2">2e kwartaal (april – juni)</option>
-        <option value="3">3e kwartaal (juli – september)</option>
-        <option value="4">4e kwartaal (oktober – december)</option>
+      <div class="nb-income-body"><div class="nb-income-intro"><button type="button" id="nbIncomeClose" class="icon-btn nb-income-close" aria-label="Sluiten">✕</button><h4>Overzicht daginkomsten</h4><p class="nb-income-hint">Selecteer de periode waarvoor je een PDF wilt maken.</p></div>
+      <label>Periode<select id="nbIncomePeriod">
+        <option value="day">Dag</option><option value="week">Week</option>
+        <option value="month">Maand</option><option value="quarter">Kwartaal</option><option value="year">Jaar</option>
       </select></label>
-      <div class="nb-quarter-actions"><button type="button" id="nbIncomeCancel">Annuleren</button><button type="submit">PDF genereren</button></div>
+      <label id="nbIncomeDateRow">Datum<input id="nbIncomeDate" type="date" required></label>
+      <label id="nbIncomeWeekRow" hidden>Week<select id="nbIncomeWeek"></select></label>
+      <label id="nbIncomeMonthRow" hidden>Maand<select id="nbIncomeMonth"></select></label>
+      <label id="nbIncomeQuarterRow" hidden>Kwartaal<select id="nbIncomeQuarter">
+        <option value="1">1e kwartaal (januari – maart)</option><option value="2">2e kwartaal (april – juni)</option>
+        <option value="3">3e kwartaal (juli – september)</option><option value="4">4e kwartaal (oktober – december)</option>
+      </select></label>
+      <label id="nbIncomeYearRow" hidden>Jaar<select id="nbIncomeYear"></select></label>
+      </div><div class="nb-quarter-actions nb-action-footer"><button type="button" id="nbIncomeCancel" class="nb-footer-action nb-footer-cancel"><span class="nb-footer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M9 9l6 6m0-6l-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span><span>Annuleren</span></button><button type="submit" class="nb-footer-action nb-footer-confirm"><span class="nb-footer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M7 3h10v5H7zM6 9h12a3 3 0 0 1 3 3v6h-4v3H7v-3H3v-6a3 3 0 0 1 3-3zm3 8v2h6v-2zm9-5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg></span><span>Opslaan als PDF</span></button></div>
     </form>`;
     document.body.appendChild(dialog);
-    dialog.querySelector('#nbIncomeCancel').addEventListener('click', () => dialog.close());
-    dialog.querySelector('form').addEventListener('submit', event => {
+    dialog.addEventListener('close', () => document.body.classList.remove('nb-income-page-open'));
+    const q = id => dialog.querySelector('#' + id);
+    const refresh = () => {
+      const period = q('nbIncomePeriod').value;
+      q('nbIncomeDateRow').hidden = period !== 'day';
+      q('nbIncomeWeekRow').hidden = period !== 'week';
+      q('nbIncomeMonthRow').hidden = period !== 'month';
+      q('nbIncomeQuarterRow').hidden = period !== 'quarter';
+      q('nbIncomeYearRow').hidden = period === 'day';
+      q('nbIncomeDate').required = period === 'day';
+    };
+    q('nbIncomePeriod').addEventListener('change', refresh);
+    q('nbIncomeCancel').addEventListener('click', () => dialog.close());
+    q('nbIncomeClose').addEventListener('click', () => dialog.close());
+    q('nbIncomeWeek').innerHTML = Array.from({length:53},(_,i)=>`<option value="${i+1}">Week ${i+1}</option>`).join('');
+    q('nbIncomeMonth').innerHTML = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'].map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+    q('nbIncomeYear').addEventListener('change', () => {
+      const y=Number(q('nbIncomeYear').value);
+      const max=incomeWeeksInYear(y);
+      q('nbIncomeWeek').querySelectorAll('option').forEach(o => { o.hidden=Number(o.value)>max; o.disabled=Number(o.value)>max; });
+      if (Number(q('nbIncomeWeek').value)>max) q('nbIncomeWeek').value=String(max);
+    });
+    q('nbIncomePeriod').dispatchEvent(new Event('change'));
+    q('nbQuarterIncomeForm').addEventListener('submit', async event => {
       event.preventDefault();
-      const year = Number(dialog.querySelector('#nbIncomeYear').value);
-      const quarter = Number(dialog.querySelector('#nbIncomeQuarter').value);
+      const period=q('nbIncomePeriod').value;
+      const year=Number(q('nbIncomeYear').value);
+      const value=period==='day' ? q('nbIncomeDate').value : period==='week' ? Number(q('nbIncomeWeek').value) : period==='month' ? Number(q('nbIncomeMonth').value) : period==='quarter' ? Number(q('nbIncomeQuarter').value) : 1;
       dialog.close();
-      generateQuarterIncomePdf(year, quarter);
+      let salonName=String(getData()?.profile?.salonName || '').trim();
+      try { const profile=await getCurrentProfile(); salonName=String(profile?.salon_name || salonName).trim(); } catch (_) {}
+      generateIncomePdf(period,year,value,salonName);
     });
   }
-  const years = new Set();
-  getData().appointments.forEach(app => { const y = Number(String(app.date || '').slice(0, 4)); if (y >= 2000 && y <= 2100) years.add(y); });
-  const selector = dialog.querySelector('#nbIncomeYear');
-  selector.innerHTML = Array.from(years).sort((a,b) => b-a).map(y => `<option value="${y}">${y}</option>`).join('');
-  if (years.size) {
-    const today = new Date();
-    const currentQuarter = Math.floor(today.getMonth() / 3) + 1;
-    const previousQuarter = currentQuarter === 1 ? 4 : currentQuarter - 1;
-    const previousYear = today.getFullYear() - (currentQuarter === 1 ? 1 : 0);
-    selector.value = String(years.has(previousYear) ? previousYear : Math.max(...years));
-    dialog.querySelector('#nbIncomeQuarter').value = String(previousQuarter);
-  } else {
-    selector.innerHTML = '<option value="">Geen afspraken beschikbaar</option>';
-    dialog.querySelector('button[type=submit]').disabled = true;
+  const q = id => dialog.querySelector('#' + id);
+  // Neem de geselecteerde omzetperiode en ankerdatum exact over.
+  const selectedPeriod = document.getElementById('revenuePeriodType')?.value || 'quarter';
+  const anchorValue = document.getElementById('revenueDate')?.value || formatDateInput(new Date());
+  const anchor = new Date(anchorValue + 'T12:00:00');
+  const today = new Date();
+  const previous = new Date(today.getFullYear(), today.getMonth()-3, 1);
+  const isoWeek = incomeIsoWeek(anchor);
+  const selectedYear = selectedPeriod === 'week' ? isoWeek.year : anchor.getFullYear();
+  const years = new Set([today.getFullYear(), previous.getFullYear(), selectedYear]);
+  getData().appointments.forEach(app => { const y=Number(String(app.date||'').slice(0,4)); if(y>=2000 && y<=2100) years.add(y); });
+  q('nbIncomeYear').innerHTML=[...years].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join('');
+  q('nbIncomePeriod').value = ['day','week','month','quarter','year'].includes(selectedPeriod) ? selectedPeriod : 'quarter';
+  q('nbIncomeYear').value=String(selectedYear);
+  q('nbIncomeQuarter').value=String(Math.floor(anchor.getMonth()/3)+1);
+  q('nbIncomeMonth').value=String(anchor.getMonth()+1);
+  q('nbIncomeDate').value=anchorValue;
+  q('nbIncomeWeek').value=String(isoWeek.week);
+  q('nbIncomePeriod').dispatchEvent(new Event('change'));
+  q('nbIncomeYear').dispatchEvent(new Event('change'));
+  // Alle keuzelijsten dezelfde app-dropdown geven, ook jaar en kwartaal.
+  dialog.querySelectorAll('.nb-income-body select').forEach(select => refreshAppSelect(select));
+  // Toon onder de bestaande app-header, zoals bij Nieuwe afspraak.
+  const positionIncomeDialog = () => {
+    if (!dialog.open) return;
+    const header = document.querySelector('.topbar');
+    const rect = header?.getBoundingClientRect();
+    const top = Math.max(0, rect?.bottom ?? 0);
+    dialog.style.setProperty('--nb-income-top', `${top}px`);
+    if (rect) {
+      dialog.style.left = `${rect.left}px`;
+      dialog.style.width = `${rect.width}px`;
+    }
+  };
+  document.body.classList.add('nb-income-page-open');
+  dialog.show();
+  positionIncomeDialog();
+  if (!dialog.dataset.incomePositionReady) {
+    dialog.dataset.incomePositionReady = '1';
+    window.addEventListener('resize', positionIncomeDialog);
   }
-  if (years.size) dialog.querySelector('button[type=submit]').disabled = false;
-  dialog.showModal();
+  // Dialogs focussen standaard het eerste element. Laat geen focusrand staan.
+  requestAnimationFrame(() => {
+    if (dialog.open && dialog.contains(document.activeElement)) document.activeElement.blur();
+  });
 }
-
-// Kleine zelfstandige PDF-generator (A4), zonder externe afhankelijkheden.
-function generateQuarterIncomePdf(year, quarter) {
-  const data = getData();
-  const start = `${year}-${String((quarter-1)*3+1).padStart(2,'0')}-01`;
-  const end = quarter === 4 ? `${year+1}-01-01` : `${year}-${String(quarter*3+1).padStart(2,'0')}-01`;
-  const daily = new Map();
+function incomeIsoWeek(date) {
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));
+  const year=d.getUTCFullYear();
+  return {year,week:Math.ceil((((d-new Date(Date.UTC(year,0,1)))/86400000)+1)/7)};
+}
+function incomeWeeksInYear(year) { return incomeIsoWeek(new Date(year,11,28)).week; }
+function incomePeriodBounds(period,year,value) {
+  let start,end;
+  if(period==='day') { start=new Date(`${value}T12:00:00`); end=new Date(start); end.setDate(end.getDate()+1); }
+  else if(period==='week') {
+    const jan4=new Date(year,0,4,12); const monday=(jan4.getDay()+6)%7;
+    start=new Date(jan4); start.setDate(start.getDate()-monday+(value-1)*7);
+    end=new Date(start); end.setDate(end.getDate()+7);
+  } else {
+    const firstMonth=period==='month' ? value-1 : period==='quarter' ? (value-1)*3 : 0;
+    const months=period==='month'?1:period==='quarter'?3:12;
+    start=new Date(year,firstMonth,1,12); end=new Date(year,firstMonth+months,1,12);
+  }
+  return {start:formatDateInput(start),end:formatDateInput(end),startDate:start,endDate:end};
+}
+function generateIncomePdf(period,year,value,salonName='') {
+  const bounds=incomePeriodBounds(period,year,value);
+  const data=getData(), daily=new Map();
   data.appointments.filter(app => {
-    if (isPrivateAppointment(app) || String(app.status || '').toLowerCase() === 'no-show') return false;
-    if (app.date < start || app.date >= end) return false;
-    if (!SHOW_ANDERE && appointmentHasHiddenZTreatment(app, data.services)) return false;
-    if (!SHOW_ANDERE && appointmentHasHiddenPaymentMethod(app)) return false;
+    if(isPrivateAppointment(app)||String(app.status||'').toLowerCase()==='no-show') return false;
+    if(app.date<bounds.start||app.date>=bounds.end) return false;
+    if(!SHOW_ANDERE&&(appointmentHasHiddenZTreatment(app,data.services)||appointmentHasHiddenPaymentMethod(app))) return false;
     return !!app.paid;
   }).forEach(app => {
-    const amount = Number(app.price || 0);
-    const previous = daily.get(app.date) || { count: 0, amount: 0 };
-    previous.count += 1;
-    previous.amount += Number.isFinite(amount) ? amount : 0;
-    daily.set(app.date, previous);
+    const amount=Number(app.price||0);
+    const prev=daily.get(app.date)||{count:0,amount:0};
+    prev.count++; prev.amount+=Number.isFinite(amount)?amount:0; daily.set(app.date,prev);
   });
-  const money = n => Number(n).toLocaleString('nl-BE', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' EUR';
-  // Elke kalenderdag van het kwartaal hoort in het boekhoudingsoverzicht.
-  // Bestaande sluitingsregels worden hergebruikt (ook meerwekelijkse cycli).
-  const rows = [];
-  const settings = getSettings();
-  const cursor = new Date(`${start}T12:00:00`);
-  const endDate = new Date(`${end}T12:00:00`);
-  while (cursor < endDate) {
-    const date = formatDateInput(cursor);
-    const income = daily.get(date);
-    rows.push([date, income || null, !income && isFixedFreeDay(date, settings)]);
-    cursor.setDate(cursor.getDate() + 1);
+  const months=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  const label=period==='day'?bounds.start.split('-').reverse().join('/'):
+    period==='week'?`Week ${value} / ${year}`:period==='month'?`${months[value-1]} ${year}`:
+    period==='quarter'?`Kwartaal ${value} / ${year}`:`Jaar ${year}`;
+  const tag=period==='day'?bounds.start:period==='week'?`${year}_W${String(value).padStart(2,'0')}`:
+    period==='month'?`${year}_M${String(value).padStart(2,'0')}`:period==='quarter'?`${year}_K${value}`:`${year}`;
+  const money=n=>Number(n).toLocaleString('nl-BE',{minimumFractionDigits:2,maximumFractionDigits:2})+' EUR';
+  const rows=[], settings=getSettings(),cursor=new Date(bounds.start+'T12:00:00'),last=new Date(bounds.end+'T12:00:00');
+  while(cursor<last) {
+    const date=formatDateInput(cursor),income=daily.get(date);
+    rows.push([date,income||null,!income&&isFixedFreeDay(date,settings)]);
+    cursor.setDate(cursor.getDate()+1);
   }
-  const total = rows.reduce((sum,[,v]) => sum + (v?.amount || 0),0);
-  const count = rows.reduce((sum,[,v]) => sum + (v?.count || 0),0);
-  const pages = [];
-  let lines = [];
-  const add = (x,y,str,size=11,bold=false) => lines.push({x,y,str:String(str),size,bold});
-  const newPage = () => { if (lines.length) pages.push(lines); lines=[]; add(44,798,'NailBooker - Daginkomsten',17,true); add(44,775,`Kwartaal ${quarter} / ${year}`,12); add(44,753,'Datum',10,true); add(300,753,'Afspraken',10,true); add(420,753,'Inkomsten',10,true); };
-  newPage(); let y=733;
-  rows.forEach(([date,v,closed]) => {
-    if (y < 85) { newPage(); y=733; }
-    const [yr,mo,day] = date.split('-');
-    add(44,y,`${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][new Date(Number(yr), Number(mo)-1, Number(day)).getDay()]} ${day}/${mo}/${yr}`);
-    if (v) {
-      add(310,y,String(v.count));
-      add(420,y,money(v.amount));
-    } else {
-      add(300,y,closed ? 'Winkel gesloten' : 'Geen daginkomsten',10);
-    }
-    y-=19;
+  const total=rows.reduce((sum,[,v])=>sum+(v?.amount||0),0);
+  const count=rows.reduce((sum,[,v])=>sum+(v?.count||0),0);
+  // Zelfstandige PDF-opbouw: dezelfde roze huisstijl, zonder externe libraries.
+  const pages=[]; let ops=[],y=0;
+  const ascii=s=>String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e]/g,'?');
+  const esc=s=>ascii(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+  const rect=(x,b,w,h,color)=>ops.push(`${color} rg ${x} ${b} ${w} ${h} re f`);
+  const txt=(x,b,str,size=10,bold=false,color='0.27 0.26 0.29')=>ops.push(`${color} rg BT /F${bold?2:1} ${size} Tf 1 0 0 1 ${x} ${b} Tm (${esc(str)}) Tj ET`);
+  const header=()=>{
+    if(ops.length) pages.push(ops);
+    ops=[]; rect(0,782,595,60,'0.97 0.90 0.93'); rect(0,776,595,6,'0.78 0.43 0.56');
+    txt(42,809,salonName||'NailBooker',18,true,'0.54 0.27 0.38');
+    txt(42,791,'DAGINKOMSTEN',9,true,'0.54 0.27 0.38');
+    txt(42,749,label,13,true); txt(42,730,`${bounds.start.split('-').reverse().join('/')} - ${new Date(bounds.endDate.getTime()-86400000).toLocaleDateString('nl-BE')}`,9);
+    rect(38,695,519,25,'0.97 0.94 0.95');
+    txt(45,704,'Datum',10,true); txt(310,704,'Afspraken',10,true); txt(437,704,'Inkomsten',10,true);
+    y=682;
+  };
+  header();
+  const weekdays=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  rows.forEach(([date,v,closed],index)=>{
+    if(y<94) header();
+    if(index%2===0) rect(38,y-7,519,20,'0.99 0.97 0.98');
+    const [yr,mo,day]=date.split('-');
+    txt(45,y,`${weekdays[new Date(Number(yr),Number(mo)-1,Number(day)).getDay()]} ${day}/${mo}/${yr}`,9);
+    if(v) { txt(323,y,String(v.count),9); txt(437,y,money(v.amount),9,true); }
+    else txt(310,y,closed?'Winkel gesloten':'Geen daginkomsten',9,false,'0.55 0.49 0.53');
+    y-=21;
   });
-  if (y < 105) { newPage(); y=733; }
-  y-=12; add(44,y,'TOTAAL KWARTAAL',12,true); add(310,y,String(count),12,true); add(420,y,money(total),12,true);
-  add(44,44,'Enkel betaalde afspraken; prive-afspraken en no-shows uitgesloten.',8);
-  pages.push(lines);
-  const ascii = s => String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e]/g,'?');
-  const esc = s => ascii(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
-  const objects = [null];
-  const obj = value => { objects.push(value); return objects.length-1; };
-  const catalogId=obj(''); const pagesId=obj('');
+  if(y<110) header();
+  rect(38,y-11,519,33,'0.97 0.90 0.93');
+  txt(45,y+1,'TOTAAL',11,true,'0.54 0.27 0.38');
+  txt(323,y+1,String(count),10,true); txt(437,y+1,money(total),10,true);
+  pages.push(ops);
+  const objects=[null],obj=v=>(objects.push(v),objects.length-1);
+  const catalogId=obj(''),pagesId=obj('');
   const fontId=obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
   const boldId=obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
   const pageIds=[];
-  pages.forEach((page,i) => {
-    page.push({x:460,y:44,str:`Pagina ${i+1} / ${pages.length}`,size:8,bold:false});
-    const stream = page.map(line => `BT /F${line.bold?2:1} ${line.size} Tf 1 0 0 1 ${line.x} ${line.y} Tm (${esc(line.str)}) Tj ET`).join('\n');
+  pages.forEach((page,i)=>{
+    page.push('0.82 0.72 0.77 RG 38 63 m 557 63 l S');
+    page.push(`0.48 0.41 0.46 rg BT /F1 8 Tf 1 0 0 1 42 48 Tm (${esc('Enkel betaalde afspraken; prive-afspraken en no-shows uitgesloten.')}) Tj ET`);
+    page.push(`0.48 0.41 0.46 rg BT /F1 8 Tf 1 0 0 1 476 48 Tm (${esc(`Pagina ${i+1}/${pages.length}`)}) Tj ET`);
+    const stream=page.join('\n');
     const streamId=obj(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
     pageIds.push(obj(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R /F2 ${boldId} 0 R >> >> /Contents ${streamId} 0 R >>`));
   });
   objects[pagesId]=`<< /Type /Pages /Kids [${pageIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
   objects[catalogId]=`<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
   let pdf='%PDF-1.4\n'; const offsets=[0];
-  for(let i=1;i<objects.length;i++) { offsets.push(pdf.length); pdf+=`${i} 0 obj\n${objects[i]}\nendobj\n`; }
+  for(let i=1;i<objects.length;i++){offsets.push(pdf.length);pdf+=`${i} 0 obj\n${objects[i]}\nendobj\n`;}
   const xref=pdf.length;
   pdf+=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;
-  for(let i=1;i<objects.length;i++) pdf+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;
+  for(let i=1;i<objects.length;i++)pdf+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;
   pdf+=`trailer\n<< /Size ${objects.length} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
   const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
-  const link=document.createElement('a'); link.href=url; link.download=`daginkomsten_${year}_K${quarter}.pdf`; link.dataset.allowBusyDownload='true';
-  document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000);
+  const link=document.createElement('a');link.href=url;
+  link.download=`Daginkomsten_${tag}.pdf`;link.dataset.allowBusyDownload='true';
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 function downloadRevenueStyledReport() {
@@ -8952,7 +9098,7 @@ function openClientDetail(clientId) {
         </div>
 
         <div class="client-detail-footer">
-          <button class="btn client-detail-edit-btn app-action-nav-btn" id="editClientBtn" type="button" aria-label="${t("edit")}">
+          <button class="btn client-detail-edit-btn app-action-nav-btn nb-action-edit" id="editClientBtn" type="button" aria-label="${t("edit")}">
             <span class="app-action-nav-ico" aria-hidden="true">${getActionButtonIconSvg('edit')}</span>
             <span class="app-action-nav-label">${t("edit")}</span>
           </button>
@@ -9054,6 +9200,29 @@ function openClientDetail(clientId) {
     dialog.showModal();
   }
   updateClientActionBar(client);
+  // De klantdetails scrollen in een modal en vallen buiten de algemene
+  // scroll-to-top detector (die enkel de actieve hoofdschermen bewaakt).
+  setupClientDetailScrollTop();
+}
+
+function setupClientDetailScrollTop() {
+  const dialog = document.getElementById('clientDetailDialog');
+  const content = document.getElementById('clientDetailModalContent');
+  const button = document.getElementById('clientDetailScrollTopBtn');
+  if (!dialog || !content || !button) return;
+  const update = () => {
+    const visible = dialog.open && content.scrollTop > 12;
+    button.classList.toggle('is-visible', visible);
+    button.tabIndex = visible ? 0 : -1;
+    button.setAttribute('aria-hidden', String(!visible));
+  };
+  if (!content.dataset.scrollTopReady) {
+    content.dataset.scrollTopReady = '1';
+    content.addEventListener('scroll', update, { passive: true });
+    button.addEventListener('click', () => content.scrollTo({ top: 0, behavior: 'smooth' }));
+    dialog.addEventListener('close', update);
+  }
+  update();
 }
 
 // =============================
@@ -9810,6 +9979,12 @@ function positionPaymentPopover() {
     popover.dataset.placement = "top";
   }
 
+  if (popover.closest("#pastUnpaidOverviewDialog")) {
+    const arrowCenter = Math.max(16, Math.min(cardRect.width - 16, (anchor.left + anchor.right) / 2 - left));
+    popover.style.setProperty("--nb-payment-arrow-right", `${Math.round(cardRect.width - arrowCenter - 7)}px`);
+  } else {
+    popover.style.removeProperty("--nb-payment-arrow-right");
+  }
   popover.style.left = `${Math.round(left)}px`;
   popover.style.top = `${Math.round(top)}px`;
   requestAnimationFrame(positionPaymentQrPopover);
@@ -11349,9 +11524,9 @@ function getActionButtonIconSvg(type) {
 function applyNavStyleActionButtons(root = document) {
   const actionMap = [
     { type: "save", key: "save", match: /^(instellingen\s+)?opslaan$|^save settings$|^save$|^enregistrer( les paramètres)?$/i },
-    { type: "cancel", key: "cancel", match: /^annuleren$|^cancel$|^annuler$/i },
+    { type: "cancel", key: "cancel", match: /^(annuleren|cancel|annuler|nee|no|non|sluiten|close|fermer)$/i },
     { type: "delete", key: "delete", match: /^verwijderen$|^delete$|^supprimer$/i },
-    { type: "ok", key: "ok", match: /^(ok)$/i },
+    { type: "ok", key: "ok", match: /^(ok|bevestigen|confirm|confirmer|ja|yes|oui|toepassen|apply)$/i },
     { type: "ok", key: "chooseConfirm", match: /^kies$|^choose$|^choisir$/i },
     { type: "register", key: "register", match: /^registreren$|^register$|^s’inscrire$|^s'inscrire$/i }
   ];
@@ -11379,6 +11554,8 @@ function applyNavStyleActionButtons(root = document) {
     button.setAttribute("aria-label", label);
     button.title = label;
     button.classList.add("app-action-nav-btn");
+    button.classList.toggle("nb-action-negative", ["cancel", "delete"].includes(action.type));
+    button.classList.toggle("nb-action-positive", !["cancel", "delete"].includes(action.type));
     button.innerHTML = `
       <span class="app-action-nav-ico" aria-hidden="true">${getActionButtonIconSvg(action.type)}</span>
       <span class="app-action-nav-label">${label}</span>
@@ -13424,7 +13601,7 @@ function enhanceAppSelect(select) {
     unwrapHiddenAppointmentPickerSelect(select);
     return;
   }
-  if (select.multiple || select.id === 'nbIncomeYear' || select.id === 'nbIncomeQuarter') return;
+  if (select.multiple) return;
 
   select.dataset.appSelectReady = 'true';
 
