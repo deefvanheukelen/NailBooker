@@ -14241,3 +14241,23 @@ button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
 
 /* Afspraakregels delen hun HTML en basis-CSS in Agenda en openstaand overzicht. */
 #pastUnpaidOverviewDialog .past-unpaid-row .appointment-description { min-width: 0; }
+
+/* Waarschuwingsdriehoek iets groter; de bestaande verschijnanimatie blijft behouden. */
+#agendaUnfinishedBtn.agenda-unfinished-btn { width: 44px; height: 44px; }
+#agendaUnfinishedBtn.agenda-unfinished-btn svg { width: 40px; height: 40px; }
+
+/* Vlottere, duidelijkere entree van het waarschuwingsdriehoekje.
+   De vertraging van 0,5 s wordt in app.js geregeld en blijft ongewijzigd. */
+#agendaUnfinishedBtn.agenda-unfinished-btn:not(.hidden) {
+  animation: agendaWarningAttention 760ms cubic-bezier(.22,.85,.25,1) both;
+  transform-origin: center center;
+}
+@keyframes agendaWarningAttention {
+  0%   { opacity: 0; scale: .62; translate: 0 10px; }
+  48%  { opacity: 1; scale: 1.16; translate: 0 -3px; }
+  72%  { opacity: 1; scale: .96; translate: 0 1px; }
+  100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #agendaUnfinishedBtn.agenda-unfinished-btn:not(.hidden) { animation: none; }
+}

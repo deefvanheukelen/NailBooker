@@ -1864,6 +1864,7 @@ function ensurePastUnpaidOverviewDialog() {
       delete dialog._previousScreenTitle;
     }
     pastUnpaidAgendaAlertOpen = false;
+    document.body.classList.remove("nb-initial-agenda-check");
     requestAnimationFrame(() => updateAgendaUnfinishedButton());
     closeAppointmentActionPopover();
     restoreFloatingPopoversToBody();
@@ -1936,8 +1937,14 @@ function renderPastUnpaidOverview() {
 }
 
 function showPastUnpaidAgendaAlertIfNeeded() {
-  if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") return;
-  if (!getPastUnpaidAppointments().length) return;
+  if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") {
+    document.body.classList.remove("nb-initial-agenda-check");
+    return;
+  }
+  if (!getPastUnpaidAppointments().length) {
+    document.body.classList.remove("nb-initial-agenda-check");
+    return;
+  }
   pastUnpaidAgendaAlertOpen = true;
   updateAgendaUnfinishedButton();
   pastUnpaidAgendaAlertShown = true;
@@ -1947,13 +1954,16 @@ function showPastUnpaidAgendaAlertIfNeeded() {
   openStyledDialog(dialog);
   if (title) title.textContent = "NailBooker";
   renderPastUnpaidOverview();
+  // Houd de achterliggende app verborgen tot het overzicht gesloten wordt.
+  // Anders is de Agenda tijdens de opbouw/animatie van de modal kort zichtbaar.
   requestAnimationFrame(() => {
     if (dialog.open && dialog.contains(document.activeElement)) document.activeElement.blur();
   });
 }
 
 function schedulePastUnpaidAgendaAlert() {
-  window.setTimeout(showPastUnpaidAgendaAlertIfNeeded, 180);
+  // Open het overzicht vóór de volgende browser-paint, zonder timer.
+  showPastUnpaidAgendaAlertIfNeeded();
 }
 
 
@@ -3810,12 +3820,24 @@ function ensureAgendaFabMenu() {
 }
 
 
+let agendaUnfinishedShowTimer = null;
 function updateAgendaUnfinishedButton(screenId = state.currentScreen) {
   const button = document.getElementById("agendaUnfinishedBtn");
   if (!button) return;
   const visible = screenId === "agendaScreen" && !pastUnpaidAgendaAlertOpen && !document.getElementById("pastUnpaidOverviewDialog")?.open && getPastUnpaidAppointments().length > 0;
-  button.classList.toggle("hidden", !visible);
-  if (!visible) closeAgendaUnfinishedPopover();
+  if (!visible) {
+    clearTimeout(agendaUnfinishedShowTimer);
+    agendaUnfinishedShowTimer = null;
+    button.classList.add("hidden");
+    closeAgendaUnfinishedPopover();
+  } else if (button.classList.contains("hidden") && agendaUnfinishedShowTimer === null) {
+    // Pas na een halve seconde zichtbaar maken, zodat de animatie op de Agenda te zien is.
+    agendaUnfinishedShowTimer = setTimeout(() => {
+      agendaUnfinishedShowTimer = null;
+      const stillVisible = state.currentScreen === "agendaScreen" && !pastUnpaidAgendaAlertOpen && !document.getElementById("pastUnpaidOverviewDialog")?.open && getPastUnpaidAppointments().length > 0;
+      if (stillVisible) button.classList.remove("hidden");
+    }, 500);
+  }
 }
 
 function closeAgendaUnfinishedPopover() {

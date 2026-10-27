@@ -36,11 +36,12 @@
   />
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
+  <style>body.nb-initial-agenda-check .app-shell { visibility: hidden !important; }</style>
   <link rel="stylesheet" href="styles.css?v=20261027-shared-appointment-row" />
 
   <title>NailBooker</title>
 </head>
-<body class="auth-locked">
+<body class="auth-locked nb-initial-agenda-check">
 
   <div class="app-shell">
 
@@ -1952,7 +1953,7 @@
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
-  <script src="app.js?v=20261027-shared-appointment-row"></script>
+  <script src="app.js?v=20261027-no-agenda-flash2"></script>
 
 <script>
   const bottomNav = document.querySelector('.bottom-nav');
