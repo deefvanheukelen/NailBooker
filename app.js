@@ -1825,6 +1825,8 @@ function getPastUnpaidAppointments(data = getData()) {
 
 let pastUnpaidAgendaAlertOpen = false;
 let pastUnpaidAgendaAlertShown = false;
+// Bevries uitsluitend de rijen zolang dit overzicht open is.
+let pastUnpaidOverviewIds = null;
 
 function ensurePastUnpaidOverviewDialog() {
   let dialog = document.getElementById("pastUnpaidOverviewDialog");
@@ -1858,13 +1860,18 @@ function ensurePastUnpaidOverviewDialog() {
     }, 150);
   });
   dialog.addEventListener("close", () => {
+    // Geef de reeds geladen Agenda vrij na het sluiten van het opstartoverzicht.
+    document.body.classList.remove("nb-initial-agenda-check");
     if (dialog._previousScreenTitle !== undefined) {
       const title = document.getElementById("screenTitle");
       if (title) title.textContent = dialog._previousScreenTitle;
       delete dialog._previousScreenTitle;
     }
     pastUnpaidAgendaAlertOpen = false;
-    document.body.classList.remove("nb-initial-agenda-check");
+    pastUnpaidOverviewIds = null;
+    // Werk de agenda pas bij wanneer het modale overzicht gesloten is.
+    renderCalendar();
+    renderAgendaList();
     requestAnimationFrame(() => updateAgendaUnfinishedButton());
     closeAppointmentActionPopover();
     restoreFloatingPopoversToBody();
@@ -1895,7 +1902,11 @@ function renderPastUnpaidOverview() {
   const dialog = document.getElementById("pastUnpaidOverviewDialog");
   if (!dialog?.open) return;
   const data = getData();
-  const appointments = getPastUnpaidAppointments(data);
+  if (pastUnpaidOverviewIds === null) {
+    pastUnpaidOverviewIds = getPastUnpaidAppointments(data).map(app => String(app.id));
+  }
+  const appointmentsById = new Map((data.appointments || []).map(app => [String(app.id), app]));
+  const appointments = pastUnpaidOverviewIds.map(id => appointmentsById.get(id)).filter(Boolean);
   dialog.querySelector(".past-unpaid-intro").textContent = appointments.length
     ? `Er zijn ${appointments.length} afspraken in het verleden die niet afgewerkt werden. Verwerk ze om de boekhouding in orde te houden.`
     : "Alle eerdere afspraken zijn verwerkt.";
@@ -1937,14 +1948,8 @@ function renderPastUnpaidOverview() {
 }
 
 function showPastUnpaidAgendaAlertIfNeeded() {
-  if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") {
-    document.body.classList.remove("nb-initial-agenda-check");
-    return;
-  }
-  if (!getPastUnpaidAppointments().length) {
-    document.body.classList.remove("nb-initial-agenda-check");
-    return;
-  }
+  if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") return;
+  if (!getPastUnpaidAppointments().length) return;
   pastUnpaidAgendaAlertOpen = true;
   updateAgendaUnfinishedButton();
   pastUnpaidAgendaAlertShown = true;
@@ -1954,18 +1959,15 @@ function showPastUnpaidAgendaAlertIfNeeded() {
   openStyledDialog(dialog);
   if (title) title.textContent = "NailBooker";
   renderPastUnpaidOverview();
-  // Houd de achterliggende app verborgen tot het overzicht gesloten wordt.
-  // Anders is de Agenda tijdens de opbouw/animatie van de modal kort zichtbaar.
   requestAnimationFrame(() => {
     if (dialog.open && dialog.contains(document.activeElement)) document.activeElement.blur();
   });
 }
 
+// Het overzicht opent niet automatisch: de gebruiker kiest het via de waarschuwing.
 function schedulePastUnpaidAgendaAlert() {
-  // Open het overzicht vóór de volgende browser-paint, zonder timer.
-  showPastUnpaidAgendaAlertIfNeeded();
+  // Bewust geen automatische dialoog bij het laden van de Agenda.
 }
-
 
 function isRecurringAppointment(appointment) {
   return Boolean(appointment?.recurrenceGroupId || appointment?.recurrence_group_id) && String(appointment?.recurrenceRule || appointment?.recurrence_rule || "none") !== "none";
@@ -3820,24 +3822,40 @@ function ensureAgendaFabMenu() {
 }
 
 
-let agendaUnfinishedShowTimer = null;
+let agendaUnfinishedRevealTimer = null;
+let agendaUnfinishedRevealReady = false;
+
 function updateAgendaUnfinishedButton(screenId = state.currentScreen) {
   const button = document.getElementById("agendaUnfinishedBtn");
   if (!button) return;
-  const visible = screenId === "agendaScreen" && !pastUnpaidAgendaAlertOpen && !document.getElementById("pastUnpaidOverviewDialog")?.open && getPastUnpaidAppointments().length > 0;
-  if (!visible) {
-    clearTimeout(agendaUnfinishedShowTimer);
-    agendaUnfinishedShowTimer = null;
+  const eligible = screenId === "agendaScreen" &&
+    !pastUnpaidAgendaAlertOpen &&
+    !document.getElementById("pastUnpaidOverviewDialog")?.open &&
+    getPastUnpaidAppointments().length > 0;
+
+  if (!eligible) {
+    clearTimeout(agendaUnfinishedRevealTimer);
+    agendaUnfinishedRevealTimer = null;
+    agendaUnfinishedRevealReady = false;
     button.classList.add("hidden");
     closeAgendaUnfinishedPopover();
-  } else if (button.classList.contains("hidden") && agendaUnfinishedShowTimer === null) {
-    // Pas na een halve seconde zichtbaar maken, zodat de animatie op de Agenda te zien is.
-    agendaUnfinishedShowTimer = setTimeout(() => {
-      agendaUnfinishedShowTimer = null;
-      const stillVisible = state.currentScreen === "agendaScreen" && !pastUnpaidAgendaAlertOpen && !document.getElementById("pastUnpaidOverviewDialog")?.open && getPastUnpaidAppointments().length > 0;
-      if (stillVisible) button.classList.remove("hidden");
-    }, 500);
+    return;
   }
+  if (agendaUnfinishedRevealReady) {
+    button.classList.remove("hidden");
+    return;
+  }
+  button.classList.add("hidden");
+  if (agendaUnfinishedRevealTimer !== null) return;
+  agendaUnfinishedRevealTimer = window.setTimeout(() => {
+    agendaUnfinishedRevealTimer = null;
+    if (state.currentScreen !== "agendaScreen" ||
+        pastUnpaidAgendaAlertOpen ||
+        document.getElementById("pastUnpaidOverviewDialog")?.open ||
+        !getPastUnpaidAppointments().length) return;
+    agendaUnfinishedRevealReady = true;
+    button.classList.remove("hidden");
+  }, 1000);
 }
 
 function closeAgendaUnfinishedPopover() {
@@ -11467,6 +11485,16 @@ async function deleteCurrentService() {
   rerenderAll();
 }
 
+// Geen heropbouw van het onderliggende scherm zolang het overzicht openstaat.
+function refreshPaymentOverviewOrApp() {
+  const overview = document.getElementById("pastUnpaidOverviewDialog");
+  if (overview?.open) {
+    renderPastUnpaidOverview();
+  } else {
+    rerenderAll();
+  }
+}
+
 async function confirmPaymentSelection(methodName) {
   if (!(await ensureDataWriteAccess())) return;
   const id = document.getElementById("paymentAppointmentId").value;
@@ -11489,10 +11517,11 @@ async function confirmPaymentSelection(methodName) {
 
     saveData(data);
     closePaymentPopover();
-    rerenderAll();
+    refreshPaymentOverviewOrApp();
     return;
   }
 
+  const PAYMENT_CACHE_UPDATE = { paid: true, paymentMethodName: safeMethodName, status: "afgerond" };
   const { error } = await supabaseClient
     .from("appointments")
     .update({
@@ -11508,9 +11537,16 @@ async function confirmPaymentSelection(methodName) {
     return;
   }
 
-  await loadAllDataFromSupabase();
+  // Supabase heeft de wijziging bevestigd: pas enkel de afspraak in de lokale cache aan.
+  // Een volledige herlaadbeurt van acht tabellen is hier niet nodig.
+  const updated = getData();
+  const appointment = updated.appointments.find(a => String(a.id) === String(id));
+  if (appointment) {
+    Object.assign(appointment, PAYMENT_CACHE_UPDATE);
+    saveData(updated);
+  }
   closePaymentPopover();
-  rerenderAll();
+  refreshPaymentOverviewOrApp();
 }
 
 async function markUnpaid() {
@@ -11529,10 +11565,11 @@ async function markUnpaid() {
 
     saveData(data);
     closePaymentPopover();
-    rerenderAll();
+    refreshPaymentOverviewOrApp();
     return;
   }
 
+  const PAYMENT_CACHE_UPDATE = { paid: false, paymentMethodName: null, status: "gepland" };
   const { error } = await supabaseClient
     .from("appointments")
     .update({
@@ -11548,9 +11585,16 @@ async function markUnpaid() {
     return;
   }
 
-  await loadAllDataFromSupabase();
+  // Supabase heeft de wijziging bevestigd: pas enkel de afspraak in de lokale cache aan.
+  // Een volledige herlaadbeurt van acht tabellen is hier niet nodig.
+  const updated = getData();
+  const appointment = updated.appointments.find(a => String(a.id) === String(id));
+  if (appointment) {
+    Object.assign(appointment, PAYMENT_CACHE_UPDATE);
+    saveData(updated);
+  }
   closePaymentPopover();
-  rerenderAll();
+  refreshPaymentOverviewOrApp();
 }
 
 async function markNoShow() {
@@ -11569,10 +11613,11 @@ async function markNoShow() {
 
     saveData(data);
     closePaymentPopover();
-    rerenderAll();
+    refreshPaymentOverviewOrApp();
     return;
   }
 
+  const PAYMENT_CACHE_UPDATE = { paid: false, paymentMethodName: null, status: "no-show" };
   const { error } = await supabaseClient
     .from("appointments")
     .update({
@@ -11588,9 +11633,16 @@ async function markNoShow() {
     return;
   }
 
-  await loadAllDataFromSupabase();
+  // Supabase heeft de wijziging bevestigd: pas enkel de afspraak in de lokale cache aan.
+  // Een volledige herlaadbeurt van acht tabellen is hier niet nodig.
+  const updated = getData();
+  const appointment = updated.appointments.find(a => String(a.id) === String(id));
+  if (appointment) {
+    Object.assign(appointment, PAYMENT_CACHE_UPDATE);
+    saveData(updated);
+  }
   closePaymentPopover();
-  rerenderAll();
+  refreshPaymentOverviewOrApp();
 }
 
 /* =========================
@@ -13988,10 +14040,13 @@ function setGlobalActionBusyVisible(visible) {
   // z-index van een overlay onder <body>. Plaats de overlay daarom tijdelijk
   // IN het geopende venster met verwijderde afspraken.
   if (overlay) {
-    const deletedDialog = document.getElementById("deletedAppointmentsDialog");
-    if (visible && deletedDialog?.open && overlay.parentElement !== deletedDialog) {
-      deletedDialog.appendChild(overlay);
-    } else if (!visible && overlay.parentElement === deletedDialog) {
+    const activeDialog = [
+      document.getElementById("deletedAppointmentsDialog"),
+      document.getElementById("pastUnpaidOverviewDialog")
+    ].find(dialog => dialog?.open);
+    if (visible && activeDialog && overlay.parentElement !== activeDialog) {
+      activeDialog.appendChild(overlay);
+    } else if (!visible && overlay.parentElement?.matches?.("#deletedAppointmentsDialog, #pastUnpaidOverviewDialog")) {
       document.body.appendChild(overlay);
     }
   }
