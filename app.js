@@ -2268,8 +2268,23 @@ async function ensureDataWriteAccess(options = {}) {
   return false;
 }
 
+// Een geslaagde toegangscontrole kort hergebruiken bij het openen van
+// invoervensters. Opslaan blijft altijd de bestaande servercontrole uitvoeren.
+let recentWriteAccessUntil = 0;
+let pendingWriteAccessCheck = null;
+async function ensureFastDialogWriteAccess() {
+  if (Date.now() < recentWriteAccessUntil) return true;
+  if (!pendingWriteAccessCheck) {
+    pendingWriteAccessCheck = ensureDataWriteAccess().then(allowed => {
+      if (allowed) recentWriteAccessUntil = Date.now() + 60000;
+      return allowed;
+    }).finally(() => { pendingWriteAccessCheck = null; });
+  }
+  return pendingWriteAccessCheck;
+}
+
 async function runWriteEntryPoint(action) {
-  if (!(await ensureDataWriteAccess())) return;
+  if (!(await ensureFastDialogWriteAccess())) return;
   action?.();
 }
 
@@ -3510,6 +3525,7 @@ async function logoutAccount() {
     return;
   }
 
+  recentWriteAccessUntil = 0;
   authUserCache = null;
   authProfileCache = null;
   authInitialized = true;
@@ -3668,7 +3684,7 @@ async function runAgendaFabAction(action) {
   closeAgendaFabMenu();
 
   if (!action || isAuthLocked()) return;
-  if (!(await ensureDataWriteAccess())) return;
+  if (!(await ensureFastDialogWriteAccess())) return;
 
   if (state.currentScreen !== action.screenId) {
     switchScreen(action.screenId, getScreenTitle(action.screenId));
