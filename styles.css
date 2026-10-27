@@ -14261,3 +14261,88 @@ button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
 @media (prefers-reduced-motion: reduce) {
   #agendaUnfinishedBtn.agenda-unfinished-btn:not(.hidden) { animation: none; }
 }
+
+/* Klant kiezen vanuit afspraak: bestaande velden en data blijven behouden. */
+#appointmentForm .appointment-customer-picker { position: relative; }
+#appointmentForm #appointmentCustomerSearch,
+#appointmentForm .appointment-customer-picker > .app-select-wrap,
+#appointmentForm .appointment-customer-picker > select,
+#appointmentForm #appointmentCustomerResults { display: none !important; }
+#appointmentForm .appointment-customer-choice { display: flex; min-height: 42px; width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 2px; overflow: hidden; align-items: stretch; }
+#appointmentForm .appointment-customer-choice-name { flex: 1; min-width: 0; padding: 11px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+#appointmentForm #appointmentChooseCustomerBtn { flex: 0 0 48px; border: 0; background: #f8e7ed; color: #df79a0; font-size: 25px; cursor: pointer; }
+.nb-customer-overlay { position: fixed; z-index: 99999; inset: 0; background: white; display: flex; flex-direction: column; max-width: 1440px; margin: auto; }
+.nb-customer-overlay.hidden { display: none !important; }
+.nb-customer-overlay-head { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); color: var(--primary-dark); }
+.nb-customer-overlay-head button { background: transparent; border: 0; color: #cc7597; font-size: 24px; cursor: pointer; }
+.nb-customer-overlay-body { min-height: 0; flex: 1; overflow-y: auto; padding: 14px 16px 24px; }
+.nb-customer-overlay-body .search-input { width: 100%; }
+.nb-customer-overlay-body .scroll-list { margin-top: 14px; }
+
+/* Klantkiezer: knop exact centreren; overlay binnen modaal top-layer. */
+#appointmentForm #appointmentChooseCustomerBtn { display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
+#appointmentDialog > .nb-customer-overlay { position: fixed; inset: 0; width: 100%; max-width: none; margin: 0; z-index: 100; }
+
+/* Klantkiezer: alfabet blijft zichtbaar en terug-naar-boven in appstijl. */
+#appointmentCustomerOverlay .nb-customer-overlay-body { padding-top: 0; }
+#appointmentCustomerOverlay #appointmentOverlayAlphabet {
+  position: sticky; top: 0; z-index: 3; background: #fff;
+  padding: 14px 0 10px; margin: 0;
+}
+#appointmentCustomerOverlay #appointmentOverlayList { margin-top: 0; }
+#appointmentCustomerOverlay #appointmentOverlayScrollTop {
+  position: absolute; right: 18px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+}
+
+/* Klantkiezer: dezelfde letterkleuren als de pagina Klanten. */
+#appointmentOverlayList .management-initial {
+  background: var(--management-letter-bg, linear-gradient(180deg,#e6b1c3,#d98ea7));
+  border-color: rgba(70,50,75,.10);
+}
+/* In Nieuwe afspraak geen afzonderlijke knop om de klantfiche te openen. */
+#appointmentForm #appointmentOpenCustomerBtn { display: none !important; }
+
+/* Afspraak: klantlabel klikbaar en dienstkiezer in dezelfde appstijl. */
+#appointmentForm #appointmentCustomerDisplay,
+#appointmentForm #appointmentServiceDisplay { cursor: pointer; }
+#appointmentForm #appointmentServiceSearch,
+#appointmentForm .appointment-service-picker > .app-select-wrap,
+#appointmentForm .appointment-service-picker > select,
+#appointmentForm #appointmentServiceResults { display: none !important; }
+#appointmentForm .appointment-service-choice { display: flex; min-height: 42px; width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 2px; overflow: hidden; align-items: stretch; }
+#appointmentForm .appointment-service-choice-name { flex: 1; min-width: 0; padding: 11px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+#appointmentForm #appointmentChooseServiceBtn { flex: 0 0 48px; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; border: 0; background: #f8e7ed; color: #df79a0; font-size: 25px; cursor: pointer; }
+#appointmentDialog > #appointmentServiceOverlay { position: fixed; inset: 0; width: 100%; max-width: none; margin: 0; z-index: 100; }
+#appointmentServiceOverlay .nb-customer-overlay-body { padding-top: 0; }
+#appointmentServiceOverlay #appointmentServiceAlphabet { position: sticky; top: 0; z-index: 3; background: #fff; padding: 14px 0 10px; margin: 0; }
+#appointmentServiceOverlay #appointmentServiceList { margin-top: 0; }
+#appointmentServiceOverlay #appointmentServiceScrollTop { position: absolute; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 10; }
+#appointmentServiceList .management-initial { background: var(--management-letter-bg, linear-gradient(180deg,#e6b1c3,#d98ea7)); border-color: rgba(70,50,75,.10); }
+
+/* Analoge tijdkiezer; datumkiezer blijft ongewijzigd */
+.appointment-wheel-dialog .revenue-wheel-shell:has(.nb-clock-container) {display:flex;justify-content:center;align-items:flex-start;flex:1;overflow:auto;padding:22px 12px;background:white;}
+.appointment-wheel-dialog .revenue-wheel-shell:has(.nb-clock-container) > .revenue-wheel-highlight {display:none}
+.nb-clock-container {width:100%;display:flex;flex-direction:column;align-items:center;gap:28px;}
+.nb-clock-readout {display:flex;align-items:center;gap:9px;font-size:40px;color:#17131a;}
+.nb-clock-readout button {border:0;border-radius:7px;background:#faf6f8;padding:9px 12px;font:inherit;color:inherit;cursor:pointer;}
+.nb-clock-readout button.active {background:#f8e4ed;}
+.nb-clock-dial {width:min(78vw,310px);height:min(78vw,310px);position:relative;border-radius:50%;background:#faf6f8;touch-action:none;user-select:none;flex-shrink:0;}
+.nb-clock-number {position:absolute;transform:translate(-50%,-50%);border:0;border-radius:50%;background:transparent;width:37px;height:37px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#231c22;cursor:pointer;z-index:2;padding:0;}
+.nb-clock-number.selected {background:#e7a6c1;color:#442234;}
+.nb-clock-hand {position:absolute;left:50%;top:50%;height:2px;background:#df9bb7;transform-origin:left center;z-index:1;pointer-events:none;}
+.nb-clock-center {position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:50%;background:#df9bb7;transform:translate(-50%,-50%);z-index:3;pointer-events:none;}
+
+/* Analoge tijdkiezer: subtiele beweging en sleepinteractie */
+.nb-clock-hand {transition:transform 140ms ease-out,width 140ms ease-out;}
+.nb-clock-dragging .nb-clock-hand {transition:none;}
+.nb-clock-number {transition:background-color 130ms ease,color 130ms ease,scale 130ms ease;}
+.nb-clock-number.selected {scale:1.06;}
+.nb-clock-readout button {transition:background-color 180ms ease;}
+.nb-clock-dial {cursor:grab;}
+.nb-clock-dial.nb-clock-dragging {cursor:grabbing;}
+@media (prefers-reduced-motion:reduce) { .nb-clock-hand,.nb-clock-number,.nb-clock-readout button {transition:none;} }
+
+/* Vloeiende rotatie bij het aanklikken van uren en 5-minutenstappen. */
+.nb-clock-hand { transition: transform 320ms cubic-bezier(.22,.75,.28,1), width 220ms ease; }
+.nb-clock-dial { cursor: pointer; touch-action: manipulation; }

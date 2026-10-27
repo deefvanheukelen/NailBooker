@@ -5952,6 +5952,72 @@ function getAppointmentPickerYears(selectedYear) {
   return Array.from({ length: (maxYear - minYear + 7) }, (_, i) => minYear - 3 + i);
 }
 
+function renderAppointmentClock(stage = "hour") {
+  const wrap = document.getElementById("appointmentWheelColumns");
+  if (!wrap) return;
+  const selected = appointmentPickerState.selected;
+  const hour = Number(selected.hour), minute = Number(selected.minute);
+  const active = stage === "hour" ? hour : minute;
+  const dial = Array.from({length: stage === "hour" ? 24 : 12}, (_, i) => {
+    const value = stage === "hour" ? i : i * 5;
+    const inner = stage === "hour" && (i === 0 || i >= 13);
+    const index = stage === "hour" ? (i % 12) : i;
+    const radius = inner ? 64 : 110;
+    const angle = index * Math.PI / 6;
+    const x = 140 + radius * Math.sin(angle), y = 140 - radius * Math.cos(angle);
+    const chosen = stage === "hour" ? value === active : value === active;
+    return `<button type="button" class="nb-clock-number${chosen ? ' selected' : ''}" style="left:${x/280*100}%;top:${y/280*100}%" data-clock-value="${value}">${String(value).padStart(2,'0')}</button>`;
+  }).join("");
+  const index = stage === "hour" ? hour % 12 : minute / 5;
+  const radius = stage === "hour" && (hour === 0 || hour >= 13) ? 64 : 110;
+  const angle = index * Math.PI / 6;
+  const previousHand = wrap.querySelector(".nb-clock-hand");
+  const previousAngle = previousHand ? Number(previousHand.dataset.angle) : null;
+  wrap.className = "nb-clock-container";
+  wrap.innerHTML = `<div class="nb-clock-readout"><button type="button" class="${stage==='hour'?'active':''}" data-clock-stage="hour">${String(hour).padStart(2,'0')}</button><span>:</span><button type="button" class="${stage==='minute'?'active':''}" data-clock-stage="minute">${String(minute).padStart(2,'0')}</button></div><div class="nb-clock-dial"><div class="nb-clock-hand" style="width:${radius/280*100}%;transform:rotate(${angle*180/Math.PI-90}deg)"></div><span class="nb-clock-center"></span>${dial}</div>`;
+  const hand = wrap.querySelector('.nb-clock-hand');
+  const targetAngle = angle * 180 / Math.PI - 90;
+  if (hand) {
+    // Neem de vorige stand mee; voorkom dat de wijzer bij iedere klik opnieuw begint.
+    const previous = Number.isFinite(previousAngle) ? previousAngle : targetAngle;
+    const shortestTurn = ((targetAngle - previous + 540) % 360) - 180;
+    const destination = previous + shortestTurn;
+    hand.style.transform = `rotate(${previous}deg)`;
+    hand.dataset.angle = String(destination);
+    if (previousHand) requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (hand.isConnected) hand.style.transform = `rotate(${destination}deg)`;
+    }));
+  }
+  wrap.querySelectorAll('[data-clock-stage]').forEach(b => b.addEventListener('click', () => renderAppointmentClock(b.dataset.clockStage)));
+  wrap.querySelectorAll('[data-clock-value]').forEach(b => b.addEventListener('click', () => {
+    const value = Number(b.dataset.clockValue);
+    if (stage === 'hour') { selected.hour = String(value); renderAppointmentClock('minute'); }
+    else { selected.minute = String(value); renderAppointmentClock('minute'); }
+  }));
+  // Klikken op de wijzerplaat kiest de dichtstbijzijnde stap (uren / 5 minuten).
+  // Geen sleepbediening: alleen de wijzer draait vloeiend naar de nieuwe stand.
+  const face = wrap.querySelector('.nb-clock-dial');
+  face.addEventListener('click', e => {
+    if (e.target.closest('[data-clock-value]')) return;
+    const rect = face.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const fraction = (Math.atan2(dx, -dy) + Math.PI * 2) % (Math.PI * 2);
+    const n = Math.round(fraction * 12 / (2 * Math.PI)) % 12;
+    let value;
+    if (stage === 'hour') {
+      const inner = Math.hypot(dx, dy) < rect.width * .32;
+      value = inner ? (n === 0 ? 0 : n + 12) : (n === 0 ? 12 : n);
+      selected.hour = String(value);
+      renderAppointmentClock('minute');
+    } else {
+      value = n * 5;
+      selected.minute = String(value);
+      renderAppointmentClock('minute');
+    }
+  });
+}
+
 function openAppointmentWheelPicker(mode, targetInputId = null) {
   const dialog = document.getElementById("appointmentWheelPickerDialog");
   const title = document.getElementById("appointmentWheelPickerTitle");
@@ -5979,14 +6045,9 @@ function openAppointmentWheelPicker(mode, targetInputId = null) {
   if (mode === "time") {
     title.textContent = t("chooseTime");
     if (shell) shell.classList.remove("revenue-calendar-shell");
-    columnsWrap.className = "revenue-wheel-columns two-cols";
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const minutes = Array.from({ length: 60 }, (_, i) => i);
-    columnsWrap.innerHTML =
-      buildRevenueWheelColumn("hour", hours, value => String(value).padStart(2, "0"), { loop: true }) +
-      buildRevenueWheelColumn("minute", minutes, value => String(value).padStart(2, "0"), { loop: true });
     appointmentPickerState.selected.hour = String(selectedHour);
     appointmentPickerState.selected.minute = String(selectedMinute);
+    renderAppointmentClock("hour");
   } else {
     title.textContent = "Kies dag";
     if (shell) shell.classList.add("revenue-calendar-shell");
@@ -5995,7 +6056,7 @@ function openAppointmentWheelPicker(mode, targetInputId = null) {
   }
 
   const columns = Array.from(columnsWrap.querySelectorAll(".revenue-wheel-column"));
-  columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
+  if (mode !== "time") columns.forEach(column => attachRevenueWheelColumnEvents(column, column.dataset.key));
 
   const centerActiveValues = (behavior = "auto") => {
     Object.entries(appointmentPickerState.selected).forEach(([key, value]) => {
@@ -6006,12 +6067,7 @@ function openAppointmentWheelPicker(mode, targetInputId = null) {
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "open");
 
-  if (mode === "time") {
-    requestAnimationFrame(() => {
-      centerActiveValues("auto");
-      requestAnimationFrame(() => centerActiveValues("auto"));
-    });
-  }
+
 }
 
 function applyAppointmentWheelPickerSelection() {
@@ -6023,6 +6079,7 @@ function applyAppointmentWheelPickerSelection() {
     syncPrivateEndTimeWithStart();
     syncAppointmentDateTimeDisplays();
     syncFollowUpDisplays();
+    syncMoveAppointmentDisplays();
     return;
   }
 
@@ -9411,6 +9468,89 @@ function customerSearchText(customer) {
   ].join(" ").toLowerCase();
 }
 
+let appointmentOverlayLetter = "";
+function closeAppointmentCustomerOverlay() {
+  document.getElementById("appointmentCustomerOverlay")?.classList.add("hidden");
+}
+function renderAppointmentCustomerOverlay() {
+  const data = getData();
+  const search = document.getElementById("appointmentOverlaySearch");
+  const alphabet = document.getElementById("appointmentOverlayAlphabet");
+  const list = document.getElementById("appointmentOverlayList");
+  if (!alphabet || !list) return;
+  const q = (search?.value || "").trim().toLowerCase();
+  const digits = q.replace(/\D/g, "");
+  const visibleCustomers = !SHOW_ANDERE
+    ? data.customers.filter(c => new Set(data.appointments.map(a => String(a.customerId))).has(String(c.id)))
+    : data.customers;
+  const letters = [...new Set(visibleCustomers.map(c => String(c.firstName || "").trim().charAt(0).toUpperCase()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "nl-BE"));
+  alphabet.innerHTML = `<button type="button" class="alphabet-btn ${!appointmentOverlayLetter ? "active" : ""}" data-letter="">Alle</button>` + letters.map(l => `<button type="button" class="alphabet-btn ${appointmentOverlayLetter === l ? "active" : ""}" data-letter="${l}">${l}</button>`).join("");
+  let customers = data.customers.filter(c => {
+    const haystack = customerSearchText(c);
+    return (haystack.includes(q) || (digits && String(c.phone || "").replace(/\D/g, "").includes(digits))) && (!appointmentOverlayLetter || String(c.firstName || "").toUpperCase().startsWith(appointmentOverlayLetter));
+  });
+  if (!SHOW_ANDERE) {
+    const visibleIds = new Set(data.appointments.map(a => String(a.customerId)));
+    customers = customers.filter(c => visibleIds.has(String(c.id)));
+  }
+  customers.sort((a,b) => (a.firstName || "").localeCompare(b.firstName || ""));
+  list.innerHTML = customers.length ? customers.map(c => {
+    const count = data.appointments.filter(a => String(a.customerId) === String(c.id)).length;
+    const name = fullName(c);
+    return `<div class="client-card"><button type="button" data-pick-customer="${htmlEscape(String(c.id))}"><span class="management-list-content"><span class="management-initial ${managementInitialColorClass(name)}" aria-hidden="true">${managementInitial(name)}</span><span class="management-list-text"><span class="client-name">${escapeHtml(name || "Naamloos")}</span><span class="meta">${escapeHtml(String(c.phone || "").trim() || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</span></span></span></button></div>`;
+  }).join("") : `<div class="empty-state">${t("noClientsFound")}</div>`;
+}
+function openAppointmentCustomerOverlay() {
+  const overlay = document.getElementById("appointmentCustomerOverlay");
+  if (!overlay) return;
+  appointmentOverlayLetter = "";
+  const search = document.getElementById("appointmentOverlaySearch");
+  if (search) search.value = "";
+  overlay.classList.remove("hidden");
+  overlay.querySelector(".nb-customer-overlay-body")?.scrollTo(0, 0);
+  document.getElementById("appointmentOverlayScrollTop")?.classList.remove("is-visible");
+  renderAppointmentCustomerOverlay();
+}
+function setupAppointmentCustomerOverlay() {
+  const overlay = document.getElementById("appointmentCustomerOverlay");
+  if (!overlay || overlay.dataset.ready) return;
+  overlay.dataset.ready = "true";
+  document.getElementById("appointmentChooseCustomerBtn")?.addEventListener("click", openAppointmentCustomerOverlay);
+  const customerLabel = document.getElementById("appointmentCustomerDisplay");
+  customerLabel?.addEventListener("click", openAppointmentCustomerOverlay);
+  customerLabel?.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAppointmentCustomerOverlay(); }
+  });
+  document.getElementById("appointmentCustomerOverlayClose")?.addEventListener("click", closeAppointmentCustomerOverlay);
+  document.getElementById("appointmentOverlaySearch")?.addEventListener("input", renderAppointmentCustomerOverlay);
+  const scrollArea = overlay.querySelector(".nb-customer-overlay-body");
+  const scrollButton = document.getElementById("appointmentOverlayScrollTop");
+  if (scrollArea && scrollButton) {
+    const updateScrollButton = () => {
+      const visible = !overlay.classList.contains("hidden") && scrollArea.scrollTop > 80;
+      scrollButton.classList.toggle("is-visible", visible);
+      scrollButton.tabIndex = visible ? 0 : -1;
+      scrollButton.setAttribute("aria-hidden", String(!visible));
+    };
+    scrollArea.addEventListener("scroll", updateScrollButton, { passive: true });
+    scrollButton.addEventListener("click", () => scrollArea.scrollTo({ top: 0, behavior: "smooth" }));
+  }
+  document.getElementById("appointmentOverlayAlphabet")?.addEventListener("click", e => {
+    const btn = e.target.closest("[data-letter]");
+    if (!btn) return;
+    appointmentOverlayLetter = btn.dataset.letter;
+    renderAppointmentCustomerOverlay();
+  });
+  document.getElementById("appointmentOverlayList")?.addEventListener("click", e => {
+    const btn = e.target.closest("[data-pick-customer]");
+    if (!btn) return;
+    setAppointmentCustomer(btn.dataset.pickCustomer);
+    updateAppointmentOpenCustomerButton();
+    closeAppointmentCustomerOverlay();
+  });
+}
+
 function setAppointmentCustomer(customerId, { updateSearch = true } = {}) {
   const data = getData();
   const customerSelect = document.getElementById("appointmentCustomer");
@@ -9426,6 +9566,8 @@ function setAppointmentCustomer(customerId, { updateSearch = true } = {}) {
   }
 
   refreshAppSelect(customerSelect);
+  const display = document.getElementById("appointmentCustomerDisplay");
+  if (display) display.textContent = customer ? fullName(customer) : "";
 }
 
 
@@ -9569,6 +9711,8 @@ function setAppointmentService(serviceId, { updateSearch = true, updateDefaults 
   }
 
   refreshAppSelect(serviceSelect);
+  const serviceDisplay = document.getElementById("appointmentServiceDisplay");
+  if (serviceDisplay) serviceDisplay.textContent = service ? service.name : "";
 
   if (updateDefaults && service) {
     syncServiceDefaults();
@@ -9635,6 +9779,78 @@ function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
   if (searchInput) searchInput.setAttribute("aria-expanded", "true");
 }
 
+let appointmentServiceOverlayLetter = "";
+function closeAppointmentServiceOverlay() {
+  document.getElementById("appointmentServiceOverlay")?.classList.add("hidden");
+}
+function renderAppointmentServiceOverlay() {
+  const data = getData();
+  const alphabet = document.getElementById("appointmentServiceAlphabet");
+  const list = document.getElementById("appointmentServiceList");
+  if (!alphabet || !list) return;
+  const selectedId = document.getElementById("appointmentService")?.value || "";
+  const letters = [...new Set((data.services || [])
+    .filter(s => s.isActive !== false || String(s.id) === String(selectedId))
+    .map(s => String(s.name || "").trim().charAt(0).toUpperCase()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "nl-BE"));
+  alphabet.innerHTML = `<button type="button" class="alphabet-btn ${!appointmentServiceOverlayLetter ? "active" : ""}" data-letter="">Alle</button>` +
+    letters.map(l => `<button type="button" class="alphabet-btn ${appointmentServiceOverlayLetter === l ? "active" : ""}" data-letter="${l}">${l}</button>`).join("");
+  const services = (data.services || []).filter(s =>
+    (s.isActive !== false || String(s.id) === String(selectedId)) &&
+    (!appointmentServiceOverlayLetter || String(s.name || "").trim().toUpperCase().startsWith(appointmentServiceOverlayLetter))
+  ).sort((a,b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
+  list.innerHTML = services.length ? services.map(s => {
+    const name = s.name || "Naamloze dienst";
+    const meta = `${Number(s.duration || 0)} min · ${euro(s.price)}${s.isActive === false ? ` · ${t("inactive")}` : ""}`;
+    return `<div class="service-card"><button type="button" data-pick-service="${htmlEscape(String(s.id))}"><span class="management-list-content"><span class="management-initial ${managementInitialColorClass(name)}" aria-hidden="true">${managementInitial(name)}</span><span class="management-list-text"><span class="client-name">${escapeHtml(name)}</span><span class="meta">${escapeHtml(meta)}</span></span></span></button></div>`;
+  }).join("") : `<div class="empty-state">${t("noActiveServices")}</div>`;
+}
+function openAppointmentServiceOverlay() {
+  const overlay = document.getElementById("appointmentServiceOverlay");
+  if (!overlay) return;
+  appointmentServiceOverlayLetter = "";
+  overlay.classList.remove("hidden");
+  overlay.querySelector(".nb-customer-overlay-body")?.scrollTo(0,0);
+  const btn = document.getElementById("appointmentServiceScrollTop");
+  btn?.classList.remove("is-visible");
+  renderAppointmentServiceOverlay();
+}
+function setupAppointmentServiceOverlay() {
+  const overlay = document.getElementById("appointmentServiceOverlay");
+  if (!overlay || overlay.dataset.ready) return;
+  overlay.dataset.ready = "true";
+  document.getElementById("appointmentChooseServiceBtn")?.addEventListener("click", openAppointmentServiceOverlay);
+  const label = document.getElementById("appointmentServiceDisplay");
+  label?.addEventListener("click", openAppointmentServiceOverlay);
+  label?.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAppointmentServiceOverlay(); }
+  });
+  document.getElementById("appointmentServiceOverlayClose")?.addEventListener("click", closeAppointmentServiceOverlay);
+  document.getElementById("appointmentServiceAlphabet")?.addEventListener("click", e => {
+    const btn = e.target.closest("[data-letter]");
+    if (!btn) return;
+    appointmentServiceOverlayLetter = btn.dataset.letter;
+    renderAppointmentServiceOverlay();
+  });
+  document.getElementById("appointmentServiceList")?.addEventListener("click", e => {
+    const btn = e.target.closest("[data-pick-service]");
+    if (!btn) return;
+    setAppointmentService(btn.dataset.pickService);
+    closeAppointmentServiceOverlay();
+  });
+  const scrollArea = overlay.querySelector(".nb-customer-overlay-body");
+  const scrollButton = document.getElementById("appointmentServiceScrollTop");
+  if (scrollArea && scrollButton) {
+    scrollArea.addEventListener("scroll", () => {
+      const visible = !overlay.classList.contains("hidden") && scrollArea.scrollTop > 80;
+      scrollButton.classList.toggle("is-visible", visible);
+      scrollButton.tabIndex = visible ? 0 : -1;
+      scrollButton.setAttribute("aria-hidden", String(!visible));
+    }, { passive: true });
+    scrollButton.addEventListener("click", () => scrollArea.scrollTo({ top: 0, behavior: "smooth" }));
+  }
+}
+
 function setupAppointmentServiceSearch() {
   const searchInput = document.getElementById("appointmentServiceSearch");
   const resultsWrap = document.getElementById("appointmentServiceResults");
@@ -9698,6 +9914,8 @@ function setupAppointmentServiceSearch() {
     const service = serviceById(getData(), serviceSelect.value);
     searchInput.value = service ? service.name : "";
     refreshAppSelect(serviceSelect);
+    const display = document.getElementById("appointmentServiceDisplay");
+    if (display) display.textContent = service ? service.name : "";
     syncServiceDefaults();
   });
 
@@ -9785,7 +10003,11 @@ function populateAppointmentForm(customerId = null) {
     activeServices.map(s => `<option value="${s.id}">${htmlEscape(s.name || "Naamloze dienst")}</option>`).join("");
 
   setupAppointmentCustomerSearch();
+  setupAppointmentCustomerOverlay();
+  closeAppointmentCustomerOverlay();
   setupAppointmentServiceSearch();
+  setupAppointmentServiceOverlay();
+  closeAppointmentServiceOverlay();
   setAppointmentPrivateMode(false);
 
   if (customerId) {
@@ -10950,7 +11172,7 @@ async function saveAppointmentFromForm(event) {
 
   if (!isPrivate && !selectedCustomerId) {
     await appAlert("Kies eerst een klant uit de zoekresultaten.", { title: "Klant kiezen", variant: "warning" });
-    document.getElementById("appointmentCustomerSearch")?.focus();
+    openAppointmentCustomerOverlay();
     return;
   }
 

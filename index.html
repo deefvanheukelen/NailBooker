@@ -36,7 +36,7 @@
   />
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
-  <link rel="stylesheet" href="styles.css?v=20261027-shared-appointment-row" />
+  <link rel="stylesheet" href="styles.css?v=20261027-customer-overlay" />
 
   <title>NailBooker</title>
 </head>
@@ -1212,6 +1212,16 @@
 
   <!-- ===================== AFSPRAAK ======================= -->
   <dialog id="appointmentDialog" class="modal">
+  <div id="appointmentCustomerOverlay" class="nb-customer-overlay hidden" role="dialog" aria-modal="true" aria-label="Klant kiezen">
+    <div class="nb-customer-overlay-head"><strong>Klant kiezen</strong><button id="appointmentCustomerOverlayClose" type="button" aria-label="Sluiten">✕</button></div>
+    <div class="nb-customer-overlay-body"><div id="appointmentOverlayAlphabet" class="alphabet-filter"></div><div id="appointmentOverlayList" class="scroll-list"></div></div><button id="appointmentOverlayScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
+  </div>
+  <div id="appointmentServiceOverlay" class="nb-customer-overlay hidden" role="dialog" aria-modal="true" aria-label="Dienst kiezen">
+    <div class="nb-customer-overlay-head"><strong>Dienst kiezen</strong><button id="appointmentServiceOverlayClose" type="button" aria-label="Sluiten">✕</button></div>
+    <div class="nb-customer-overlay-body"><div id="appointmentServiceAlphabet" class="alphabet-filter"></div><div id="appointmentServiceList" class="scroll-list"></div></div>
+    <button id="appointmentServiceScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
+  </div>
+
     <form method="dialog" id="appointmentForm" class="modal-card">
       <div class="modal-head">
         <h3 id="appointmentModalTitle">Nieuwe afspraak</h3>
@@ -1238,6 +1248,7 @@
               aria-controls="appointmentCustomerResults"
               aria-expanded="false"
             />
+            <div class="appointment-customer-choice"><span id="appointmentCustomerDisplay" class="appointment-customer-choice-name" role="button" tabindex="0" aria-label="Klant kiezen"></span><button id="appointmentChooseCustomerBtn" type="button" aria-label="Klant kiezen">+</button></div>
             <div id="appointmentCustomerResults" class="appointment-customer-results hidden" role="listbox"></div>
             <select id="appointmentCustomer" class="field appointment-customer-select-fallback" required aria-label="Klant kiezen"></select>
           </div>
@@ -1272,6 +1283,7 @@
               aria-controls="appointmentServiceResults"
               aria-expanded="false"
             />
+            <div class="appointment-service-choice"><span id="appointmentServiceDisplay" class="appointment-service-choice-name" role="button" tabindex="0" aria-label="Dienst kiezen"></span><button id="appointmentChooseServiceBtn" type="button" aria-label="Dienst kiezen">+</button></div>
             <div id="appointmentServiceResults" class="appointment-service-results hidden" role="listbox"></div>
             <select id="appointmentService" class="field appointment-service-select-fallback" required aria-label="Dienst kiezen"></select>
           </div>
@@ -1952,7 +1964,7 @@
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
-  <script src="app.js?v=20261027-naa-warning-only"></script>
+  <script src="app.js?v=20261027-customer-overlay"></script>
 
 <script>
   const bottomNav = document.querySelector('.bottom-nav');
