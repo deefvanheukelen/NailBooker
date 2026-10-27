@@ -74,7 +74,7 @@ const i18n = {
 
 const i18nExtra = {
   "nl-BE": {
-    planning: "Planning", paymentDetailsQr: "Betaalgegevens QR-code", googleCalendar: "Google kalender", until: "tot", allDay: "Hele dag", minutesUnit: "minuten", oneHour: "1 uur", twentyFourHours: "24 uur", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", enableAgendaFabMenu: "Tab-menu activeren", enableAgendaFabMenuHint: "Toon rond de + knop snelle knoppen voor afspraak, klant, dienst en betaalwijze.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Maand kiezen", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
+    planning: "Planning", paymentDetailsQr: "Betaalgegevens QR-code", googleCalendar: "Google kalender", until: "tot", allDay: "Hele dag", minutesUnit: "minuten", oneHour: "1 uur", twentyFourHours: "24 uur", notifications: "Meldingen", extras: "Interessante extra's", defaultBreak: "Standaard pauze tussen 2 afspraken (min)", overlapWarnings: "Overlapwaarschuwingen", overlapWarningsHint: "Waarschuw als een afspraak overlapt met een bestaande afspraak, rekening houdend met duur en pauze.", enableNotifications: "Meldingen inschakelen", enableNotificationsHint: "Voorbereid voor afspraakherinneringen in de app.", enableAgendaFabMenu: "Tab-menu activeren", enableAgendaFabMenuHint: "Toon rond de + knop snelle knoppen voor afspraak, klant, dienst en betaalwijze.", reminderBefore: "Herinnering vóór afspraak", savePending: "Instellingen opslaan...", notificationsOff: "Meldingen zijn uitgeschakeld.", notificationsActive: "Meldingen zijn actief op dit toestel zolang browser of app meldingen ondersteunt.", notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen.", notificationsUnsupported: "Deze browser ondersteunt geen webmeldingen.", notificationsPermissionHint: "Schakel meldingen in en geef toestemming om herinneringen te tonen.", appointmentsOn: "Afspraken op", noAppointmentsOnDay: "Geen afspraken op deze dag.", noClientsFound: "Geen klanten gevonden.", noPhone: "Geen gsm", appointmentSingular: "afspraak", appointmentPlural: "afspraken", noActiveServices: "Nog geen actieve diensten.", inactive: "inactief", showInactiveServices: "Toon inactieve diensten", allPaymentMethods: "Alle betaalwijzen", allStatuses: "Alle statussen", day: "Dag", week: "Week", month: "Maand", year: "Jaar", today: "Vandaag", total: "Totaal", revenueOn: "Omzet op", revenueReport: "Omzetrapport", paymentMethodTitle: "Betaalwijze", unknownCustomer: "Onbekende klant", chooseMonth: "Kies maand", choose: "Kies", newAppointment: "Nieuwe afspraak", editAppointment: "Afspraak bewerken", customer: "Klant", date: "Datum", time: "Tijd", service: "Dienst", duration: "Duur (min)", price: "Prijs", status: "Status", planned: "Gepland", completed: "Afgerond", newClient: "Nieuwe klant", phone: "Telefoon", note: "Notitie", appointmentRemarks: "Opmerkingen", newService: "Nieuwe dienst", serviceName: "Naam dienst", newPaymentMethod: "Nieuwe betaalwijze", paymentMethodName: "Naam betaalwijze", editProfileTitle: "Profiel bewerken", currentPassword: "Huidig wachtwoord", newPassword: "Nieuw wachtwoord", message: "Melding", registerHere: "Nog geen account? Registreer hier"
   }
 };
 Object.keys(i18nExtra).forEach(lang => Object.assign(i18n[lang], i18nExtra[lang]));
@@ -2268,19 +2268,24 @@ async function ensureDataWriteAccess(options = {}) {
   return false;
 }
 
-// Een geslaagde toegangscontrole kort hergebruiken bij het openen van
-// invoervensters. Opslaan blijft altijd de bestaande servercontrole uitvoeren.
+// Controle bij aanmelden voorbereiden en gedurende de actieve sessie hergebruiken
+// voor invoervensters. Opslaan blijft server-side beveiligd.
 let recentWriteAccessUntil = 0;
 let pendingWriteAccessCheck = null;
 async function ensureFastDialogWriteAccess() {
   if (Date.now() < recentWriteAccessUntil) return true;
   if (!pendingWriteAccessCheck) {
     pendingWriteAccessCheck = ensureDataWriteAccess().then(allowed => {
-      if (allowed) recentWriteAccessUntil = Date.now() + 60000;
+      if (allowed) recentWriteAccessUntil = Number.POSITIVE_INFINITY;
       return allowed;
     }).finally(() => { pendingWriteAccessCheck = null; });
   }
   return pendingWriteAccessCheck;
+}
+
+function prewarmDialogWriteAccess() {
+  // Achtergrondcontrole: de eerste klik hoeft niet op de netwerkrespons te wachten.
+  void ensureFastDialogWriteAccess().catch(error => console.warn("Toegangscontrole:", error));
 }
 
 async function runWriteEntryPoint(action) {
@@ -3510,6 +3515,7 @@ async function loginAccount() {
   document.getElementById("loginPassword").value = "";
 
   await refreshAuthState();
+  prewarmDialogWriteAccess();
   await loadAllDataFromSupabase();
   state.revenueLastRenderSignature = "";
   rerenderAll();
@@ -11465,25 +11471,35 @@ async function markNoShow() {
    MONTH PICKER
 ========================= */
 
+let agendaPickerMonth = 0;
+let agendaPickerYear = 2026;
+
+function renderAgendaMonthPicker() {
+  document.getElementById("agendaPickerYear").textContent = agendaPickerYear;
+  document.getElementById("agendaMonthGrid").innerHTML = monthNames.map((name, index) => `
+    <button type="button" class="revenue-month-option${index === agendaPickerMonth ? " selected" : ""}"
+      data-agenda-month="${index}">${capitalizeFirst(getMonthNameLong(index))}</button>
+  `).join("");
+  document.querySelectorAll("[data-agenda-month]").forEach(button => {
+    button.addEventListener("click", () => {
+      agendaPickerMonth = Number(button.dataset.agendaMonth);
+      renderAgendaMonthPicker();
+    });
+  });
+}
+
 function openMonthPicker() {
-  const monthSelect = document.getElementById("monthSelect");
-  monthSelect.innerHTML = monthNames.map((m, i) => `<option value="${i}">${getMonthNameUpper(i)}</option>`).join("");
-  monthSelect.value = String(state.currentMonth);
-  document.getElementById("yearSelect").value = state.currentYear;
-
-  closeAllAppSelectDropdowns();
-  refreshAppSelect(monthSelect);
-
+  agendaPickerMonth = state.currentMonth;
+  agendaPickerYear = state.currentYear;
+  renderAgendaMonthPicker();
   document.getElementById("monthPickerDialog").showModal();
-
-  window.requestAnimationFrame(() => refreshAppSelect(monthSelect));
 }
 
 function saveMonthPicker(event) {
   event.preventDefault();
 
-  state.currentMonth = Number(document.getElementById("monthSelect").value);
-  state.currentYear = Number(document.getElementById("yearSelect").value);
+  state.currentMonth = agendaPickerMonth;
+  state.currentYear = agendaPickerYear;
 
   const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
   const existingDay = Number(state.selectedDate.slice(8, 10));
@@ -12549,6 +12565,14 @@ function registerEvents() {
   ensureActiveNavVisible();
 
   document.getElementById("monthPickerBtn").addEventListener("click", openMonthPicker);
+  document.getElementById("agendaYearPrev").addEventListener("click", () => {
+    agendaPickerYear -= 1;
+    renderAgendaMonthPicker();
+  });
+  document.getElementById("agendaYearNext").addEventListener("click", () => {
+    agendaPickerYear += 1;
+    renderAgendaMonthPicker();
+  });
   document.getElementById("monthPickerForm").addEventListener("submit", saveMonthPicker);
   const todayIconBtn = document.getElementById("todayIconBtn");
   if (todayIconBtn) {
@@ -14101,6 +14125,7 @@ async function startApp() {
     setupAppBrowserBackNavigation();
 
     if (user) {
+      prewarmDialogWriteAccess();
       switchScreen("agendaScreen", t("agenda"), { replaceHistory: true });
     } else {
       switchScreen("accountScreen", t("account"), { replaceHistory: true });
