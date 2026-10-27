@@ -14084,10 +14084,8 @@ button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
 #pastUnpaidOverviewDialog .past-unpaid-overview-scroll { overflow-y: auto; flex: 1; min-height: 0; padding-bottom: 16px; }
 #pastUnpaidOverviewDialog .past-unpaid-intro { padding: 14px 12px; border: 1px solid #f0e1e7; font-size: 13px; line-height: 1.5; }
 #pastUnpaidOverviewDialog .past-unpaid-date { color: #bf6b8a; font-size: 13px; margin: 22px 0 7px; }
-#pastUnpaidOverviewDialog .past-unpaid-row { cursor: pointer; display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 8px; padding: 10px 2px; border-bottom: 1px solid #f0e5e9; }
+#pastUnpaidOverviewDialog .past-unpaid-row { border-bottom: 1px solid #f0e5e9; }
 #pastUnpaidOverviewDialog .past-unpaid-description { min-width: 0; }
-#pastUnpaidOverviewDialog .past-unpaid-row .main-name { font-size: 12px; }
-#pastUnpaidOverviewDialog .past-unpaid-row .meta { font-size: 11px; }
 #pastUnpaidOverviewDialog .past-unpaid-row .price-chip { align-self: center; }
 
 /* Openstaande afspraken: scrollvlak tot de onderrand, scrollbalk aan schermrand. */
@@ -14174,3 +14172,72 @@ button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
 
 /* Alle zes instellingenkaarten staan nu in dezelfde grid. */
 #settingsScreen .settings-section-grid > .settings-deleted-appointments-card { margin-top: 0 !important; }
+
+/* Agenda: feestdagen herkenbaar anders dan zelf ingestelde vrije dagen. */
+.day-cell.fixed-free-day.belgian-holiday { background: #e8dce3; border-color: #d9bdcc; }
+.day-cell.fixed-free-day.belgian-holiday.selected { background: #e2d2dd; border-color: var(--primary); }
+.day-cell.fixed-free-day.belgian-holiday.other-month { background: #eee5ea; }
+.agenda-day-calendar.is-belgian-holiday,
+.agenda-day-calendar.is-belgian-holiday .agenda-day-scroll,
+.agenda-day-calendar.is-belgian-holiday .agenda-day-grid { background: #e8dce3 !important; }
+.agenda-holiday-banner, .agenda-day-holiday-banner {
+  padding: 9px 12px; background: #f7eaf0; color: #9e5775;
+  font-weight: 650; text-align: center; border: 1px solid #ead0dc;
+  border-radius: 9px; margin-bottom: 8px;
+}
+.agenda-day-holiday-banner { flex: 0 0 auto; position: relative; z-index: 3; }
+#agendaUnfinishedBtn.fab { width: 52px; height: 52px; display: grid; place-items: center; background: #fff0d9; color: #b56d18; }
+#agendaUnfinishedBtn.fab.hidden { display: none !important; }
+#agendaUnfinishedBtn.fab { left: 24px; transform: none; width: 38px; height: 38px; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 20px); background: transparent; border: 0; box-shadow: none; color: #e3a300; padding: 3px; }
+#agendaUnfinishedBtn svg { width: 29px; height: 29px; fill: #ffe35a; stroke: #242424; }
+.agenda-unfinished-popover { position: fixed; left: 16px; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 66px); z-index: 95; width: min(260px, calc(100vw - 32px)); background: #fff; border: 1px solid #eee; box-shadow: 0 2px 10px #0002; padding: 10px; color: #333; font-size: 12px; }
+.agenda-unfinished-popover.hidden { display: none !important; }
+.agenda-unfinished-popover::after { content: ""; position: absolute; bottom: -8px; left: 18px; width: 14px; height: 14px; transform: rotate(45deg); background: #fff; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+.agenda-unfinished-popover-heading { display: flex; align-items: center; justify-content: space-between; color: #d784a0; font-size: 12px; }
+.agenda-unfinished-popover-heading button { border: 0; background: none; font-size: 26px; line-height: 1; cursor: pointer; color: #555; }
+.agenda-unfinished-popover p { margin: 10px 0; }
+.agenda-unfinished-show { display: block; width: 85%; margin: 10px auto 0; background: #dcf4e5; color: #333; border: 0; padding: 12px 8px; cursor: pointer; }
+
+/* Gerichte verfijning waarschuwing openstaande afspraken */
+#agendaUnfinishedBtn.agenda-unfinished-btn { position: fixed; left: 24px; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 20px); z-index: 90; display: grid; place-items: center; width: 38px; height: 38px; padding: 2px; border: 0; border-radius: 0; background: transparent; box-shadow: none; transform: none; cursor: pointer; }
+#agendaUnfinishedBtn.agenda-unfinished-btn.hidden { display: none !important; }
+#agendaUnfinishedBtn.agenda-unfinished-btn svg { width: 34px; height: 34px; fill: #ffe35a; stroke: #242424; stroke-width: 1.35; }
+.agenda-unfinished-popover { font-size: 14px; }
+.agenda-unfinished-popover-heading { font-size: 14px; gap: 8px; }
+.agenda-unfinished-popover-heading .icon-btn { width: 30px; height: 30px; font-size: 18px; }
+.agenda-unfinished-popover p { font-size: 14px; line-height: 1.4; }
+.agenda-unfinished-show { font-size: 14px; }
+
+/* Waarschuwingsdriehoek: zachtere, fijnere rand en subtiele fade bij verschijnen */
+#agendaUnfinishedBtn.agenda-unfinished-btn {
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 15px);
+  animation: agendaWarningFadeIn 650ms ease-out both;
+}
+#agendaUnfinishedBtn.agenda-unfinished-btn svg {
+  stroke: #68636a;
+  stroke-width: 1.05;
+}
+@keyframes agendaWarningFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #agendaUnfinishedBtn.agenda-unfinished-btn { animation: none; }
+}
+
+/* Waarschuwing: duidelijkere fade/zoom bij verschijnen, zonder layoutverschuiving. */
+#agendaUnfinishedBtn.agenda-unfinished-btn:not(.hidden) {
+  animation: agendaWarningAttention 1050ms cubic-bezier(.2,.8,.25,1) both;
+}
+@keyframes agendaWarningAttention {
+  0% { opacity: 0; scale: .55; }
+  45% { opacity: 1; scale: 1.17; }
+  70% { scale: .94; }
+  100% { opacity: 1; scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #agendaUnfinishedBtn.agenda-unfinished-btn:not(.hidden) { animation: none; }
+}
+
+/* Afspraakregels delen hun HTML en basis-CSS in Agenda en openstaand overzicht. */
+#pastUnpaidOverviewDialog .past-unpaid-row .appointment-description { min-width: 0; }

@@ -36,7 +36,7 @@
   />
   <link rel="preload" as="image" href="img/NB_logo.png" />
 
-  <link rel="stylesheet" href="styles.css?v=20261026-icons-arrows3" />
+  <link rel="stylesheet" href="styles.css?v=20261027-shared-appointment-row" />
 
   <title>NailBooker</title>
 </head>
@@ -1031,6 +1031,12 @@
   <button id="standardCostsBtn" class="fab fab-secondary hidden feature-retired" type="button" aria-label="Standaardkosten">
     <span aria-hidden="true">☰</span>
   </button>
+  <button id="agendaUnfinishedBtn" class="agenda-unfinished-btn hidden" type="button" aria-label="Niet-afgewerkte afspraken" title="Niet-afgewerkte afspraken"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 22 21H2L12 3Z"/><path d="M12 9v5" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1" fill="currentColor" stroke="none"/></svg></button>
+  <div id="agendaUnfinishedPopover" class="agenda-unfinished-popover hidden" role="dialog" aria-label="Niet afgewerkte afspraken">
+    <div class="agenda-unfinished-popover-heading"><strong>Niet afgewerkte afspraken</strong><button id="agendaUnfinishedPopoverClose" type="button" class="icon-btn payment-popover-close" aria-label="Sluiten">✕</button></div>
+    <p>Er zijn afspraken in het verleden die nog niet afgewerkt zijn.</p>
+    <button id="agendaUnfinishedPopoverShow" type="button" class="agenda-unfinished-show">Toon overzicht</button>
+  </div>
   <button id="floatingAddBtn" class="fab" type="button" aria-label="Toevoegen">+</button>
 
   <!-- =========================================================
@@ -1946,7 +1952,7 @@
   ========================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
-  <script src="app.js?v=20261027-dialogspeed1"></script>
+  <script src="app.js?v=20261027-shared-appointment-row"></script>
 
 <script>
   const bottomNav = document.querySelector('.bottom-nav');

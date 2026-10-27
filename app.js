@@ -848,6 +848,30 @@ function belgianPublicHolidayDates(year) {
   ]);
 }
 
+function belgianPublicHolidayName(dateStr, settings = getSettings()) {
+  if (!isBelgianPublicHoliday(dateStr, settings)) return "";
+  const year = Number(dateStr.slice(0, 4));
+  const easter = easterSundayDate(year);
+  const movable = offset => {
+    const d = new Date(easter);
+    d.setDate(d.getDate() + offset);
+    return formatDateInput(d);
+  };
+  const names = {
+    [`${year}-01-01`]: "Nieuwjaar",
+    [movable(1)]: "Paasmaandag",
+    [`${year}-05-01`]: "Dag van de Arbeid",
+    [movable(39)]: "O.L.H. Hemelvaart",
+    [movable(50)]: "Pinkstermaandag",
+    [`${year}-07-21`]: "Nationale feestdag",
+    [`${year}-08-15`]: "O.L.V. Hemelvaart",
+    [`${year}-11-01`]: "Allerheiligen",
+    [`${year}-11-11`]: "Wapenstilstand",
+    [`${year}-12-25`]: "Kerstmis"
+  };
+  return names[dateStr] || "";
+}
+
 function isBelgianPublicHoliday(dateStr, settings = getSettings()) {
   if (!settings?.belgianHolidaysEnabled) return false;
   const date = new Date(`${dateStr}T00:00:00`);
@@ -1825,7 +1849,7 @@ function ensurePastUnpaidOverviewDialog() {
   scroller.addEventListener("scroll", () => scrollTopButton.classList.toggle("is-visible", scroller.scrollTop > 120), { passive: true });
   scrollTopButton.addEventListener("click", () => scroller.scrollTo({ top: 0, behavior: "smooth" }));
   dialog.querySelector(".past-unpaid-close").addEventListener("click", () => dialog.close());
-  dialog.addEventListener("cancel", () => { pastUnpaidAgendaAlertOpen = false; });
+  dialog.addEventListener("cancel", () => { pastUnpaidAgendaAlertOpen = false; requestAnimationFrame(() => updateAgendaUnfinishedButton()); });
   dialog.addEventListener("focusin", () => {
     if (!dialog.open) return;
     clearTimeout(dialog._refreshTimer);
@@ -1840,6 +1864,7 @@ function ensurePastUnpaidOverviewDialog() {
       delete dialog._previousScreenTitle;
     }
     pastUnpaidAgendaAlertOpen = false;
+    requestAnimationFrame(() => updateAgendaUnfinishedButton());
     closeAppointmentActionPopover();
     restoreFloatingPopoversToBody();
   });
@@ -1848,6 +1873,21 @@ function ensurePastUnpaidOverviewDialog() {
     child.addEventListener("close", () => { if (dialog.open) renderPastUnpaidOverview(); });
   });
   return dialog;
+}
+
+// Eén gedeelde HTML-opbouw voor gewone afspraken in Agenda en openstaand overzicht.
+function normalAppointmentRowMarkup(app, data, customer, service) {
+  const details = [];
+  if (service?.name) details.push(service.name);
+  if (String(app.status || "").toLowerCase() === "no-show") details.push("no show");
+  else if (app.paid && paymentMethodNameForAppointment(app, data)) details.push(paymentMethodNameForAppointment(app, data));
+  const name = customer ? fullName(customer) : "Onbekend";
+  const star = String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : "";
+  return `<div class="time-block"><div class="time">${htmlEscape(app.time || "")}</div>
+    <div class="time-end">${htmlEscape(t("until"))} ${htmlEscape(getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes))}</div></div>
+    <div class="appointment-description"><div class="main-name appointment-main-name">${htmlEscape(name)}${star}</div>
+    <div class="meta">${htmlEscape(details.join(" · "))}</div></div>
+    <button class="price-chip ${app.paid ? "paid" : ""} ${String(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${htmlEscape(String(app.id))}" type="button">${euro(app.price, app.currency)}</button>`;
 }
 
 function renderPastUnpaidOverview() {
@@ -1876,11 +1916,7 @@ function renderPastUnpaidOverview() {
     row.className = "appointment-row past-unpaid-row";
     row.setAttribute("role", "button");
     row.tabIndex = 0;
-    row.innerHTML = `<div class="time-block"><div class="time">${htmlEscape(app.time || "")}</div>
-      <div class="time-end">${htmlEscape(getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes))}</div></div>
-      <div class="past-unpaid-description"><div class="main-name">${htmlEscape(customer ? fullName(customer) : "Onbekende klant")}</div>
-      <div class="meta">${htmlEscape(service?.name || "-")}</div></div>
-      <button class="price-chip" type="button">${euro(app.price, app.currency)}</button>`;
+    row.innerHTML = normalAppointmentRowMarkup(app, data, customer, service);
     const openActions = () => {
       // Popover binnen het modale overzicht houden (niet terug naar Agenda).
       const popover = document.getElementById("appointmentActionPopover");
@@ -1903,6 +1939,7 @@ function showPastUnpaidAgendaAlertIfNeeded() {
   if (pastUnpaidAgendaAlertShown || pastUnpaidAgendaAlertOpen || state.currentScreen !== "agendaScreen") return;
   if (!getPastUnpaidAppointments().length) return;
   pastUnpaidAgendaAlertOpen = true;
+  updateAgendaUnfinishedButton();
   pastUnpaidAgendaAlertShown = true;
   const dialog = ensurePastUnpaidOverviewDialog();
   const title = document.getElementById("screenTitle");
@@ -3773,12 +3810,61 @@ function ensureAgendaFabMenu() {
 }
 
 
+function updateAgendaUnfinishedButton(screenId = state.currentScreen) {
+  const button = document.getElementById("agendaUnfinishedBtn");
+  if (!button) return;
+  const visible = screenId === "agendaScreen" && !pastUnpaidAgendaAlertOpen && !document.getElementById("pastUnpaidOverviewDialog")?.open && getPastUnpaidAppointments().length > 0;
+  button.classList.toggle("hidden", !visible);
+  if (!visible) closeAgendaUnfinishedPopover();
+}
+
+function closeAgendaUnfinishedPopover() {
+  document.getElementById("agendaUnfinishedPopover")?.classList.add("hidden");
+  document.getElementById("agendaUnfinishedBtn")?.setAttribute("aria-expanded", "false");
+}
+
+function openAgendaUnfinishedWarning(event) {
+  event?.stopPropagation();
+  if (!getPastUnpaidAppointments().length) return;
+  const popover = document.getElementById("agendaUnfinishedPopover");
+  if (!popover) return;
+  const opening = popover.classList.contains("hidden");
+  closeAgendaUnfinishedPopover();
+  if (opening) {
+    closePaymentPopover();
+    closeAppointmentActionPopover();
+    popover.classList.remove("hidden");
+    document.getElementById("agendaUnfinishedBtn")?.setAttribute("aria-expanded", "true");
+  }
+}
+
+document.getElementById("agendaUnfinishedBtn")?.addEventListener("click", openAgendaUnfinishedWarning);
+document.getElementById("agendaUnfinishedPopoverClose")?.addEventListener("click", closeAgendaUnfinishedPopover);
+document.getElementById("agendaUnfinishedPopoverShow")?.addEventListener("click", () => {
+  closeAgendaUnfinishedPopover();
+  const dialog = ensurePastUnpaidOverviewDialog();
+  const title = document.getElementById("screenTitle");
+  dialog._previousScreenTitle = title?.textContent || "Agenda";
+  pastUnpaidAgendaAlertOpen = true;
+  openStyledDialog(dialog);
+  if (title) title.textContent = "NailBooker";
+  renderPastUnpaidOverview();
+});
+document.addEventListener("click", event => {
+  const popover = document.getElementById("agendaUnfinishedPopover");
+  if (!popover || popover.classList.contains("hidden")) return;
+  if (popover.contains(event.target) || document.getElementById("agendaUnfinishedBtn")?.contains(event.target)) return;
+  closeAgendaUnfinishedPopover();
+});
+document.addEventListener("keydown", event => { if (event.key === "Escape") closeAgendaUnfinishedPopover(); });
+
 function updateTopbar(screenId, title) {
   document.getElementById("screenTitle").textContent = getScreenTitle(screenId, title);
 
   const backBtn = document.getElementById("backBtn");
   const fab = document.getElementById("floatingAddBtn");
   const standardCostsBtn = document.getElementById("standardCostsBtn");
+  updateAgendaUnfinishedButton(screenId);
 
   backBtn?.classList.toggle("hidden-btn", true);
   const showStandardCostsFab = screenId === "costsScreen" && getStandardCosts(getData()).length > 0;
@@ -3933,7 +4019,8 @@ function createCalendarDayCell(dateStr, dayNumber, { isOtherMonth = false, inter
   const isSelected = dateStr === state.selectedDate;
   const isToday = dateStr === todayStr;
   const isFreeDay = isFixedFreeDay(dateStr);
-  cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}${isOtherMonth ? " other-month" : ""}${isFreeDay ? " fixed-free-day" : ""}`;
+  const isHoliday = isBelgianPublicHoliday(dateStr);
+  cell.className = `day-cell${isSelected ? " selected" : ""}${isToday ? " today" : ""}${isOtherMonth ? " other-month" : ""}${isFreeDay ? " fixed-free-day" : ""}${isHoliday ? " belgian-holiday" : ""}`;
   cell.innerHTML = `<button class="day-button" aria-label="${dateStr}"${preview ? ' tabindex="-1" aria-hidden="true"' : ""}></button><span class="day-number">${dayNumber}</span>`;
 
   if (appts.length) {
@@ -4624,6 +4711,12 @@ function setupAppPageSwipeNavigation() {
     }
 
     if (!updatePageDragPosition(dx)) return;
+    // Verberg de waarschuwing zodra een horizontale paginaswipe werkelijk begint.
+    // Bij een afgebroken swipe wordt de normale zichtbaarheid hersteld.
+    if (state.currentScreen === "agendaScreen") {
+      document.getElementById("agendaUnfinishedBtn")?.classList.add("hidden");
+      closeAgendaUnfinishedPopover();
+    }
     event.preventDefault();
     lastX = x;
   }, { passive: false });
@@ -4640,6 +4733,7 @@ function setupAppPageSwipeNavigation() {
     reset();
 
     const didNavigate = finishPageDrag(commit);
+    if (!didNavigate) updateAgendaUnfinishedButton();
 
     // Na een echte swipe kan iOS/Chrome nog een synthetische click afvuren
     // op het element waar de swipe begon. Die willen we kort blokkeren.
@@ -4655,6 +4749,7 @@ function setupAppPageSwipeNavigation() {
   }, { passive: true });
 
   layout.addEventListener("touchcancel", () => {
+    updateAgendaUnfinishedButton();
     reset();
     finishPageDrag(false);
   }, { passive: true });
@@ -4670,6 +4765,7 @@ function setupAppPageSwipeNavigation() {
 
 
 function renderAgendaList() {
+  updateAgendaUnfinishedButton();
   const data = getData();
   const list = document.getElementById("agendaList");
 
@@ -4680,13 +4776,15 @@ function renderAgendaList() {
   }
 
   const appts = getAppointmentsForDate(state.selectedDate, data);
+  const holidayName = belgianPublicHolidayName(state.selectedDate);
+  const holidayBanner = holidayName ? `<div class="agenda-holiday-banner">${htmlEscape(holidayName)}</div>` : "";
 
   if (!appts.length) {
-    list.innerHTML = `<div class="empty-state">${t("noAppointmentsOnDay")}</div>`;
+    list.innerHTML = holidayBanner + `<div class="empty-state">${t("noAppointmentsOnDay")}</div>`;
     return;
   }
 
-  list.innerHTML = "";
+  list.innerHTML = holidayBanner;
 
   const card = document.createElement("div");
   card.className = "appointment-card";
@@ -4717,7 +4815,10 @@ function renderAgendaList() {
       }
     }
 
-    row.innerHTML = `
+    if (!privateApp) {
+      row.innerHTML = normalAppointmentRowMarkup(app, data, customer, service);
+    } else {
+      row.innerHTML = `
       <div class="time-block">
         <div class="time">${privateApp ? privateDisplayTime.main : app.time}</div>
         <div class="time-end">${privateApp ? privateDisplayTime.sub : `${t("until")} ${endTime}`}</div>
@@ -4728,6 +4829,8 @@ function renderAgendaList() {
       </div>
       ${privateApp ? '<span class="private-chip">Privé</span>' : `<button class="price-chip ${app.paid ? "paid" : ""} ${(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${app.id}" type="button">${euro(app.price, app.currency)}</button>`}
     `;
+
+    }
 
     let appointmentLongPressTimer = null;
     let appointmentLongPressTriggered = false;
@@ -10269,6 +10372,7 @@ function openPaymentDialog(id, anchorEl = null) {
   renderPaymentPopoverOptions(app, data);
 
   const rect = anchorEl?.getBoundingClientRect?.();
+  closeAgendaUnfinishedPopover();
   paymentPopoverState.appointmentId = String(id);
   paymentPopoverState.anchorRect = rect
     ? { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width, height: rect.height }
@@ -12874,7 +12978,7 @@ function registerEvents() {
     if (popover.contains(event.target)) return;
     if (event.target.closest("#paymentQrPopover")) return;
     if (event.target.closest("#paymentQrDialog")) return;
-    if (event.target.closest(".price-chip")) return;
+    // Ook bij het aanklikken van een ander bedrag de vorige ballon sluiten.
     closePaymentPopover();
   });
 
@@ -14567,7 +14671,10 @@ async function startApp() {
 
     wrap.classList.toggle("has-pinned-private-day", pinnedPrivateAppointments.length > 0);
     wrap.classList.toggle("is-fixed-free-day", isFixedFreeDay(state.selectedDate));
+    wrap.classList.toggle("is-belgian-holiday", isBelgianPublicHoliday(state.selectedDate));
+    const dayHoliday = belgianPublicHolidayName(state.selectedDate);
     wrap.innerHTML = `
+      ${dayHoliday ? `<div class="agenda-day-holiday-banner">${htmlEscape(dayHoliday)}</div>` : ""}
       ${pinnedBlocks ? `<div class="agenda-day-pinned-private-wrap">${pinnedBlocks}</div>` : ""}
       <button class="agenda-day-hidden-nav agenda-day-hidden-nav-top hidden" type="button" aria-label="Toon eerdere verborgen afspraken">...</button>
       <div class="agenda-day-scroll">
