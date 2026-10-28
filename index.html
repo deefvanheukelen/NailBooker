@@ -393,9 +393,13 @@
 <select class="field" id="settingsCurrency"></select>
 </div>
 <label class="settings-switch-row settings-tabmenu-checkbox" for="settingsAgendaFabMenuEnabled">
-<span><strong>Tabmenu</strong></span>
+<span><strong>Tabmenu Agenda</strong></span>
 
 <input id="settingsAgendaFabMenuEnabled" type="checkbox"/>
+</label>
+<label class="settings-switch-row" for="settingsSortCustomersFirstName">
+<span><strong>Klanten sorteren op voornaam</strong></span>
+<input id="settingsSortCustomersFirstName" type="checkbox"/>
 </label>
 </section>
 <section class="settings-section-card">
@@ -1214,11 +1218,11 @@
   <dialog id="appointmentDialog" class="modal">
   <div id="appointmentCustomerOverlay" class="nb-customer-overlay hidden" role="dialog" aria-modal="true" aria-label="Klant kiezen">
     <div class="nb-customer-overlay-head"><strong>Klant kiezen</strong><button id="appointmentCustomerOverlayClose" type="button" aria-label="Sluiten">✕</button></div>
-    <div class="nb-customer-overlay-body"><div id="appointmentOverlayAlphabet" class="alphabet-filter"></div><div id="appointmentOverlayList" class="scroll-list"></div></div><button id="appointmentOverlayScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
+    <div class="nb-customer-overlay-body"><div class="nb-appointment-overlay-search"><input id="appointmentOverlaySearch" class="search-input" type="search" placeholder="Zoek op naam, telefoon of e-mail..." aria-label="Klant zoeken" autocomplete="off"></div><div id="appointmentOverlayAlphabet" class="alphabet-filter"></div><div id="appointmentOverlayList" class="scroll-list"></div></div><button id="appointmentOverlayScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
   </div>
   <div id="appointmentServiceOverlay" class="nb-customer-overlay hidden" role="dialog" aria-modal="true" aria-label="Dienst kiezen">
     <div class="nb-customer-overlay-head"><strong>Dienst kiezen</strong><button id="appointmentServiceOverlayClose" type="button" aria-label="Sluiten">✕</button></div>
-    <div class="nb-customer-overlay-body"><div id="appointmentServiceAlphabet" class="alphabet-filter"></div><div id="appointmentServiceList" class="scroll-list"></div></div>
+    <div class="nb-customer-overlay-body"><div class="nb-appointment-overlay-search"><input id="appointmentServiceOverlaySearch" class="search-input" type="search" placeholder="Zoek dienst..." aria-label="Dienst zoeken" autocomplete="off"></div><div id="appointmentServiceAlphabet" class="alphabet-filter"></div><div id="appointmentServiceList" class="scroll-list"></div></div>
     <button id="appointmentServiceScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
   </div>
 
@@ -2011,7 +2015,7 @@
 
   <div id="revenueActionBar" class="revenue-action-bar hidden" aria-label="Omzetacties">
     <button id="revenueExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer kwartaaloverzicht daginkomsten">
-      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">Daginkomsten</span>
+      <span class="client-action-icon revenue-action-report-label" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M6 15h12v6H6z"/><path d="M17 12h.01"/></svg></span>
     </button>
   </div>
 

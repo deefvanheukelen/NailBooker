@@ -385,6 +385,8 @@ async function saveHeaderLanguagePreference(language) {
       free_period_start: normalizeOptionalDate(currentSettings.freePeriodStart) || null,
       free_period_end: normalizeOptionalDate(currentSettings.freePeriodEnd) || null,
       belgian_holidays_enabled: Boolean(currentSettings.belgianHolidaysEnabled),
+      agenda_fab_menu_enabled: currentSettings.agendaFabMenuEnabled !== false,
+      sort_customers_first_name: currentSettings.sortCustomersFirstName === true,
       language: nextLanguage,
       currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
       payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
@@ -917,7 +919,8 @@ function getDefaultSettings() {
     freePeriodStart: "",
     freePeriodEnd: "",
     belgianHolidaysEnabled: false,
-    agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
+    agendaFabMenuEnabled: true,
+    sortCustomersFirstName: false,
     showTipsOnOpen: true,
     language: DEFAULT_LANGUAGE,
     currency: DEFAULT_CURRENCY,
@@ -1589,6 +1592,8 @@ async function ensureCalendarFeedToken({ forceNew = false } = {}) {
     free_period_start: normalizeOptionalDate(currentSettings.freePeriodStart) || null,
     free_period_end: normalizeOptionalDate(currentSettings.freePeriodEnd) || null,
     belgian_holidays_enabled: Boolean(currentSettings.belgianHolidaysEnabled),
+    agenda_fab_menu_enabled: currentSettings.agendaFabMenuEnabled !== false,
+    sort_customers_first_name: currentSettings.sortCustomersFirstName === true,
     language: normalizeLanguage(currentSettings.language || getCurrentLanguage()),
     currency: normalizeCurrency(currentSettings.currency || getCurrentCurrency()),
     payment_beneficiary_name: currentSettings.paymentBeneficiaryName || null,
@@ -4939,13 +4944,32 @@ function renderAgendaList() {
   });
 }
 
+// Gebruikersvoorkeur uit user_settings (Supabase).
+function sortCustomersByFirstName() {
+  return getSettings().sortCustomersFirstName === true;
+}
+function customerSortKey(customer) {
+  const first = String(customer.firstName || "").trim();
+  const last = String(customer.lastName || "").trim();
+  return sortCustomersByFirstName() ? `${first} ${last}` : `${last || first} ${first}`;
+}
+function customerDisplayName(customer) {
+  const first = String(customer.firstName || "").trim();
+  const last = String(customer.lastName || "").trim();
+  return sortCustomersByFirstName() ? fullName(customer) : [last, first].filter(Boolean).join(" ");
+}
+function customerInitialKey(customer) {
+  return String((sortCustomersByFirstName() ? customer.firstName : (customer.lastName || customer.firstName)) || "").trim().charAt(0).toUpperCase();
+}
+function compareCustomers(a, b) { return customerSortKey(a).localeCompare(customerSortKey(b), "nl-BE", { sensitivity: "base" }); }
+
 function renderAlphabetFilter() {
   const wrap = document.getElementById("alphabetFilter");
   const data = getData();
 
   const letters = [...new Set(
     data.customers
-      .map(c => (c.firstName || "").trim().charAt(0).toUpperCase())
+      .map(c => customerInitialKey(c))
       .filter(Boolean)
   )].sort();
 
@@ -5011,10 +5035,10 @@ function renderClients() {
   }
 
   if (state.clientLetter) {
-    clients = clients.filter(c => (c.firstName || "").toUpperCase().startsWith(state.clientLetter));
+    clients = clients.filter(c => customerInitialKey(c) === state.clientLetter);
   }
 
-  clients.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || ""));
+  clients.sort(compareCustomers);
 
   if (!clients.length) {
     list.innerHTML = `<div class="empty-state">${t("noClientsFound")}</div>`;
@@ -5032,9 +5056,9 @@ function renderClients() {
     card.innerHTML = `
       <button type="button" data-id="${client.id}">
         <span class="management-list-content">
-          <span class="management-initial ${managementInitialColorClass(fullName(client))}" aria-hidden="true">${managementInitial(fullName(client))}</span>
+          <span class="management-initial ${managementInitialColorClass(customerDisplayName(client))}" aria-hidden="true">${managementInitial(customerDisplayName(client))}</span>
           <span class="management-list-text">
-            <span class="client-name">${escapeHtml(fullName(client) || "Naamloos")}</span>
+            <span class="client-name">${escapeHtml(customerDisplayName(client) || "Naamloos")}</span>
             <span class="meta">${escapeHtml(phone || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</span>
           </span>
         </span>
@@ -7360,31 +7384,103 @@ function generateIncomePdf(period,year,value,salonName='') {
   const esc=s=>ascii(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
   const rect=(x,b,w,h,color)=>ops.push(`${color} rg ${x} ${b} ${w} ${h} re f`);
   const txt=(x,b,str,size=10,bold=false,color='0.27 0.26 0.29')=>ops.push(`${color} rg BT /F${bold?2:1} ${size} Tf 1 0 0 1 ${x} ${b} Tm (${esc(str)}) Tj ET`);
+  const weekdays=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  const gridMode = ['month','quarter','year'].includes(period);
+  const line=(x1,y1,x2,y2,color='0.79 0.76 0.78',width=.45)=>ops.push(`${color} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S`);
   const header=()=>{
     if(ops.length) pages.push(ops);
     ops=[]; rect(0,782,595,60,'0.97 0.90 0.93'); rect(0,776,595,6,'0.78 0.43 0.56');
     txt(42,809,salonName||'NailBooker',18,true,'0.54 0.27 0.38');
     txt(42,791,'DAGINKOMSTEN',9,true,'0.54 0.27 0.38');
-    txt(42,749,label,13,true); txt(42,730,`${bounds.start.split('-').reverse().join('/')} - ${new Date(bounds.endDate.getTime()-86400000).toLocaleDateString('nl-BE')}`,9);
-    rect(38,695,519,25,'0.97 0.94 0.95');
-    txt(45,704,'Datum',10,true); txt(310,704,'Afspraken',10,true); txt(437,704,'Inkomsten',10,true);
-    y=682;
+    txt(42,749,label,13,true);
+    txt(42,730,`${bounds.start.split('-').reverse().join('/')} - ${new Date(bounds.endDate.getTime()-86400000).toLocaleDateString('nl-BE')}`,9);
+    y=699;
+  };
+  const totalBar=(caption,n,amount)=>{
+    if(y<109) header();
+    rect(38,y-28,519,30,'0.97 0.90 0.93');
+    txt(46,y-17,caption,10,true,'0.54 0.27 0.38');
+    txt(300,y-17,`${n} afspraken`,9,true);
+    txt(440,y-17,money(amount),9,true);
+    y-=40;
   };
   header();
-  const weekdays=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
-  rows.forEach(([date,v,closed],index)=>{
-    if(y<94) header();
-    if(index%2===0) rect(38,y-7,519,20,'0.99 0.97 0.98');
-    const [yr,mo,day]=date.split('-');
-    txt(45,y,`${weekdays[new Date(Number(yr),Number(mo)-1,Number(day)).getDay()]} ${day}/${mo}/${yr}`,9);
-    if(v) { txt(323,y,String(v.count),9); txt(437,y,money(v.amount),9,true); }
-    else txt(310,y,closed?'Winkel gesloten':'Geen daginkomsten',9,false,'0.55 0.49 0.53');
-    y-=21;
-  });
-  if(y<110) header();
-  rect(38,y-11,519,33,'0.97 0.90 0.93');
-  txt(45,y+1,'TOTAAL',11,true,'0.54 0.27 0.38');
-  txt(323,y+1,String(count),10,true); txt(437,y+1,money(total),10,true);
+  if(gridMode) {
+    // Een maandkalender per maand, met zeven kolommen en gekleurde dagvakken.
+    const groups=new Map();
+    rows.forEach(row=>{
+      const key=row[0].slice(0,7);
+      if(!groups.has(key)) groups.set(key,[]);
+      groups.get(key).push(row);
+    });
+    const left=38, width=519, cellW=width/7, rowH=77, headH=23;
+    for(const [key,monthRows] of groups) {
+      const [yr,mo]=key.split('-').map(Number);
+      const offset=(new Date(yr,mo-1,1).getDay()+6)%7;
+      const weekCount=Math.ceil((offset+monthRows.length)/7);
+      const gridH=headH+weekCount*rowH;
+      // Houd de kalender van een maand samen op een pagina.
+      if(y-gridH-56<81) header();
+      txt(left,y-13,`${months[mo-1][0].toUpperCase()+months[mo-1].slice(1)} ${yr}`,12,true,'0.54 0.27 0.38');
+      y-=26;
+      const top=y;
+      rect(left,top-headH,width,headH,'0.96 0.91 0.94');
+      ['Ma','Di','Wo','Do','Vr','Za','Zo'].forEach((d,col)=>txt(left+col*cellW+7,top-15,d,9,true));
+      for(let slot=0;slot<weekCount*7;slot++) {
+        const col=slot%7,week=Math.floor(slot/7),idx=slot-offset;
+        const x=left+col*cellW, t=top-headH-week*rowH;
+        const row=monthRows[idx];
+        if(row) {
+          const [date,v,closed]=row;
+          rect(x,t-rowH,cellW,rowH,v?'0.88 0.96 0.90':closed?'0.91 0.91 0.92':'0.99 0.91 0.88');
+          txt(x+6,t-14,String(idx+1).padStart(2,'0'),9,true);
+          if(v) {
+            txt(x+6,t-35,`${v.count} ${v.count===1?'afspraak':'afspraken'}`,7.5);
+            txt(x+6,t-49,money(v.amount),8,true);
+          } else if(closed) {
+            txt(x+6,t-35,'Winkel',8);
+            txt(x+6,t-47,'gesloten',8);
+          } else {
+            txt(x+6,t-35,'Geen dag-',8);
+            txt(x+6,t-47,'inkomsten',8);
+          }
+        }
+        line(x,t-rowH,x+cellW,t-rowH);
+        line(x,t,x,t-rowH);
+      }
+      line(left+width,top,left+width,top-gridH);
+      line(left,top,left+width,top);
+      line(left,top-headH,left+width,top-headH);
+      line(left,top-gridH,left+width,top-gridH);
+      for(let col=1;col<7;col++) line(left+col*cellW,top,left+col*cellW,top-gridH);
+      y=top-gridH-11;
+      const mCount=monthRows.reduce((n,[,v])=>n+(v?.count||0),0);
+      const mTotal=monthRows.reduce((n,[,v])=>n+(v?.amount||0),0);
+      totalBar(`Totaal ${months[mo-1]}`,mCount,mTotal);
+      y-=15;
+    }
+  } else {
+    // Dag en week: compacte gekleurde tabel met dezelfde kleurcodering.
+    rect(38,y-25,519,25,'0.96 0.91 0.94');
+    txt(46,y-17,'Datum',10,true);txt(302,y-17,'Afspraken / status',10,true);txt(447,y-17,'Inkomsten',10,true);
+    y-=29;
+    rows.forEach(([date,v,closed])=>{
+      if(y<103) {
+        header();
+        rect(38,y-25,519,25,'0.96 0.91 0.94');
+        txt(46,y-17,'Datum',10,true);txt(302,y-17,'Afspraken / status',10,true);txt(447,y-17,'Inkomsten',10,true);
+        y-=29;
+      }
+      const [yr,mo,day]=date.split('-');
+      rect(38,y-28,519,28,v?'0.88 0.96 0.90':closed?'0.91 0.91 0.92':'0.99 0.91 0.88');
+      txt(46,y-18,`${weekdays[new Date(+yr,+mo-1,+day).getDay()]} ${day}/${mo}/${yr}`,9);
+      txt(302,y-18,v?`${v.count} ${v.count===1?'afspraak':'afspraken'}`:closed?'Winkel gesloten':'Geen daginkomsten',9);
+      if(v) txt(447,y-18,money(v.amount),9,true);
+      line(38,y-28,557,y-28);
+      y-=30;
+    });
+  }
+  totalBar('ALGEMEEN TOTAAL',count,total);
   pages.push(ops);
   const objects=[null],obj=v=>(objects.push(v),objects.length-1);
   const catalogId=obj(''),pagesId=obj('');
@@ -8700,6 +8796,7 @@ function getSettingsFormSnapshot() {
     "settingsFreePeriodEnd",
     "settingsBelgianHolidaysEnabled",
     "settingsAgendaFabMenuEnabled",
+    "settingsSortCustomersFirstName",
     "settingsShowTipsOnOpen",
     "settingsLanguage",
     "settingsCurrency",
@@ -8836,6 +8933,8 @@ function renderSettings() {
   const freePeriodEndInput = document.getElementById("settingsFreePeriodEnd");
   const belgianHolidaysToggle = document.getElementById("settingsBelgianHolidaysEnabled");
   const agendaFabMenuToggle = document.getElementById("settingsAgendaFabMenuEnabled");
+  const sortToggle = document.getElementById("settingsSortCustomersFirstName");
+  if (sortToggle) sortToggle.checked = settings.sortCustomersFirstName === true;
   const tipsToggle = document.getElementById("settingsShowTipsOnOpen");
   const reminderWrap = document.getElementById("settingsReminderWrap");
   const saveHint = document.getElementById("settingsSaveHint");
@@ -9009,7 +9108,7 @@ async function loadSettingsFromSupabase() {
 
   const { data, error } = await supabaseClient
     .from("user_settings")
-    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, free_weekdays, free_week_interval, free_week_anchor_date, free_period_start, free_period_end, belgian_holidays_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, payment_service_as_reference, calendar_feed_token")
+    .select("default_break_minutes, notifications_enabled, reminder_minutes, overlap_warnings_enabled, free_weekdays, free_week_interval, free_week_anchor_date, free_period_start, free_period_end, belgian_holidays_enabled, language, currency, payment_beneficiary_name, payment_reference_prefix, payment_service_as_reference, calendar_feed_token, agenda_fab_menu_enabled, sort_customers_first_name")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -9029,7 +9128,8 @@ async function loadSettingsFromSupabase() {
     freePeriodStart: normalizeOptionalDate(data?.free_period_start),
     freePeriodEnd: normalizeOptionalDate(data?.free_period_end),
     belgianHolidaysEnabled: Boolean(data?.belgian_holidays_enabled),
-    agendaFabMenuEnabled: readAgendaFabMenuEnabledPreference(),
+    agendaFabMenuEnabled: data?.agenda_fab_menu_enabled !== false,
+    sortCustomersFirstName: data?.sort_customers_first_name === true,
     showTipsOnOpen: getData()?.settings?.showTipsOnOpen !== false,
     language: normalizeLanguage(data?.language || DEFAULT_LANGUAGE),
     currency: normalizeCurrency(data?.currency || DEFAULT_CURRENCY),
@@ -9047,6 +9147,7 @@ async function saveSettingsFromForm(event) {
   if (!(await ensureDataWriteAccess())) return;
 
   const previousSettings = getSettings();
+  const sortFirstName = Boolean(document.getElementById("settingsSortCustomersFirstName")?.checked);
   const nextFreeWeekdays = normalizeFreeWeekdays(Array.from(document.querySelectorAll('[data-free-weekday]'))
     .filter(input => input.checked)
     .map(input => Number(input.dataset.freeWeekday)));
@@ -9069,6 +9170,7 @@ async function saveSettingsFromForm(event) {
     freePeriodEnd: normalizeOptionalDate(document.getElementById("settingsFreePeriodEnd")?.value),
     belgianHolidaysEnabled: Boolean(document.getElementById("settingsBelgianHolidaysEnabled")?.checked),
     agendaFabMenuEnabled: Boolean(document.getElementById("settingsAgendaFabMenuEnabled")?.checked),
+    sortCustomersFirstName: sortFirstName,
     showTipsOnOpen: document.getElementById("settingsShowTipsOnOpen")?.checked !== false,
     language: normalizeLanguage(document.getElementById("settingsLanguage")?.value || getCurrentLanguage()),
     currency: normalizeCurrency(document.getElementById("settingsCurrency")?.value || getCurrentCurrency()),
@@ -9114,8 +9216,8 @@ async function saveSettingsFromForm(event) {
 
   if (!user) {
     const data = getData();
+    state.clientLetter = "";
     data.settings = settings;
-    writeAgendaFabMenuEnabledPreference(settings.agendaFabMenuEnabled);
     currentProfilePreferences = { language: settings.language, currency: settings.currency };
     saveData(data);
     state.settingsSavePending = false;
@@ -9129,7 +9231,10 @@ async function saveSettingsFromForm(event) {
   }
 
   state.settingsSavePending = true;
-  renderSettings();
+  // Bewaar de gekozen formulierwaarden tijdens de asynchrone database-update.
+  // renderSettings() zou hier nog de oude waarden terugzetten.
+  const settingsSaveButton = document.getElementById("settingsSaveBtn");
+  if (settingsSaveButton) settingsSaveButton.disabled = true;
 
   const payload = {
     user_id: user.id,
@@ -9143,6 +9248,8 @@ async function saveSettingsFromForm(event) {
     free_period_start: settings.freePeriodStart || null,
     free_period_end: settings.freePeriodEnd || null,
     belgian_holidays_enabled: settings.belgianHolidaysEnabled,
+    agenda_fab_menu_enabled: settings.agendaFabMenuEnabled,
+    sort_customers_first_name: settings.sortCustomersFirstName,
     language: settings.language,
     currency: settings.currency,
     payment_beneficiary_name: settings.paymentBeneficiaryName || null,
@@ -9164,9 +9271,9 @@ async function saveSettingsFromForm(event) {
     .upsert(payload, { onConflict: "user_id" });
 
   state.settingsSavePending = false;
+  if (settingsSaveButton) settingsSaveButton.disabled = false;
 
   if (error) {
-    renderSettings();
     await appAlert("Opslaan instellingen mislukt: " + error.message, { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
@@ -9174,14 +9281,13 @@ async function saveSettingsFromForm(event) {
   try {
     await saveSecurePaymentAccountNumber(settings.paymentAccountNumber);
   } catch (secureError) {
-    renderSettings();
     await appAlert("Bankrekeningnummer beveiligd opslaan mislukt: " + (secureError.message || secureError), { title: "Opslaan mislukt", variant: "danger" });
     return;
   }
 
   const data = getData();
+  state.clientLetter = "";
   data.settings = settings;
-  writeAgendaFabMenuEnabledPreference(settings.agendaFabMenuEnabled);
   currentProfilePreferences = { language: settings.language, currency: settings.currency };
   saveData(data);
   state.settingsDirty = false;
@@ -9483,21 +9589,21 @@ function renderAppointmentCustomerOverlay() {
   const visibleCustomers = !SHOW_ANDERE
     ? data.customers.filter(c => new Set(data.appointments.map(a => String(a.customerId))).has(String(c.id)))
     : data.customers;
-  const letters = [...new Set(visibleCustomers.map(c => String(c.firstName || "").trim().charAt(0).toUpperCase()).filter(Boolean))]
+  const letters = [...new Set(visibleCustomers.map(c => customerInitialKey(c)).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "nl-BE"));
   alphabet.innerHTML = `<button type="button" class="alphabet-btn ${!appointmentOverlayLetter ? "active" : ""}" data-letter="">Alle</button>` + letters.map(l => `<button type="button" class="alphabet-btn ${appointmentOverlayLetter === l ? "active" : ""}" data-letter="${l}">${l}</button>`).join("");
   let customers = data.customers.filter(c => {
     const haystack = customerSearchText(c);
-    return (haystack.includes(q) || (digits && String(c.phone || "").replace(/\D/g, "").includes(digits))) && (!appointmentOverlayLetter || String(c.firstName || "").toUpperCase().startsWith(appointmentOverlayLetter));
+    return (haystack.includes(q) || (digits && String(c.phone || "").replace(/\D/g, "").includes(digits))) && (!appointmentOverlayLetter || customerInitialKey(c) === appointmentOverlayLetter);
   });
   if (!SHOW_ANDERE) {
     const visibleIds = new Set(data.appointments.map(a => String(a.customerId)));
     customers = customers.filter(c => visibleIds.has(String(c.id)));
   }
-  customers.sort((a,b) => (a.firstName || "").localeCompare(b.firstName || ""));
+  customers.sort(compareCustomers);
   list.innerHTML = customers.length ? customers.map(c => {
     const count = data.appointments.filter(a => String(a.customerId) === String(c.id)).length;
-    const name = fullName(c);
+    const name = customerDisplayName(c);
     return `<div class="client-card"><button type="button" data-pick-customer="${htmlEscape(String(c.id))}"><span class="management-list-content"><span class="management-initial ${managementInitialColorClass(name)}" aria-hidden="true">${managementInitial(name)}</span><span class="management-list-text"><span class="client-name">${escapeHtml(name || "Naamloos")}</span><span class="meta">${escapeHtml(String(c.phone || "").trim() || t("noPhone"))} · ${count} ${count === 1 ? t("appointmentSingular") : t("appointmentPlural")}</span></span></span></button></div>`;
   }).join("") : `<div class="empty-state">${t("noClientsFound")}</div>`;
 }
@@ -9590,7 +9696,7 @@ function renderAppointmentCustomerResults(query = "", showAllWhenEmpty = false) 
   const safeQuery = String(query || "").trim().toLowerCase();
   const selectedId = document.getElementById("appointmentCustomer")?.value || "";
 
-  let customers = data.customers.slice().sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
+  let customers = data.customers.slice().sort((a, b) => compareCustomers(a, b));
   if (safeQuery) {
     customers = customers.filter(customer => customerSearchText(customer).includes(safeQuery));
   } else if (!showAllWhenEmpty) {
@@ -9638,7 +9744,7 @@ function setupAppointmentCustomerSearch() {
     const query = String(searchInput.value || "").trim().toLowerCase();
     const currentValue = customerSelect.value;
 
-    let customers = data.customers.slice().sort((a, b) => fullName(a).localeCompare(fullName(b), "nl-BE"));
+    let customers = data.customers.slice().sort((a, b) => compareCustomers(a, b));
     if (query) customers = customers.filter(customer => customerSearchText(customer).includes(query));
 
     const hasCurrent = currentValue && customers.some(customer => String(customer.id) === String(currentValue));
@@ -9787,7 +9893,9 @@ function renderAppointmentServiceOverlay() {
   const data = getData();
   const alphabet = document.getElementById("appointmentServiceAlphabet");
   const list = document.getElementById("appointmentServiceList");
+  const search = document.getElementById("appointmentServiceOverlaySearch");
   if (!alphabet || !list) return;
+  const query = (search?.value || "").trim().toLocaleLowerCase("nl-BE");
   const selectedId = document.getElementById("appointmentService")?.value || "";
   const letters = [...new Set((data.services || [])
     .filter(s => s.isActive !== false || String(s.id) === String(selectedId))
@@ -9797,7 +9905,8 @@ function renderAppointmentServiceOverlay() {
     letters.map(l => `<button type="button" class="alphabet-btn ${appointmentServiceOverlayLetter === l ? "active" : ""}" data-letter="${l}">${l}</button>`).join("");
   const services = (data.services || []).filter(s =>
     (s.isActive !== false || String(s.id) === String(selectedId)) &&
-    (!appointmentServiceOverlayLetter || String(s.name || "").trim().toUpperCase().startsWith(appointmentServiceOverlayLetter))
+    (!appointmentServiceOverlayLetter || String(s.name || "").trim().toUpperCase().startsWith(appointmentServiceOverlayLetter)) &&
+    (!query || String(s.name || "").toLocaleLowerCase("nl-BE").includes(query))
   ).sort((a,b) => String(a.name || "").localeCompare(String(b.name || ""), "nl-BE"));
   list.innerHTML = services.length ? services.map(s => {
     const name = s.name || "Naamloze dienst";
@@ -9809,6 +9918,8 @@ function openAppointmentServiceOverlay() {
   const overlay = document.getElementById("appointmentServiceOverlay");
   if (!overlay) return;
   appointmentServiceOverlayLetter = "";
+  const search = document.getElementById("appointmentServiceOverlaySearch");
+  if (search) search.value = "";
   overlay.classList.remove("hidden");
   overlay.querySelector(".nb-customer-overlay-body")?.scrollTo(0,0);
   const btn = document.getElementById("appointmentServiceScrollTop");
@@ -9826,6 +9937,7 @@ function setupAppointmentServiceOverlay() {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAppointmentServiceOverlay(); }
   });
   document.getElementById("appointmentServiceOverlayClose")?.addEventListener("click", closeAppointmentServiceOverlay);
+  document.getElementById("appointmentServiceOverlaySearch")?.addEventListener("input", renderAppointmentServiceOverlay);
   document.getElementById("appointmentServiceAlphabet")?.addEventListener("click", e => {
     const btn = e.target.closest("[data-letter]");
     if (!btn) return;
