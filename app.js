@@ -123,7 +123,7 @@ const i18nSettingsComplete = {
     calendarFeedStatusReady: "Deze link kun je één keer toevoegen in Google Calendar via ‘Via URL’. Nieuwe wijzigingen in NailBooker komen daarna automatisch mee zodra Google de feed ververst.",
     calendarRefreshNote: "Let op: Google Calendar ververst externe kalenderlinks niet onmiddellijk. Wijzigingen verschijnen meestal later automatisch.",
     deletedAppointments: "Verwijderde afspraken", deletedAppointmentsSubtitle: "Bekijk en herstel afspraken die uit de agenda, omzet en statistieken verborgen zijn.", openDeletedAppointments: "Verwijderde afspraken openen",
-    freeDays: "Vrije dagen", freeDaysHint: "Stel terugkerende vrije dagen, een vrije periode en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.", recurringFreeDays: "Terugkerende vrije dagen", repeatEvery: "Elke", weeksUnit: "week/weken", repeatWeekHint: "Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.", freePeriod: "Vrije periode", from: "Van", belgianHolidays: "Belgische feestdagen", belgianHolidaysHint: "Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.",
+    freeDays: "Vrije dagen", freeDaysHint: "Stel terugkerende vrije dagen en Belgische feestdagen in. De agenda markeert deze dagen grijs, maar afspraken en privé-afspraken blijven altijd mogelijk.", recurringFreeDays: "Terugkerende vrije dagen", repeatEvery: "Elke", weeksUnit: "week/weken", repeatWeekHint: "Bij 2, 3 of 4 weken start de cyclus in de week waarin je deze instelling opslaat.", freePeriod: "Vrije periode", from: "Van", belgianHolidays: "Belgische feestdagen", belgianHolidaysHint: "Markeer de officiële Belgische wettelijke feestdagen automatisch als vrije dag.",
     filter: "Filter", deletedAppointmentsSearchPlaceholder: "Alle, klantnaam, dienst, datum, opmerking..."
   }
 };
@@ -3261,60 +3261,27 @@ function refreshRegisterWizardSelects() {
 }
 
 function setRegisterStep(step) {
-  registerWizardState.step = Math.min(4, Math.max(1, Number(step) || 1));
-  const copy = getRegisterCopy();
-
-  document.querySelectorAll(".register-step").forEach(section => {
-    section.classList.toggle("active", Number(section.dataset.registerStep) === registerWizardState.step);
-  });
-  document.querySelectorAll(".register-progress-dot").forEach(dot => {
-    const value = Number(dot.dataset.registerProgress);
-    dot.classList.toggle("active", value === registerWizardState.step);
-    dot.classList.toggle("done", value < registerWizardState.step);
-  });
-
+  // Registratie bestaat uit één pagina; taal volgt de huidige appinstelling.
+  registerWizardState.step = 4;
+  const language = document.getElementById("registerLanguage");
+  if (language) language.value = getCurrentLanguage();
+  const labels = {
+    "nl-BE": ["Maak je account aan", "Start met snel en eenvoudig je afspraken en klanten te beheren", "Na registratie ontvang je een e-mail om je account te voltooien", "Registreren", "Heb je al een account?"],
+    "en-GB": ["Create your account", "Start managing your appointments and clients quickly and easily", "After registering, you'll receive an email to complete your account", "Register", "Already have an account?"],
+    "fr-FR": ["Créez votre compte", "Gérez rapidement et facilement vos rendez-vous et clients", "Après l'inscription, vous recevrez un e-mail pour finaliser votre compte", "S'inscrire", "Vous avez déjà un compte ?"]
+  };
+  const copy = labels[getCurrentLanguage()] || labels["nl-BE"];
   const title = document.getElementById("registerDialogTitle");
   const subtitle = document.getElementById("registerDialogSubtitle");
-  if (title) title.textContent = `${copy.title} · ${copy.stepTitles[registerWizardState.step - 1]}`;
-  if (subtitle) subtitle.textContent = copy.subtitle;
-
-  document.getElementById("registerLanguageHint") && (document.getElementById("registerLanguageHint").textContent = copy.languageHint);
-  document.getElementById("registerEmailHint") && (document.getElementById("registerEmailHint").textContent = copy.emailHint);
-  document.getElementById("registerVerifyHint") && (document.getElementById("registerVerifyHint").textContent = copy.verifyHint);
-  document.getElementById("registerTermsLabel") && (document.getElementById("registerTermsLabel").innerHTML = buildRegisterTermsConsentHtml());
-  document.getElementById("registerBackBtn") && (document.getElementById("registerBackBtn").textContent = copy.previous);
-  document.getElementById("registerNextBtn") && (document.getElementById("registerNextBtn").textContent = copy.next);
-  document.getElementById("registerBtn") && (document.getElementById("registerBtn").textContent = copy.register);
-
-  const backBtn = document.getElementById("registerBackBtn");
-  const nextBtn = document.getElementById("registerNextBtn");
-  const submitBtn = document.getElementById("registerBtn");
-  if (backBtn) backBtn.classList.toggle("hidden", registerWizardState.step === 1);
-  if (nextBtn) nextBtn.classList.toggle("hidden", registerWizardState.step === 4);
-  if (submitBtn) submitBtn.classList.toggle("hidden", registerWizardState.step !== 4);
+  const hint = document.getElementById("registerVerifyHint");
+  const button = document.getElementById("registerBtn");
+  if (title) title.textContent = copy[0];
+  if (subtitle) subtitle.textContent = copy[1];
+  if (hint) hint.textContent = copy[2];
+  if (button) button.textContent = copy[3];
+  const terms = document.getElementById("registerTermsLabel");
+  if (terms) terms.innerHTML = buildRegisterTermsConsentHtml();
   updateRegisterSubmitState();
-
-  const labelMap = {
-    registerEmail: "email",
-    registerFirstName: "firstName",
-    registerLastName: "lastName",
-    registerSalonName: "salonName",
-    registerCurrency: "currency",
-    registerPassword: "password",
-    registerPasswordConfirm: "confirmPassword"
-  };
-  Object.entries(labelMap).forEach(([id, key]) => {
-    const label = document.querySelector(`label[for="${id}"]`);
-    if (label) label.textContent = t(key);
-  });
-  const countryLabel = document.querySelector('label[for="registerCountry"]');
-  const regionLabel = document.querySelector('label[for="registerRegion"]');
-  const timezoneLabel = document.querySelector('label[for="registerTimezone"]');
-  if (countryLabel) countryLabel.textContent = copy.country;
-  if (regionLabel) regionLabel.textContent = copy.region;
-  if (timezoneLabel) timezoneLabel.textContent = copy.timezone;
-
-  window.requestAnimationFrame(refreshRegisterWizardSelects);
 }
 
 function resetRegisterWizard() {
@@ -3362,58 +3329,103 @@ async function checkRegisterEmailAlreadyExists(email) {
   }
 }
 
-function updateRegisterSubmitState() {
-  const btn = document.getElementById("registerBtn");
-  if (!btn) return;
-
-  const values = getRegisterValues();
-  const canSubmit = Boolean(
-    values.password &&
-    values.passwordConfirm &&
-    values.password === values.passwordConfirm &&
-    values.termsAccepted
-  );
-
-  btn.disabled = registerWizardState.step === 4 && !canSubmit;
-  btn.classList.toggle("is-disabled", btn.disabled);
+// Controleer het e-mailadres bij verlaten van het veld, zonder de invoer te onderbreken.
+let registerEmailCheckSequence = 0;
+function isValidRegistrationEmail(value) {
+  const email = String(value || "").trim();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) &&
+    !email.includes("..") && email.split("@")[1].split(".").every(part => part.length > 0 && !part.startsWith("-") && !part.endsWith("-"));
+}
+function setRegisterEmailFeedback(message, state = "") {
+  const input = document.getElementById("registerEmail");
+  const feedback = document.getElementById("registerEmailFeedback");
+  if (!input || !feedback) return;
+  feedback.textContent = message;
+  feedback.dataset.state = state;
+  input.setAttribute("aria-invalid", state === "error" ? "true" : "false");
+  input.setCustomValidity(state === "error" ? message : "");
+}
+async function validateRegisterEmailOnBlur() {
+  const input = document.getElementById("registerEmail");
+  if (!input) return;
+  const email = input.value.trim();
+  const sequence = ++registerEmailCheckSequence;
+  if (!email) { setRegisterEmailFeedback(""); return; }
+  if (!isValidRegistrationEmail(email)) {
+    setRegisterEmailFeedback("Vul een geldig e-mailadres in.", "error");
+    return;
+  }
+  setRegisterEmailFeedback("");
+  try {
+    const { data, error } = await supabaseClient.rpc("email_exists", { check_email: email.toLowerCase() });
+    if (sequence !== registerEmailCheckSequence || input.value.trim() !== email) return;
+    if (error) {
+      console.warn("E-mailcontrole niet beschikbaar:", error.message);
+    } else if (data === true) {
+      setRegisterEmailFeedback("Dit e-mailadres is al geregistreerd.", "error");
+      await appAlert("Dit e-mailadres is al in gebruik. Gebruik een ander e-mailadres of log in.", { title: "E-mailadres al in gebruik", variant: "warning" });
+    } else {
+      setRegisterEmailFeedback("");
+    }
+  } catch (error) {
+    if (sequence === registerEmailCheckSequence) console.warn("E-mailcontrole niet beschikbaar:", error);
+  }
 }
 
+function getRegisterPasswordRules(password) {
+  return { length: password.length >= 8, letters: /[a-z]/.test(password) && /[A-Z]/.test(password), digit: /[0-9]/.test(password), special: /[^A-Za-z0-9]/.test(password) };
+}
+function updateRegisterPasswordMatchHint() {
+  const first = document.getElementById("registerPassword")?.value || "";
+  const second = document.getElementById("registerPasswordConfirm")?.value || "";
+  const rules = { ...getRegisterPasswordRules(first), match: Boolean(first && second && first === second) };
+  Object.entries(rules).forEach(([key, passed]) => {
+    const element = document.querySelector(`#registerPasswordRules [data-rule="${key}"]`);
+    if (element) element.classList.toggle("passed", passed);
+  });
+}
+
+function updateRegisterSubmitState() {
+  const btn = document.getElementById("registerBtn");
+  updateRegisterPasswordMatchHint();
+  const values = getRegisterValues();
+  const rules = getRegisterPasswordRules(values.password);
+  const ready = isValidRegistrationEmail(values.email) &&
+    Boolean(values.firstName && values.lastName && values.salonName) &&
+    Object.values(rules).every(Boolean) &&
+    Boolean(values.passwordConfirm && values.password === values.passwordConfirm) &&
+    values.termsAccepted;
+  if (btn) btn.disabled = !ready;
+}
+async function registerFieldError(fieldId, message, title = "Registratie") {
+  await appAlert(message, { title, variant: "warning" });
+  // Een validatiefout mag de registratie nooit afsluiten of naar login leiden.
+  const registrationDialog = document.getElementById("registerDialog");
+  if (registrationDialog && !registrationDialog.open) registrationDialog.showModal();
+  const field = document.getElementById(fieldId);
+  if (field) { field.value = ""; field.focus(); }
+  updateRegisterSubmitState();
+  return false;
+}
 async function validateRegisterStep(step = registerWizardState.step) {
   const values = getRegisterValues();
   const copy = getRegisterCopy();
 
   if (step === 2) {
-    if (!values.email || !values.email.includes("@")) {
-      await appAlert(copy.requiredEmail, { title: copy.stepTitles[1], variant: "warning" });
-      return false;
-    }
-    const exists = await checkRegisterEmailAlreadyExists(values.email);
-    if (exists) {
-      await appAlert(copy.emailExists, { title: copy.stepTitles[1], variant: "warning" });
-      return false;
-    }
+    if (!isValidRegistrationEmail(values.email)) return registerFieldError("registerEmail", "Vul een geldig e-mailadres in.");
+    if (await checkRegisterEmailAlreadyExists(values.email)) return registerFieldError("registerEmail", "Dit e-mailadres is al in gebruik. Gebruik een ander e-mailadres of log in.");
   }
-
   if (step === 3) {
-    if (!values.firstName || !values.lastName || !values.salonName || !values.country || !values.region || !values.timezone) {
-      await appAlert(copy.requiredDetails, { title: copy.stepTitles[2], variant: "warning" });
-      return false;
+    for (const [key, id, label] of [["firstName", "registerFirstName", "voornaam"], ["lastName", "registerLastName", "naam"], ["salonName", "registerSalonName", "salonnaam"]]) {
+      if (!values[key]) return registerFieldError(id, `Vul je ${label} in.`);
     }
   }
-
   if (step === 4) {
-    if (!values.password || !values.passwordConfirm) {
-      await appAlert(copy.requiredPassword, { title: copy.stepTitles[3], variant: "warning" });
-      return false;
-    }
-    if (!values.termsAccepted) {
-      await appAlert(copy.termsRequired, { title: copy.stepTitles[3], variant: "warning" });
-      return false;
-    }
-    if (values.password !== values.passwordConfirm) {
-      await appAlert(copy.passwordMismatch, { title: copy.stepTitles[3], variant: "warning" });
-      return false;
-    }
+    if (!values.password) return registerFieldError("registerPassword", "Vul een wachtwoord in.");
+    if (!Object.values(getRegisterPasswordRules(values.password)).every(Boolean)) return registerFieldError("registerPassword", "Je wachtwoord moet minstens 8 tekens, hoofd- en kleine letters, een cijfer en een speciaal karakter bevatten.");
+    if (!values.passwordConfirm) return registerFieldError("registerPasswordConfirm", "Herhaal je wachtwoord.");
+    if (values.password !== values.passwordConfirm) return registerFieldError("registerPasswordConfirm", "De wachtwoorden komen niet overeen.");
+    if (!values.termsAccepted) { await appAlert("Ga akkoord met de Algemene voorwaarden en het Privacybeleid.", { title: "Registratie", variant: "warning" }); document.getElementById("registerTermsAccepted")?.focus(); return false; }
   }
 
   return true;
@@ -3439,17 +3451,15 @@ function handleRegisterLanguageChange(event) {
 
 async function registerAccount(event) {
   if (event) event.preventDefault();
+  updateRegisterSubmitState();
+  if (document.getElementById("registerBtn")?.disabled) return;
 
   const copy = getRegisterCopy();
+  if (!(await validateRegisterStep(2))) return;
+  if (!(await validateRegisterStep(3))) return;
   if (!(await validateRegisterStep(4))) return;
 
   const values = getRegisterValues();
-  const duplicate = await checkRegisterEmailAlreadyExists(values.email);
-  if (duplicate) {
-    await appAlert(copy.emailExists, { title: copy.stepTitles[1], variant: "warning" });
-    return;
-  }
-
   const emailRedirectTo = `${window.location.origin}${window.location.pathname}`;
   const trialStartedAt = new Date().toISOString();
   const trialEndsAtDate = new Date(trialStartedAt);
@@ -3486,12 +3496,13 @@ async function registerAccount(event) {
   if (error) {
     const message = String(error.message || "");
     const isDuplicate = /already|registered|exists|user/i.test(message);
-    await appAlert(isDuplicate ? copy.duplicateFallback : "Registratie mislukt: " + message, { title: copy.title, variant: "danger" });
+    if (isDuplicate) await registerFieldError("registerEmail", copy.duplicateFallback);
+    else await appAlert("Registratie mislukt: " + message, { title: copy.title, variant: "danger" });
     return;
   }
 
   if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-    await appAlert(copy.duplicateFallback, { title: copy.title, variant: "warning" });
+    await registerFieldError("registerEmail", copy.duplicateFallback);
     return;
   }
 
@@ -3537,7 +3548,7 @@ async function registerAccount(event) {
   } else {
     await syncAuthUI();
     switchScreen("accountScreen", t("account"));
-    await appAlert(copy.registrationDone, { title: copy.title, variant: "success" });
+    await appAlert("Je registratie is ontvangen. We hebben een e-mail gestuurd om je account te bevestigen. Controleer ook je spamfolder als je de e-mail niet terugvindt.", { title: "Controleer je e-mail", variant: "success" });
   }
 }
 
@@ -9166,8 +9177,8 @@ async function saveSettingsFromForm(event) {
     freeWeekdays: nextFreeWeekdays,
     freeWeekInterval: nextFreeWeekInterval,
     freeWeekAnchorDate: nextFreeWeekAnchorDate,
-    freePeriodStart: normalizeOptionalDate(document.getElementById("settingsFreePeriodStart")?.value),
-    freePeriodEnd: normalizeOptionalDate(document.getElementById("settingsFreePeriodEnd")?.value),
+    freePeriodStart: "",
+    freePeriodEnd: "",
     belgianHolidaysEnabled: Boolean(document.getElementById("settingsBelgianHolidaysEnabled")?.checked),
     agendaFabMenuEnabled: Boolean(document.getElementById("settingsAgendaFabMenuEnabled")?.checked),
     sortCustomersFirstName: sortFirstName,
@@ -13529,6 +13540,15 @@ function registerEvents() {
   const passwordForm = document.getElementById("passwordForm");
 
   if (registerForm) registerForm.addEventListener("submit", withActionLock(registerAccount));
+  const registerEmailInput = document.getElementById("registerEmail");
+  registerEmailInput?.addEventListener("input", () => {
+    ++registerEmailCheckSequence;
+    setRegisterEmailFeedback("");
+    updateRegisterSubmitState();
+  });
+  ["registerFirstName", "registerLastName", "registerSalonName"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", updateRegisterSubmitState);
+  });
   document.getElementById("registerNextBtn")?.addEventListener("click", withActionLock(goToNextRegisterStep));
   document.getElementById("registerBackBtn")?.addEventListener("click", goToPreviousRegisterStep);
   document.getElementById("registerLanguage")?.addEventListener("change", handleRegisterLanguageChange);
@@ -16086,3 +16106,9 @@ function setupIntegratedAdminEvents() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true });
   else setup();
 })();
+
+// Registratie: terug naar de bestaande aanmeldpagina, zonder andere navigatie te wijzigen.
+document.getElementById("registerLoginLink")?.addEventListener("click", () => {
+  closeDialog("registerDialog");
+  switchScreen("accountScreen", t("account"));
+});

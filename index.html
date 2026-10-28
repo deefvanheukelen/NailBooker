@@ -448,21 +448,6 @@
 </label>
 
 </div>
-<div class="settings-free-days-subgroup">
-<div class="settings-free-days-subtitle" data-i18n="freePeriod">Vrije periode</div>
-<div class="settings-free-period-grid">
-<label class="settings-free-period-field">
-<span class="field-label" data-i18n="from">Van</span>
-<input aria-hidden="true" class="field appointment-native-picker-input" id="settingsFreePeriodStart" tabindex="-1" type="date"/>
-<button aria-label="Begindatum kiezen" class="field appointment-picker-display" id="settingsFreePeriodStartDisplayBtn" type="button">Kies datum</button>
-</label>
-<label class="settings-free-period-field">
-<span class="field-label" data-i18n="until">Tot</span>
-<input aria-hidden="true" class="field appointment-native-picker-input" id="settingsFreePeriodEnd" tabindex="-1" type="date"/>
-<button aria-label="Einddatum kiezen" class="field appointment-picker-display" id="settingsFreePeriodEndDisplayBtn" type="button">Kies datum</button>
-</label>
-</div>
-</div>
 <div class="settings-free-days-subgroup settings-free-holidays-row">
 <label class="settings-switch-row settings-planning-checkbox" for="settingsBelgianHolidaysEnabled">
 <span>
@@ -1643,107 +1628,41 @@
   </dialog>
 
   <!-- ===================== REGISTREREN ==================== -->
-  <dialog id="registerDialog" class="modal register-modal">
-    <form method="dialog" id="registerForm" class="modal-card register-wizard-card">
-      <div class="modal-head register-wizard-head">
-        <div>
-          <h3 id="registerDialogTitle">Registreren</h3>
-          <p id="registerDialogSubtitle" class="register-wizard-subtitle">Maak je NailBooker-account aan in enkele korte stappen.</p>
-        </div>
-        <button class="icon-btn" type="button" data-close="registerDialog" aria-label="Sluiten">✕</button>
+  <dialog id="registerDialog" class="modal register-modal register-single-modal">
+    <form method="dialog" id="registerForm" novalidate class="modal-card register-wizard-card register-single-card">
+      <div class="register-single-heading"><h3 id="registerDialogTitle">Maak je account aan</h3><p id="registerDialogSubtitle">Start met snel en eenvoudig je afspraken en klanten te beheren</p></div>
+      <div class="register-single-fields">
+<div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="m3 7 9 7 9-7"/></svg><input id="registerEmail" type="email" placeholder="E-mail" aria-label="E-mail" required autocomplete="email" /></div><div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 100 120" aria-hidden="true"><circle cx="50" cy="25" r="23" fill="currentColor"/><path d="M17 83 Q50 43 83 83 V118 H17Z" fill="currentColor"/></svg><input id="registerFirstName" type="text" placeholder="Voornaam" aria-label="Voornaam" required autocomplete="given-name" /></div><div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 100 120" aria-hidden="true"><circle cx="50" cy="25" r="23" fill="currentColor"/><path d="M17 83 Q50 43 83 83 V118 H17Z" fill="currentColor"/></svg><input id="registerLastName" type="text" placeholder="Naam" aria-label="Naam" required autocomplete="family-name" /></div><div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 130 130" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M29 74 19 33 C11 -8 119 -8 111 33 L101 74" stroke-width="9"/><path d="M15 85 Q65 133 115 85" stroke-width="15"/><path d="m35 110 -9 15 m69 -15 9 15" stroke-width="8"/></svg><input id="registerSalonName" type="text" placeholder="Salonnaam" aria-label="Salonnaam" required autocomplete="organization" /></div><div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/></svg><input id="registerPassword" type="password" placeholder="Wachtwoord" aria-label="Wachtwoord" required autocomplete="new-password" autocapitalize="none" spellcheck="false"/><button class="password-toggle-btn" type="button" data-password-toggle="registerPassword" aria-label="Toon wachtwoord" aria-pressed="false"><span class="password-toggle-icon" aria-hidden="true"><svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg></span></button></div><div class="register-input-row"><svg class="register-input-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/></svg><input id="registerPasswordConfirm" type="password" placeholder="Herhaal wachtwoord" aria-label="Herhaal wachtwoord" required autocomplete="new-password" autocapitalize="none" spellcheck="false"/><button class="password-toggle-btn" type="button" data-password-toggle="registerPasswordConfirm" aria-label="Toon wachtwoord" aria-pressed="false"><span class="password-toggle-icon" aria-hidden="true"><svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path>
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path>
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                        <path d="m1 1 22 22"></path>
+                      </svg></span></button></div>
+        <div class="register-password-rules" id="registerPasswordRules"><span class="register-rules-title">Voorwaarden voor het wachtwoord:</span><div data-rule="length">minimaal 8 tekens</div><div data-rule="letters">hoofd- en kleine letters</div><div data-rule="digit">tenminste één cijfer</div><div data-rule="special">tenminste één speciaal karakter</div><div data-rule="match">wachtwoorden komen overeen</div></div>
       </div>
-
-      <div class="register-progress" aria-hidden="true">
-        <span class="register-progress-dot active" data-register-progress="1"></span>
-        <span class="register-progress-dot" data-register-progress="2"></span>
-        <span class="register-progress-dot" data-register-progress="3"></span>
-        <span class="register-progress-dot" data-register-progress="4"></span>
-      </div>
-
-      <section class="register-step active" data-register-step="1">
-        <label class="field-label" for="registerLanguage" data-i18n="language">Taal</label>
-        <select id="registerLanguage" class="field">
-          <option value="nl-BE" selected>Nederlands</option>
-          <option value="en-GB">English</option>
-          <option value="fr-FR">Français</option>
-        </select>
-        <p class="register-step-hint" id="registerLanguageHint">De app wordt meteen in deze taal gezet.</p>
-      </section>
-
-      <section class="register-step" data-register-step="2">
-        <label class="field-label" for="registerEmail">E-mail</label>
-        <input id="registerEmail" class="field" type="email" required autocomplete="email" />
-        <p class="register-step-hint" id="registerEmailHint">Dit e-mailadres gebruik je om in te loggen en om je account te verifiëren.</p>
-      </section>
-
-      <section class="register-step" data-register-step="3">
-        <label class="field-label" for="registerFirstName">Voornaam</label>
-        <input id="registerFirstName" class="field" type="text" required autocomplete="given-name" />
-
-        <label class="field-label" for="registerLastName">Naam</label>
-        <input id="registerLastName" class="field" type="text" required autocomplete="family-name" />
-
-        <label class="field-label" for="registerSalonName">Salonnaam</label>
-        <input id="registerSalonName" class="field" type="text" required autocomplete="organization" />
-
-        <label class="field-label" for="registerCountry">Land</label>
-        <select id="registerCountry" class="field" required>
-          <option value="BE" selected>België</option>
-          <option value="NL">Nederland</option>
-        </select>
-
-        <label class="field-label" for="registerRegion">Regio</label>
-        <select id="registerRegion" class="field" required>
-          <option value="Flanders" selected>Vlaanderen</option>
-          <option value="Brussels">Brussel</option>
-        </select>
-
-        <label class="field-label" for="registerTimezone">Tijdzone</label>
-        <select id="registerTimezone" class="field" required>
-          <option value="Europe/Brussels" selected>Europe/Brussels</option>
-          <option value="Europe/Amsterdam">Europe/Amsterdam</option>
-        </select>
-
-        <label class="field-label" for="registerCurrency" data-i18n="currency">Valuta</label>
-        <select id="registerCurrency" class="field">
-          <option value="EUR" selected>Euro (€)</option>
-        </select>
-      </section>
-
-      <section class="register-step" data-register-step="4">
-        <label class="field-label" for="registerPassword">Wachtwoord</label>
-        <div class="password-field-wrap">
-          <input id="registerPassword" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
-          <button class="password-toggle-btn" type="button" data-password-toggle="registerPassword" aria-label="Toon wachtwoord" aria-pressed="false">
-            <span class="password-toggle-icon" aria-hidden="true">
-              <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><path d="m1 1 22 22"></path></svg>
-            </span>
-          </button>
-        </div>
-
-        <label class="field-label" for="registerPasswordConfirm">Bevestig wachtwoord</label>
-        <div class="password-field-wrap">
-          <input id="registerPasswordConfirm" class="field password-field" type="password" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" />
-          <button class="password-toggle-btn" type="button" data-password-toggle="registerPasswordConfirm" aria-label="Toon wachtwoord" aria-pressed="false">
-            <span class="password-toggle-icon" aria-hidden="true">
-              <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.31"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><path d="m1 1 22 22"></path></svg>
-            </span>
-          </button>
-        </div>
-
-        <label class="terms-checkbox-row" for="registerTermsAccepted">
-          <input id="registerTermsAccepted" type="checkbox" required />
-          <span id="registerTermsLabel">Ik ga akkoord met de gebruiksvoorwaarden en het privacybeleid.</span>
-        </label>
-        <p class="register-step-hint" id="registerVerifyHint">Na registratie krijg je een e-mail om je account te voltooien.</p>
-      </section>
-
-      <div class="modal-actions register-wizard-actions">
-        <button id="registerBackBtn" class="btn btn-secondary action-btn hidden" type="button">Vorige</button>
-        <button id="registerNextBtn" class="btn btn-primary action-btn" type="button">Volgende</button>
-        <button id="registerBtn" class="btn btn-primary action-btn hidden" type="submit">Registreren</button>
+      <label class="register-single-consent" for="registerTermsAccepted"><input id="registerTermsAccepted" type="checkbox" required/><span class="register-switch" aria-hidden="true"></span><span id="registerTermsLabel">Ik ga akkoord met de Algemene voorwaarden en het Privacybeleid</span></label>
+      <p class="register-single-verify" id="registerVerifyHint">Na registratie ontvang je een e-mail om je account te voltooien</p>
+      <button id="registerBtn" class="btn btn-primary register-single-submit" type="submit">Registreren</button>
+      <p class="register-single-login">Heb je al een account? <button type="button" id="registerLoginLink">Log hier in.</button></p>
+      <div class="register-hidden-defaults" aria-hidden="true">
+        <select id="registerLanguage" tabindex="-1"><option value="nl-BE" selected>Nederlands</option><option value="en-GB">English</option><option value="fr-FR">Français</option></select>
+        <select id="registerCountry" tabindex="-1"><option value="BE" selected>België</option><option value="NL">Nederland</option></select>
+        <select id="registerRegion" tabindex="-1"><option value="Flanders" selected>Vlaanderen</option><option value="Brussels">Brussel</option><option value="Wallonia">Wallonië</option></select>
+        <select id="registerTimezone" tabindex="-1"><option value="Europe/Brussels" selected>Europe/Brussels</option><option value="Europe/Amsterdam">Europe/Amsterdam</option></select>
+        <select id="registerCurrency" tabindex="-1"><option value="EUR" selected>Euro (€)</option></select>
       </div>
     </form>
   </dialog>
@@ -2015,7 +1934,7 @@
 
   <div id="revenueActionBar" class="revenue-action-bar hidden" aria-label="Omzetacties">
     <button id="revenueExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer kwartaaloverzicht daginkomsten">
-      <span class="client-action-icon revenue-action-report-label" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M6 15h12v6H6z"/><path d="M17 12h.01"/></svg></span>
+      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">Daginkomsten</span>
     </button>
   </div>
 
