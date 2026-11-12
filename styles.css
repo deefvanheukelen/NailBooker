@@ -14613,3 +14613,348 @@ button.app-action-nav-btn.nb-action-positive:focus:not(:focus-visible) {
 #registerDialog .register-input-row .password-toggle-btn[aria-pressed="false"] .icon-eye-off{display:none!important}
 #registerDialog .register-input-row .password-toggle-btn[aria-pressed="true"] .icon-eye{display:none!important}
 #registerDialog .register-input-row .password-toggle-btn[aria-pressed="true"] .icon-eye-off{display:block!important}
+
+/* Multiple services: appointment only, without changing the other management cards */
+#appointmentServiceOverlay .nb-multi-service-card { display:flex; align-items:center; gap:10px; }
+#appointmentServiceOverlay .nb-multi-service-card > button { flex:1; min-width:0; text-align:left; }
+#appointmentServiceOverlay .nb-multi-service-card > input[type="checkbox"] { appearance:auto; width:19px; height:19px; margin:0 10px; flex:none; accent-color:#d88fa8; cursor:pointer; }
+#appointmentServiceOverlay .nb-service-confirm-footer { display:flex; justify-content:flex-end; padding:8px 16px 14px; }
+#appointmentServicesConfirm { background:#d88fa8; color:white; border:0; border-radius:6px; padding:10px 20px; font-weight:600; }
+#appointmentServicesConfirm.hidden, #appointmentSelectedServices.hidden, #appointmentDiscountWrap.hidden, #appointmentDiscountControls.hidden { display:none!important; }
+#appointmentSelectedServices { margin-top:8px; }
+.nb-selected-service { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 4px; border-bottom:1px solid var(--line,#eee); font-size:13px; }
+.nb-selected-service small { display:block; opacity:.7; margin-top:3px; }
+.nb-selected-service button { flex:none; background:transparent; color:#cc6586; border:1px solid #ecc5d1; border-radius:5px; padding:5px 9px; cursor:pointer; }
+#appointmentDiscountWrap { margin-top:10px; }
+#appointmentDiscountToggle { border:1px solid #e7b3c5; color:#c66c8d; background:#fff7fa; border-radius:5px; padding:7px 14px; cursor:pointer; }
+#appointmentDiscountControls { display:flex; gap:8px; margin-top:8px; }
+#appointmentDiscountControls select, #appointmentDiscountControls input { min-width:0; width:50%; border:1px solid var(--line,#ddd); border-radius:5px; padding:8px; background:white; }
+#appointmentDiscountSummary { margin-top:7px; font-weight:600; font-size:13px; }
+
+
+/* Eigen SVG-iconen: behoud bestaande klikvlakken en animaties. */
+#agendaUnfinishedBtn.agenda-unfinished-btn .agenda-warning-image { display: block; width: 40px; height: 40px; object-fit: contain; pointer-events: none; }
+#revenueExportReportBtn .revenue-action-report-label .revenue-income-image { display: block; width: 32px; height: 40px; object-fit: contain; pointer-events: none; }
+
+/* Agenda: eigen warning.svg 50% groter (40 -> 60 px), met behoud van animatie. */
+#agendaUnfinishedBtn.agenda-unfinished-btn {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+}
+#agendaUnfinishedBtn.agenda-unfinished-btn .agenda-warning-image {
+  width: 60px;
+  height: 60px;
+}
+
+/* Enkel Omzet: transparante klikzone, zonder ronde achtergrond of rand.
+   Andere actieknoppen, waaronder Kosten en de agenda-+, blijven ongewijzigd. */
+#revenueExportReportBtn.revenue-action-btn-report {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#revenueExportReportBtn .revenue-action-report-label .revenue-income-image {
+  width: 40px;
+  height: 48px;
+}
+
+/* Nieuwe afspraak: dienstkeuze, lijst en korting onder elkaar. */
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) > .appointment-service-picker,
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) > #appointmentSelectedServices,
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) > #appointmentDiscountWrap {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) > .appointment-service-picker { grid-row: auto; }
+#appointmentForm #appointmentSelectedServices { margin-top: 12px; margin-bottom: 4px; }
+#appointmentForm .nb-selected-service { padding: 10px 4px; gap: 12px; }
+#appointmentForm #appointmentDiscountWrap { margin-top: 12px; margin-bottom: 12px; text-align: right; }
+#appointmentForm #appointmentDiscountControls { justify-content: flex-end; margin-top: 10px; }
+#appointmentForm #appointmentDiscountControls select,
+#appointmentForm #appointmentDiscountControls input { max-width: 170px; }
+#appointmentForm .appointment-form-grid { row-gap: 16px; }
+#appointmentForm #appointmentDiscountSummary { display: none; }
+
+/* Annuleren is neutraal grijs; rood blijft voor Verwijderen. */
+.btn.btn-secondary.action-btn { background: #f0f0f2; color: #66666d; border-color: #d8d8dd; }
+.nb-action-footer .nb-footer-cancel,
+#nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer .nb-footer-cancel {
+  background: #ededf0; color: #696970;
+}
+
+
+/* Nieuwe afspraak – definitieve verticale dienstweergave */
+#appointmentForm .appointment-private-toggle { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:4px 0; margin:2px 0 14px; border:0; background:transparent; color:#c77492; font-size:11px; font-weight:500; }
+#appointmentForm .appointment-private-toggle input { position:absolute; width:1px; height:1px; opacity:0; }
+#appointmentForm .appointment-private-switch { width:27px; height:15px; border-radius:20px; background:#d4d4d6; position:relative; transition:background .2s; }
+#appointmentForm .appointment-private-switch::after { content:""; position:absolute; left:2px; top:2px; width:11px; height:11px; background:#fff; border-radius:50%; box-shadow:0 1px 3px #0002; transition:transform .2s; }
+#appointmentForm .appointment-private-toggle input:checked + .appointment-private-switch { background:#d98eaa; }
+#appointmentForm .appointment-private-toggle input:checked + .appointment-private-switch::after { transform:translateX(12px); }
+#appointmentForm .appointment-private-toggle input:focus-visible + .appointment-private-switch { outline:2px solid #b65d80; outline-offset:3px; }
+#appointmentForm .appointment-form-grid { row-gap:16px; }
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) { display:flex; flex-direction:column; align-items:stretch; gap:0; }
+#appointmentForm .appointment-form-field-wide:has(#appointmentSelectedServices) > .field-label { align-self:stretch; }
+#appointmentForm .appointment-service-picker { order:2; display:flex; justify-content:flex-end; margin-top:4px; }
+#appointmentForm .appointment-service-choice { width:37px; min-height:37px; border:0; background:transparent; }
+#appointmentForm .appointment-service-choice-name { display:none!important; }
+#appointmentForm #appointmentChooseServiceBtn { flex:0 0 37px; width:37px; min-height:37px; background:#f8e7ed; font-size:25px; }
+#appointmentForm #appointmentSelectedServices { order:1; margin:2px 0 0; width:100%; }
+#appointmentForm #appointmentSelectedServices.hidden { display:none!important; }
+#appointmentForm .nb-selected-service { border:0; padding:7px 0; min-height:45px; }
+#appointmentForm .nb-selected-service button { margin-left:auto; }
+#appointmentForm .appointment-duration-price-row { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:10px; align-items:end; }
+#appointmentForm .appointment-duration-price-row > .appointment-form-field { min-width:0; }
+#appointmentForm .appointment-duration-price-row .field { width:100%; min-width:0; }
+#appointmentForm #appointmentDiscountWrap { margin:0; align-self:end; min-width:0; text-align:center; }
+#appointmentForm #appointmentDiscountToggle { width:100%; min-height:42px; background:#f8e7ed; color:#cc6e91; border:0; border-radius:2px; font-size:12px; }
+#appointmentForm #appointmentDiscountToggle:disabled { background:#d4d4d4; color:#fff; cursor:not-allowed; }
+#appointmentForm #appointmentDiscountControls { position:relative; display:flex; flex-direction:column; gap:7px; margin-top:8px; }
+#appointmentForm #appointmentDiscountControls.hidden { display:none!important; }
+#appointmentForm #appointmentDiscountControls select, #appointmentForm #appointmentDiscountControls input { width:100%; max-width:none; box-sizing:border-box; }
+/* Annuleren overal neutraal grijs, ook de footerknoppen en pictogrammen. */
+button.btn-secondary, button.btn.btn-secondary.action-btn { background:#ededf0!important; color:#89898e!important; border-color:#d7d7db!important; }
+.nb-action-footer .nb-footer-cancel, #nbQuarterIncomeDialog .nb-quarter-actions.nb-action-footer .nb-footer-cancel { background:#ededf0!important; color:#89898e!important; }
+.nb-action-footer .nb-footer-cancel .nb-footer-icon { color:#89898e!important; }
+
+/* Korting: duidelijke eenheid, gelijke invoerhoogte en kortingsprijs */
+#appointmentForm #appointmentDiscountControls select,
+#appointmentForm #appointmentDiscountValue { height:42px; min-height:42px; font-size:14px; font-family:inherit; }
+#appointmentForm .nb-discount-input-wrap { position:relative; width:100%; }
+#appointmentForm #appointmentDiscountValue { padding-right:29px; }
+#appointmentForm #appointmentDiscountUnit { position:absolute; right:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#777; pointer-events:none; }
+#appointmentForm #appointmentDiscountedPrice { margin-top:10px; text-align:left; font-size:12px; }
+#appointmentForm #appointmentDiscountedPrice.hidden { display:none!important; }
+#appointmentForm #appointmentDiscountedPrice span { display:block; color:#92909a; font-size:10px; font-weight:600; text-transform:uppercase; margin-bottom:5px; }
+#appointmentForm #appointmentDiscountSummary { display:block!important; font-size:14px; font-weight:600; margin:0; color:#c66c8d; }
+
+/* Afspraakformulier: consistente uitlijning en kortingsprijs onder Prijs. */
+#appointmentForm .appointment-form-field-wide:has(.appointment-customer-picker) { width:100%; min-width:0; }
+#appointmentForm .appointment-customer-picker,
+#appointmentForm .appointment-customer-choice { width:100%; box-sizing:border-box; }
+#appointmentForm #appointmentChooseServiceBtn { width:48px; min-width:48px; flex:0 0 48px; min-height:42px; height:42px; }
+#appointmentForm .appointment-service-choice { width:48px; min-height:42px; }
+#appointmentForm .appointment-form-field-wide:has(#appointmentRemarks),
+#appointmentForm #appointmentRemarks { width:100%; box-sizing:border-box; }
+#appointmentForm .appointment-duration-price-row { align-items:start; }
+#appointmentForm #appointmentDiscountWrap { align-self:start; padding-top:17px; }
+#appointmentForm #appointmentDiscountValue { padding-right:10px; font-size:inherit; }
+#appointmentForm #appointmentDiscountControls select { text-align:center; text-align-last:center; }
+#appointmentForm #appointmentDiscountedPrice { margin-top:12px; }
+
+/* 12/11: exact dezelfde rechterlijn voor klant, opmerkingen en de overige velden. */
+#appointmentForm .appointment-form-grid { width:100%; min-width:0; box-sizing:border-box; }
+#appointmentForm .appointment-form-grid > *,
+#appointmentForm .appointment-form-field,
+#appointmentForm .appointment-customer-picker,
+#appointmentForm .appointment-customer-choice,
+#appointmentForm #appointmentRemarks { min-width:0; max-width:100%; box-sizing:border-box; }
+#appointmentForm .appointment-customer-choice { width:100%!important; }
+#appointmentForm #appointmentRemarks { display:block; width:100%!important; resize:vertical; }
+/* Korting: invoer links, keuze 0 / € / % vast rechts, dezelfde hoogte als Duur en Prijs. */
+#appointmentForm #appointmentDiscountWrap { padding-top:0!important; margin:0!important; align-self:stretch!important; text-align:left!important; }
+#appointmentForm #appointmentDiscountWrap > .field-label { display:block; margin-bottom:5px; }
+#appointmentForm #appointmentDiscountControls { display:flex!important; flex-direction:row!important; gap:0!important; margin:0!important; width:100%; height:42px; }
+#appointmentForm #appointmentDiscountControls input { flex:1 1 auto; width:0!important; min-width:0; max-width:none; height:42px; border-radius:2px 0 0 2px; font-size:14px!important; padding:8px!important; }
+#appointmentForm #appointmentDiscountControls select { flex:0 0 48px; width:48px!important; min-width:48px; max-width:48px!important; height:42px; border-left:0; border-radius:0 2px 2px 0; padding:0 5px; text-align:center; text-align-last:center; font-size:14px!important; }
+#appointmentForm #appointmentDiscountControls input:disabled { background:#f1f1f2; color:#999; }
+#appointmentForm #appointmentDiscountControls select:disabled { background:#f1f1f2; color:#999; }
+
+/* Correctie: kortingsvelden blijven zichtbaar, ook na openen/resetten van een afspraak. */
+#appointmentForm #appointmentDiscountControls,
+#appointmentForm #appointmentDiscountControls.hidden { display:flex!important; visibility:visible!important; }
+/* Klant en opmerkingen volgen exact dezelfde rechterrand als datum en tijd. */
+#appointmentForm .appointment-form-field-wide:has(.appointment-customer-picker) {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;
+  min-width:0;
+  column-gap:0!important;
+}
+#appointmentForm .appointment-form-field-wide:has(.appointment-customer-picker) > .appointment-customer-picker {
+  grid-column:1 / -1!important;
+  grid-row:auto!important;
+  width:100%!important;
+  min-width:0;
+}
+#appointmentForm .appointment-form-field-wide:has(.appointment-customer-picker) > .appointment-open-customer-btn.hidden { display:none!important; }
+#appointmentForm .appointment-form-field-wide:has(#appointmentRemarks) {
+  display:block!important;
+  width:100%!important;
+  min-width:0;
+}
+#appointmentForm #appointmentRemarks {
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0;
+  box-sizing:border-box!important;
+  resize:none;
+}
+#appointmentForm .appointment-duration-price-row { width:100%; min-width:0; box-sizing:border-box; }
+#appointmentForm #appointmentDiscountWrap { min-width:0; }
+
+/* 12/11 - Breedteverdeling Duur / Prijs / Korting: meer ruimte voor kortingsinvoer. */
+#appointmentForm .appointment-duration-price-row {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 1.3fr) !important;
+  gap: 10px;
+}
+#appointmentForm #appointmentDiscountControls {
+  display: flex !important;
+  min-width: 0;
+}
+#appointmentForm #appointmentDiscountControls input#appointmentDiscountValue {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+#appointmentForm #appointmentDiscountControls select#appointmentDiscountType {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  padding: 0 2px !important;
+  box-sizing: border-box;
+}
+
+/* Korting: de app-select-wrap (niet de verborgen <select>) bepaalt de zichtbare breedte. */
+#appointmentForm #appointmentDiscountControls { display:flex!important; flex-direction:row!important; width:100%!important; gap:0!important; align-items:stretch; }
+#appointmentForm #appointmentDiscountControls > input#appointmentDiscountValue { flex:1 1 0%!important; width:0!important; min-width:0!important; max-width:none!important; padding:8px 10px!important; }
+#appointmentForm #appointmentDiscountControls > .app-select-wrap { flex:0 0 48px!important; width:48px!important; min-width:48px!important; max-width:48px!important; box-sizing:border-box!important; }
+#appointmentForm #appointmentDiscountControls > .app-select-wrap > .app-select-button { width:100%!important; min-width:0!important; height:42px!important; min-height:42px!important; padding:0 5px!important; gap:2px!important; box-sizing:border-box!important; justify-content:space-between!important; }
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-value { min-width:0!important; font-size:14px!important; }
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-arrow { flex:0 0 auto!important; width:12px!important; height:12px!important; }
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-options { min-width:48px; }
+
+/* Compact pijltje in de kortingskeuze; overige selecties ongemoeid. */
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-arrow { width:9px!important; height:9px!important; }
+
+/* Privé-afspraken: oorspronkelijke verticale volgorde en uitsluitend privévelden. */
+#appointmentForm.appointment-private-mode .appointment-duration-price-row { display:none!important; }
+#appointmentForm.appointment-private-mode .appointment-date-field,
+#appointmentForm.appointment-private-mode .appointment-time-start-field,
+#appointmentForm.appointment-private-mode .appointment-private-end-date-field,
+#appointmentForm.appointment-private-mode .appointment-private-end-field,
+#appointmentForm.appointment-private-mode .appointment-private-field.appointment-form-field-wide {
+  grid-column:1 / -1!important;
+}
+#appointmentForm.appointment-private-mode .appointment-private-field.appointment-form-field-wide {
+  display:block!important;
+}
+
+/* 2026-11-12: privé-afspraak strikt gescheiden van gewone afspraak.
+   Deze regel overschrijft ook de latere :has()-layoutregels voor Klant en Opmerkingen. */
+#appointmentForm.appointment-private-mode .appointment-form-grid > .appointment-normal-field,
+#appointmentForm.appointment-private-mode .appointment-form-grid > .appointment-form-field.appointment-normal-field,
+#appointmentForm.appointment-private-mode .appointment-form-grid > .appointment-duration-price-row.appointment-normal-field {
+  display: none !important;
+}
+/* Privé-switch: dezelfde afmetingen als de switches op Instellingen. */
+#appointmentForm .appointment-private-switch {
+  width: 42px;
+  min-width: 42px;
+  height: 22px;
+  border-radius: 20px;
+  box-sizing: border-box;
+}
+#appointmentForm .appointment-private-switch::after {
+  width: 16px;
+  height: 16px;
+  left: 3px;
+  top: 3px;
+}
+#appointmentForm .appointment-private-toggle input:checked + .appointment-private-switch::after {
+  transform: translateX(20px);
+}
+
+/* Privé: opmerkingen van gewone afspraken mogen nooit zichtbaar zijn. */
+#appointmentForm.appointment-private-mode .appointment-form-field:has(> label[for="appointmentRemarks"]) { display:none!important; }
+
+/* Gerichte correcties: privé-opmerkingen verbergen en lege kortingskeuze. */
+#appointmentForm.appointment-private-mode .appointment-form-grid .appointment-form-field:has(#appointmentRemarks) {
+  display: none !important;
+}
+#appointmentForm #appointmentDiscountControls .app-select-wrap:has(#appointmentDiscountType option[value="none"]:checked) .app-select-value {
+  visibility: hidden !important;
+}
+
+/* 12-11: kortingskeuze compact, zonder horizontale scrollbar. */
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-options {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 3px 2px !important;
+  overflow-x: hidden !important;
+}
+#appointmentForm #appointmentDiscountControls > .app-select-wrap .app-select-option {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 9px 0 !important;
+  text-align: center !important;
+}
+/* Bij geen korting: alleen het pijltje, exact gecentreerd. */
+#appointmentForm #appointmentDiscountControls > .app-select-wrap:has(#appointmentDiscountType option[value="none"]:checked) .app-select-arrow {
+  right: 50% !important;
+  transform: translate(50%, -64%) rotate(45deg) !important;
+}
+#appointmentForm #appointmentDiscountControls > .app-select-wrap.is-open:has(#appointmentDiscountType option[value="none"]:checked) .app-select-arrow {
+  transform: translate(50%, -30%) rotate(225deg) !important;
+}
+
+/* 12-11-2026 – gerichte correcties Nieuwe afspraak / Dienst kiezen */
+/* Selecteren blijft vrij van de scroll-naar-boven-knop rechts. */
+#appointmentServiceOverlay .nb-service-confirm-footer {
+  padding-right: 82px;
+}
+/* Privé-switch: exact dezelfde maatvoering als de switches bij Instellingen. */
+#appointmentForm .appointment-private-switch {
+  display: inline-block;
+  flex: 0 0 46px;
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
+  height: 26px;
+  min-height: 26px;
+  border-radius: 99px;
+  background: #f8e7ee;
+}
+#appointmentForm .appointment-private-switch::after {
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+}
+#appointmentForm .appointment-private-toggle input:checked + .appointment-private-switch {
+  background: #c66a94;
+}
+#appointmentForm .appointment-private-toggle input:checked + .appointment-private-switch::after {
+  transform: translateX(20px);
+}
+/* Het lege dienstveld is één grote klikzone, naast de bestaande + knop. */
+#appointmentForm .appointment-service-picker {
+  width: 100%;
+  min-width: 0;
+}
+#appointmentForm .appointment-service-choice {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: stretch;
+}
+#appointmentForm .appointment-service-choice-name {
+  display: block !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  cursor: pointer;
+}
+#appointmentForm #appointmentChooseServiceBtn {
+  flex: 0 0 42px;
+  width: 42px;
+  min-height: 42px;
+}

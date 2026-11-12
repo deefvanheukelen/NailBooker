@@ -1020,7 +1020,7 @@
   <button id="standardCostsBtn" class="fab fab-secondary hidden feature-retired" type="button" aria-label="Standaardkosten">
     <span aria-hidden="true">☰</span>
   </button>
-  <button id="agendaUnfinishedBtn" class="agenda-unfinished-btn hidden" type="button" aria-label="Niet-afgewerkte afspraken" title="Niet-afgewerkte afspraken"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 22 21H2L12 3Z"/><path d="M12 9v5" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1" fill="currentColor" stroke="none"/></svg></button>
+  <button id="agendaUnfinishedBtn" class="agenda-unfinished-btn hidden" type="button" aria-label="Niet-afgewerkte afspraken" title="Niet-afgewerkte afspraken"><img src="img/warning.svg" alt="" aria-hidden="true" class="agenda-warning-image"></button>
   <div id="agendaUnfinishedPopover" class="agenda-unfinished-popover hidden" role="dialog" aria-label="Niet afgewerkte afspraken">
     <div class="agenda-unfinished-popover-heading"><strong>Niet afgewerkte afspraken</strong><button id="agendaUnfinishedPopoverClose" type="button" class="icon-btn payment-popover-close" aria-label="Sluiten">✕</button></div>
     <p>Er zijn afspraken in het verleden die nog niet afgewerkt zijn.</p>
@@ -1207,7 +1207,7 @@
   </div>
   <div id="appointmentServiceOverlay" class="nb-customer-overlay hidden" role="dialog" aria-modal="true" aria-label="Dienst kiezen">
     <div class="nb-customer-overlay-head"><strong>Dienst kiezen</strong><button id="appointmentServiceOverlayClose" type="button" aria-label="Sluiten">✕</button></div>
-    <div class="nb-customer-overlay-body"><div class="nb-appointment-overlay-search"><input id="appointmentServiceOverlaySearch" class="search-input" type="search" placeholder="Zoek dienst..." aria-label="Dienst zoeken" autocomplete="off"></div><div id="appointmentServiceAlphabet" class="alphabet-filter"></div><div id="appointmentServiceList" class="scroll-list"></div></div>
+    <div class="nb-customer-overlay-body"><div class="nb-appointment-overlay-search"><input id="appointmentServiceOverlaySearch" class="search-input" type="search" placeholder="Zoek dienst..." aria-label="Dienst zoeken" autocomplete="off"></div><div id="appointmentServiceAlphabet" class="alphabet-filter"></div><div id="appointmentServiceList" class="scroll-list"></div></div><div class="nb-service-confirm-footer"><button id="appointmentServicesConfirm" class="hidden" type="button">Selecteren</button></div>
     <button id="appointmentServiceScrollTop" class="nb-scroll-top" type="button" aria-label="Terug naar boven" aria-hidden="true" tabindex="-1" title="Terug naar boven"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 14 7-7 7 7"/></svg></button>
   </div>
 
@@ -1220,11 +1220,24 @@
       <input type="hidden" id="appointmentId" />
 
       <label class="appointment-private-toggle" for="appointmentIsPrivate">
-        <input id="appointmentIsPrivate" type="checkbox" />
         <span>Privé</span>
+        <input id="appointmentIsPrivate" type="checkbox" role="switch" />
+        <span class="appointment-private-switch" aria-hidden="true"></span>
       </label>
 
       <div class="appointment-form-grid">
+        <div class="appointment-form-field appointment-shared-field appointment-date-field">
+          <label class="field-label" for="appointmentDate">Datum</label>
+          <input id="appointmentDate" class="field appointment-native-picker-input" type="date" required tabindex="-1" aria-hidden="true" />
+          <button id="appointmentDateDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Datum kiezen">Kies datum</button>
+        </div>
+
+        <div class="appointment-form-field appointment-shared-field appointment-time-start-field">
+          <label id="appointmentTimeLabel" class="field-label" for="appointmentTime">Tijd</label>
+          <input id="appointmentTime" class="field appointment-native-picker-input" type="time" required tabindex="-1" aria-hidden="true" />
+          <button id="appointmentTimeDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Tijd kiezen">Kies tijd</button>
+        </div>
+
         <div class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentCustomerSearch">Klant</label>
           <div class="appointment-customer-picker">
@@ -1248,20 +1261,8 @@
             </button>
         </div>
 
-        <div class="appointment-form-field appointment-shared-field appointment-date-field">
-          <label class="field-label" for="appointmentDate">Datum</label>
-          <input id="appointmentDate" class="field appointment-native-picker-input" type="date" required tabindex="-1" aria-hidden="true" />
-          <button id="appointmentDateDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Datum kiezen">Kies datum</button>
-        </div>
-
-        <div class="appointment-form-field appointment-shared-field appointment-time-start-field">
-          <label id="appointmentTimeLabel" class="field-label" for="appointmentTime">Tijd</label>
-          <input id="appointmentTime" class="field appointment-native-picker-input" type="time" required tabindex="-1" aria-hidden="true" />
-          <button id="appointmentTimeDisplayBtn" class="field appointment-picker-display" type="button" aria-label="Tijd kiezen">Kies tijd</button>
-        </div>
-
         <div class="appointment-form-field appointment-form-field-wide appointment-normal-field">
-          <label class="field-label" for="appointmentServiceSearch">Dienst</label>
+          <label class="field-label" for="appointmentServiceSearch">Dienst(en)</label>
           <div class="appointment-service-picker">
             <input
               id="appointmentServiceSearch"
@@ -1272,12 +1273,14 @@
               aria-controls="appointmentServiceResults"
               aria-expanded="false"
             />
-            <div class="appointment-service-choice"><span id="appointmentServiceDisplay" class="appointment-service-choice-name" role="button" tabindex="0" aria-label="Dienst kiezen"></span><button id="appointmentChooseServiceBtn" type="button" aria-label="Dienst kiezen">+</button></div>
+            <div class="appointment-service-choice"><span id="appointmentServiceDisplay" class="appointment-service-choice-name" role="button" tabindex="-1" aria-label="Dienst kiezen"></span><button id="appointmentChooseServiceBtn" type="button" aria-label="Dienst toevoegen">+</button></div>
             <div id="appointmentServiceResults" class="appointment-service-results hidden" role="listbox"></div>
             <select id="appointmentService" class="field appointment-service-select-fallback" required aria-label="Dienst kiezen"></select>
           </div>
+          <div id="appointmentSelectedServices" class="hidden"></div>
         </div>
 
+<div class="appointment-duration-price-row appointment-normal-field">
         <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentDuration">Duur (min)</label>
           <input id="appointmentDuration" class="field" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required />
@@ -1286,7 +1289,11 @@
         <div class="appointment-form-field appointment-normal-field">
           <label class="field-label" for="appointmentPrice">Prijs</label>
           <input id="appointmentPrice" class="field" type="text" inputmode="decimal" autocomplete="off" required />
+          <div id="appointmentDiscountedPrice" class="hidden"><span>Prijs met korting</span><strong id="appointmentDiscountSummary"></strong></div>
         </div>
+
+        <div id="appointmentDiscountWrap" class="appointment-form-field"><label class="field-label" for="appointmentDiscountValue">Korting</label><div id="appointmentDiscountControls"><input id="appointmentDiscountValue" class="field" type="number" min="0" step="0.01" placeholder="" aria-label="Korting" disabled><select id="appointmentDiscountType" class="field" aria-label="Soort korting"><option value="none"></option><option value="amount">€</option><option value="percent">%</option></select></div></div>
+</div>
 
         <div id="appointmentStatusWrap" class="appointment-form-field appointment-form-field-wide appointment-normal-field">
           <label class="field-label" for="appointmentStatus">Status</label>
@@ -1934,7 +1941,7 @@
 
   <div id="revenueActionBar" class="revenue-action-bar hidden" aria-label="Omzetacties">
     <button id="revenueExportReportBtn" class="client-action-btn revenue-action-btn-report" type="button" aria-label="Genereer kwartaaloverzicht daginkomsten">
-      <span class="client-action-icon revenue-action-report-label" aria-hidden="true">Daginkomsten</span>
+      <span class="client-action-icon revenue-action-report-label" aria-hidden="true"><img src="img/daginkomsten.svg" alt="" class="revenue-income-image"></span>
     </button>
   </div>
 

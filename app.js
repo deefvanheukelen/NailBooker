@@ -9824,12 +9824,12 @@ function setAppointmentService(serviceId, { updateSearch = true, updateDefaults 
   }
 
   if (searchInput && updateSearch) {
-    searchInput.value = service ? service.name : "";
+    searchInput.value = "";
   }
 
   refreshAppSelect(serviceSelect);
   const serviceDisplay = document.getElementById("appointmentServiceDisplay");
-  if (serviceDisplay) serviceDisplay.textContent = service ? service.name : "";
+  if (serviceDisplay) serviceDisplay.textContent = "";
 
   if (updateDefaults && service) {
     syncServiceDefaults();
@@ -9896,6 +9896,110 @@ function renderAppointmentServiceResults(query = "", showAllWhenEmpty = false) {
   if (searchInput) searchInput.setAttribute("aria-expanded", "true");
 }
 
+// Multiple services are stored as structured metadata in appointment_remarks.
+// This preserves compatibility with existing Supabase installations and legacy appointments.
+let appointmentServices = [];
+let appointmentOverlayPicks = new Set();
+let appointmentDiscount = { type: "none", value: 0 };
+const APPOINTMENT_SERVICES_TAG = "[NB_SERVICES_V1:";
+function parseAppointmentServicesMeta(raw) {
+  const text = String(raw || "");
+  const match = text.match(/\n?\[NB_SERVICES_V1:([A-Za-z0-9+/=]+)\]\s*$/);
+  if (!match) return { remarks: text, meta: null };
+  try {
+    const decoded = decodeURIComponent(Array.from(atob(match[1]), c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")).join(""));
+    const meta = JSON.parse(decoded);
+    return { remarks: text.slice(0, match.index).trimEnd(), meta };
+  } catch (_) { return { remarks: text, meta: null }; }
+}
+function serializeAppointmentServicesMeta(remarks, ids, discount) {
+  const clean = parseAppointmentServicesMeta(remarks).remarks;
+  if (ids.length < 2 && !(Number(discount.value) > 0)) return clean;
+  const json = JSON.stringify({ ids: ids.map(Number), discount });
+  const encoded = btoa(Array.from(new TextEncoder().encode(json), b => String.fromCharCode(b)).join(""));
+  return (clean ? clean + "\n" : "") + APPOINTMENT_SERVICES_TAG + encoded + "]";
+}
+function appointmentServiceIds() { return appointmentServices.map(String); }
+function updateAppointmentDiscountUnit() {
+  const unit = document.getElementById("appointmentDiscountUnit");
+  if (unit) unit.textContent = document.getElementById("appointmentDiscountType")?.value === "percent" ? "%" : "€";
+}
+function appointmentFinalPrice() {
+  const base = parseDecimalInput(document.getElementById("appointmentPrice").value);
+  if (!appointmentServices.length) return base;
+  const amount = Math.max(0, Number(appointmentDiscount.value) || 0);
+  const deduction = appointmentDiscount.type === "percent" ? base * Math.min(100, amount) / 100 : amount;
+  return Math.round(Math.max(0, base - deduction) * 100) / 100;
+}
+function renderAppointmentSelectedServices() {
+  const data = getData();
+  const wrap = document.getElementById("appointmentSelectedServices");
+  const discountWrap = document.getElementById("appointmentDiscountWrap");
+  if (!wrap || !discountWrap) return;
+  if (!appointmentServices.length) appointmentDiscount = {type:"none",value:0};
+  wrap.innerHTML = appointmentServices.map((id, index) => {
+    const svc = serviceById(data, id);
+    if (!svc) return "";
+    return `<div class="nb-selected-service"><span>${escapeHtml(svc.name)} <small>${Number(svc.duration || 0)} min · ${euro(svc.price)}</small></span><button type="button" data-remove-appointment-service="${index}" aria-label="${escapeHtml(svc.name)} verwijderen">✕</button></div>`;
+  }).join("");
+  wrap.classList.toggle("hidden", !appointmentServices.length);
+  discountWrap.classList.remove("hidden");
+  const discountButton = document.getElementById("appointmentDiscountToggle");
+  
+
+  document.getElementById("appointmentDiscountControls")?.classList.remove("hidden");
+  const type = document.getElementById("appointmentDiscountType");
+  const value = document.getElementById("appointmentDiscountValue");
+  if (type) type.value = appointmentDiscount.type;
+  if (value) { value.disabled = appointmentDiscount.type === "none" || !appointmentServices.length; value.value = appointmentDiscount.type === "none" ? "" : (appointmentDiscount.value || ""); }
+  if (type) type.disabled = !appointmentServices.length;
+  const summary = document.getElementById("appointmentDiscountSummary");
+  const subtotal = appointmentServices.reduce((sum,id) => sum + Number(serviceById(data,id)?.price || 0), 0);
+  const duration = appointmentServices.reduce((sum,id) => sum + Number(serviceById(data,id)?.duration || 0), 0);
+  const requested = Math.max(0, Number(appointmentDiscount.value) || 0);
+  const deduction = Math.min(subtotal, appointmentDiscount.type === "percent" ? subtotal * Math.min(100,requested) / 100 : requested);
+  const discounted = Math.round((subtotal - deduction) * 100) / 100;
+  if (summary) {
+    summary.textContent = deduction > 0 ? `€ ${discounted.toFixed(2).replace(".", ",")}` : "";
+    summary.classList.toggle("hidden", !(deduction > 0));
+  }
+  document.getElementById("appointmentDiscountedPrice")?.classList.toggle("hidden", !(deduction > 0));
+  if (appointmentServices.length) {
+    document.getElementById("appointmentDuration").value = duration;
+    document.getElementById("appointmentPrice").value = subtotal.toFixed(2);
+  }
+}
+function setAppointmentServices(ids, discount = {type:"amount",value:0}) {
+  appointmentServices = ids.map(String).filter(id => serviceById(getData(),id));
+  appointmentDiscount = {type:discount?.type === "percent" ? "percent" : (Number(discount?.value) > 0 && discount?.type === "amount" ? "amount" : "none"),value:Math.max(0,Number(discount?.value)||0)};
+  const first = appointmentServices[0] || "";
+  setAppointmentService(first, {updateSearch:false,updateDefaults:false});
+  const display = document.getElementById("appointmentServiceDisplay");
+  if (display) display.textContent = "";
+  const search = document.getElementById("appointmentServiceSearch");
+  if (search) search.value = "";
+  renderAppointmentSelectedServices();
+}
+function appendAppointmentService(id) {
+  if (!id || !serviceById(getData(),id)) return;
+  addAppointmentServicesWithDuplicateCheck([String(id)]);
+}
+async function addAppointmentServicesWithDuplicateCheck(ids) {
+  const incoming = ids.map(String).filter(id => serviceById(getData(), id));
+  if (!incoming.length) return;
+  const existing = new Set(appointmentServices.map(String));
+  const duplicates = incoming.filter(id => existing.has(id));
+  let toAdd = incoming;
+  if (duplicates.length) {
+    const names = [...new Set(duplicates)].map(id => serviceById(getData(), id)?.name || id);
+    const confirmed = await appConfirm(
+      `Deze ${names.length === 1 ? "dienst staat" : "diensten staan"} al in de afspraak:\n${names.join("\n")}\n\nWil je ${names.length === 1 ? "deze dienst" : "deze diensten"} nogmaals toevoegen?`,
+      { title: "Dienst reeds toegevoegd", confirmText: "Ja", cancelText: "Nee" }
+    );
+    if (!confirmed) toAdd = incoming.filter(id => !existing.has(id));
+  }
+  if (toAdd.length) setAppointmentServices([...appointmentServices, ...toAdd], appointmentDiscount);
+}
 let appointmentServiceOverlayLetter = "";
 function closeAppointmentServiceOverlay() {
   document.getElementById("appointmentServiceOverlay")?.classList.add("hidden");
@@ -9922,7 +10026,7 @@ function renderAppointmentServiceOverlay() {
   list.innerHTML = services.length ? services.map(s => {
     const name = s.name || "Naamloze dienst";
     const meta = `${Number(s.duration || 0)} min · ${euro(s.price)}${s.isActive === false ? ` · ${t("inactive")}` : ""}`;
-    return `<div class="service-card"><button type="button" data-pick-service="${htmlEscape(String(s.id))}"><span class="management-list-content"><span class="management-initial ${managementInitialColorClass(name)}" aria-hidden="true">${managementInitial(name)}</span><span class="management-list-text"><span class="client-name">${escapeHtml(name)}</span><span class="meta">${escapeHtml(meta)}</span></span></span></button></div>`;
+    return `<div class="service-card nb-multi-service-card"><button type="button" data-pick-service="${htmlEscape(String(s.id))}"><span class="management-list-content"><span class="management-initial ${managementInitialColorClass(name)}" aria-hidden="true">${managementInitial(name)}</span><span class="management-list-text"><span class="client-name">${escapeHtml(name)}</span><span class="meta">${escapeHtml(meta)}</span></span></span></button><input type="checkbox" data-check-service="${htmlEscape(String(s.id))}" aria-label="${escapeHtml(name)} selecteren" ${appointmentOverlayPicks.has(String(s.id)) ? "checked" : ""}></div>`;
   }).join("") : `<div class="empty-state">${t("noActiveServices")}</div>`;
 }
 function openAppointmentServiceOverlay() {
@@ -9931,6 +10035,8 @@ function openAppointmentServiceOverlay() {
   appointmentServiceOverlayLetter = "";
   const search = document.getElementById("appointmentServiceOverlaySearch");
   if (search) search.value = "";
+  appointmentOverlayPicks = new Set();
+  document.getElementById("appointmentServicesConfirm")?.classList.add("hidden");
   overlay.classList.remove("hidden");
   overlay.querySelector(".nb-customer-overlay-body")?.scrollTo(0,0);
   const btn = document.getElementById("appointmentServiceScrollTop");
@@ -9958,8 +10064,41 @@ function setupAppointmentServiceOverlay() {
   document.getElementById("appointmentServiceList")?.addEventListener("click", e => {
     const btn = e.target.closest("[data-pick-service]");
     if (!btn) return;
-    setAppointmentService(btn.dataset.pickService);
+    appendAppointmentService(btn.dataset.pickService);
     closeAppointmentServiceOverlay();
+  });
+  document.getElementById("appointmentServiceList")?.addEventListener("change", e => {
+    const check = e.target.closest("[data-check-service]");
+    if (!check) return;
+    if (check.checked) appointmentOverlayPicks.add(check.dataset.checkService);
+    else appointmentOverlayPicks.delete(check.dataset.checkService);
+    document.getElementById("appointmentServicesConfirm")?.classList.toggle("hidden", appointmentOverlayPicks.size < 1);
+  });
+  document.getElementById("appointmentServicesConfirm")?.addEventListener("click", () => {
+    const picks = [...appointmentOverlayPicks];
+    closeAppointmentServiceOverlay();
+    void addAppointmentServicesWithDuplicateCheck(picks);
+  });
+  document.getElementById("appointmentSelectedServices")?.addEventListener("click", e => {
+    const btn = e.target.closest("[data-remove-appointment-service]");
+    if (!btn) return;
+    const index = Number(btn.dataset.removeAppointmentService);
+    setAppointmentServices(appointmentServices.filter((_, i) => i !== index), appointmentDiscount);
+  });
+  document.getElementById("appointmentDiscountType")?.addEventListener("change", () => {
+    const type = document.getElementById("appointmentDiscountType").value;
+    appointmentDiscount = { type, value: type === "none" ? 0 : appointmentDiscount.value };
+    renderAppointmentSelectedServices();
+  });
+  document.getElementById("appointmentDiscountValue")?.addEventListener("input", () => {
+    const input = document.getElementById("appointmentDiscountValue");
+    appointmentDiscount = { type: document.getElementById("appointmentDiscountType").value, value: Math.max(0, Number(input.value) || 0) };
+    // Bij typen de focus behouden; enkel de berekende prijs bijwerken.
+    const base = parseDecimalInput(document.getElementById("appointmentPrice").value);
+    const deduction = Math.min(base, appointmentDiscount.type === "percent" ? base * Math.min(100, appointmentDiscount.value) / 100 : appointmentDiscount.value);
+    const summary = document.getElementById("appointmentDiscountSummary");
+    if (summary) summary.textContent = deduction > 0 ? `€ ${(base - deduction).toFixed(2).replace(".", ",")}` : "";
+    document.getElementById("appointmentDiscountedPrice")?.classList.toggle("hidden", !(deduction > 0));
   });
   const scrollArea = overlay.querySelector(".nb-customer-overlay-body");
   const scrollButton = document.getElementById("appointmentServiceScrollTop");
@@ -10028,7 +10167,7 @@ function setupAppointmentServiceSearch() {
       if (!button) return;
       event.preventDefault();
       event.stopPropagation();
-      setAppointmentService(button.dataset.serviceId);
+      appendAppointmentService(button.dataset.serviceId);
       hideAppointmentServiceResults();
     });
   }
@@ -10038,8 +10177,9 @@ function setupAppointmentServiceSearch() {
     searchInput.value = service ? service.name : "";
     refreshAppSelect(serviceSelect);
     const display = document.getElementById("appointmentServiceDisplay");
-    if (display) display.textContent = service ? service.name : "";
-    syncServiceDefaults();
+    if (display) display.textContent = "";
+    if (service) setAppointmentServices([service.id]);
+    else setAppointmentServices([]);
   });
 
   serviceSelect.dataset.rebuildAppointmentDropdown = "true";
@@ -10180,7 +10320,8 @@ function openNewAppointmentDialog(prefillCustomerId = null) {
   if (remarksInput) remarksInput.value = "";
   syncAppointmentDateTimeDisplays();
 
-  setAppointmentService("", { updateSearch: true, updateDefaults: false });
+  setAppointmentServices([]);
+  document.getElementById("appointmentDiscountControls")?.classList.remove("hidden");
 
   const durationInput = document.getElementById("appointmentDuration");
   const priceInput = document.getElementById("appointmentPrice");
@@ -10223,7 +10364,8 @@ function openEditAppointmentDialog(id) {
   document.getElementById("appointmentPrivateDetails").value = app.privateDetails || "";
   document.getElementById("appointmentPrivateRepeat").value = app.recurrenceRule || "none";
   updatePrivateRepeatWeeklyLabel();
-  setAppointmentService(app.serviceId, { updateSearch: true, updateDefaults: false });
+  setAppointmentServices(app.serviceIds?.length ? app.serviceIds : [app.serviceId], app.serviceDiscount);
+  document.getElementById("appointmentDiscountControls")?.classList.remove("hidden");
   hideAppointmentServiceResults();
   document.getElementById("appointmentDuration").value = app.duration;
   document.getElementById("appointmentPrice").value = app.price;
@@ -11299,7 +11441,7 @@ async function saveAppointmentFromForm(event) {
     return;
   }
 
-  const selectedServiceId = document.getElementById("appointmentService")?.value || "";
+  const selectedServiceId = appointmentServices[0] || document.getElementById("appointmentService")?.value || "";
   if (!isPrivate && !selectedServiceId) {
     await appAlert("Kies eerst een dienst uit de zoekresultaten.", { title: "Dienst kiezen", variant: "warning" });
     document.getElementById("appointmentServiceSearch")?.focus();
@@ -11333,9 +11475,9 @@ async function saveAppointmentFromForm(event) {
     time: document.getElementById("appointmentTime").value,
     serviceId: isPrivate ? null : Number(selectedServiceId),
     duration: isPrivate ? calculatePrivateDuration(privateStartTime, privateEndTime) : Number(document.getElementById("appointmentDuration").value),
-    price: isPrivate ? 0 : parseDecimalInput(document.getElementById("appointmentPrice").value),
+    price: isPrivate ? 0 : appointmentFinalPrice(),
     status: isPrivate ? "gepland" : (id ? document.getElementById("appointmentStatus").value : "gepland"),
-    remarks: isPrivate ? "" : String(document.getElementById("appointmentRemarks")?.value || "").trim(),
+    remarks: isPrivate ? "" : serializeAppointmentServicesMeta(String(document.getElementById("appointmentRemarks")?.value || "").trim(), appointmentServiceIds(), appointmentDiscount),
     isPrivate,
     privateTitle: isPrivate ? privateTitle : "",
     privateDetails: isPrivate ? String(document.getElementById("appointmentPrivateDetails")?.value || "").trim() : "",
@@ -11460,7 +11602,7 @@ async function saveAppointmentFromForm(event) {
           duration: item.duration,
           price: item.price,
           status: item.status,
-          appointment_remarks: item.isPrivate ? withPrivateEndDateMeta(item.remarks, item.privateEndDate || item.date) : item.remarks,
+          appointment_remarks: item.isPrivate ? withPrivateEndDateMeta(item.remarks, item.privateEndDate || item.date) : serializeAppointmentServicesMeta(item.remarks, localPayload.serviceId === item.serviceId ? appointmentServiceIds() : (item.serviceIds || [item.serviceId]), localPayload.serviceId === item.serviceId ? appointmentDiscount : item.serviceDiscount || {type:"amount",value:0}),
           is_private: item.isPrivate,
           private_title: item.privateTitle || null,
           private_details: item.privateDetails || null,
@@ -13835,10 +13977,13 @@ async function loadAppointmentsFromSupabase() {
 
 function mapSupabaseAppointmentRow(a) {
   const rawRemarks = String(a.appointment_remarks || a.remarks || "").trim();
+  const parsedServices = parseAppointmentServicesMeta(rawRemarks);
   return {
     id: a.id,
     customerId: a.customer_id,
     serviceId: a.service_id,
+    serviceIds: parsedServices.meta?.ids || [a.service_id],
+    serviceDiscount: parsedServices.meta?.discount || {type:"amount",value:0},
     date: a.appointment_date,
     time: a.appointment_time ? String(a.appointment_time).slice(0, 5) : "",
     duration: a.duration,
@@ -13847,7 +13992,7 @@ function mapSupabaseAppointmentRow(a) {
     paid: Boolean(a.paid),
     paymentMethodName: a.payment_method_label ?? null,
     currency: normalizeCurrency(a.currency || DEFAULT_CURRENCY),
-    remarks: stripPrivateEndDateMeta(rawRemarks),
+    remarks: stripPrivateEndDateMeta(parsedServices.remarks),
     isPrivate: Boolean(a.is_private),
     privateTitle: String(a.private_title || "").trim(),
     privateDetails: String(a.private_details || "").trim(),
