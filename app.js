@@ -1890,16 +1890,23 @@ function ensurePastUnpaidOverviewDialog() {
 
 // Eén gedeelde HTML-opbouw voor gewone afspraken in Agenda en openstaand overzicht.
 function normalAppointmentRowMarkup(app, data, customer, service) {
-  const details = [];
-  if (service?.name) details.push(service.name);
-  if (String(app.status || "").toLowerCase() === "no-show") details.push("no show");
-  else if (app.paid && paymentMethodNameForAppointment(app, data)) details.push(paymentMethodNameForAppointment(app, data));
+  // Show every selected service in its stored order (including duplicates).
+  // Older appointments without serviceIds still use their original serviceId.
+  const ids = Array.isArray(app.serviceIds) && app.serviceIds.length
+    ? app.serviceIds : [app.serviceId];
+  const serviceNames = ids.map(id => serviceById(data, id)?.name)
+    .filter(Boolean);
+  if (!serviceNames.length && service?.name) serviceNames.push(service.name);
+  const details = serviceNames.map(name => `<div class="agenda-service-line">${htmlEscape(name)}</div>`);
+  if (String(app.status || "").toLowerCase() === "no-show") details.push('<div class="agenda-payment-line">no show</div>');
+  else if (app.paid && paymentMethodNameForAppointment(app, data))
+    details.push(`<div class="agenda-payment-line">${htmlEscape(paymentMethodNameForAppointment(app, data))}</div>`);
   const name = customer ? fullName(customer) : "Onbekend";
   const star = String(app.remarks || "").trim() ? '<span class="appointment-remarks-star" title="Opmerking aanwezig" aria-label="Opmerking aanwezig">★</span>' : "";
   return `<div class="time-block"><div class="time">${htmlEscape(app.time || "")}</div>
     <div class="time-end">${htmlEscape(t("until"))} ${htmlEscape(getAppointmentDisplayEndTime(app, getSettings().defaultBreakMinutes))}</div></div>
     <div class="appointment-description"><div class="main-name appointment-main-name">${htmlEscape(name)}${star}</div>
-    <div class="meta">${htmlEscape(details.join(" · "))}</div></div>
+    <div class="meta agenda-service-details">${details.join("")}</div></div>
     <button class="price-chip ${app.paid ? "paid" : ""} ${String(app.status || "").toLowerCase() === "no-show" ? "no-show" : ""}" data-id="${htmlEscape(String(app.id))}" type="button">${euro(app.price, app.currency)}</button>`;
 }
 

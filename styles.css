@@ -14958,3 +14958,11 @@ button.btn-secondary, button.btn.btn-secondary.action-btn { background:#ededf0!i
   width: 42px;
   min-height: 42px;
 }
+
+/* Agenda: multiple services grow vertically; time and payment stay at the top. */
+#agendaList .appointment-row:not(.private-appointment-row) { align-items: start; }
+#agendaList .appointment-row:not(.private-appointment-row) .time-block,
+#agendaList .appointment-row:not(.private-appointment-row) .price-chip { align-self: start; }
+#agendaList .agenda-service-details { line-height: 1.35; }
+#agendaList .agenda-service-line + .agenda-service-line,
+#agendaList .agenda-payment-line { margin-top: 3px; }
